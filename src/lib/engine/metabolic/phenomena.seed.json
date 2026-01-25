@@ -1,0 +1,110 @@
+[
+  {
+    "id": "randle_cycle",
+    "name": "Randle Cycle (Glucose–Fatty Acid)",
+    "mechanism": "Glucose and fatty acids compete for oxidation; high fatty acid availability suppresses glucose uptake and oxidation in muscle, prolonging glucose elevations.",
+    "deepseek_prompt_template": "Explain how, after this mixed high-fat and high-carb meal, the Randle Cycle means their elevated fatty acids are temporarily crowding out glucose usage in muscle. Give one simple adjustment for their next meal to reduce this effect (for example, separating higher-fat and higher-carb meals in time)."
+  },
+  {
+    "id": "cori_cycle",
+    "name": "Cori Cycle",
+    "mechanism": "Lactate produced by anaerobic muscle is transported to the liver and converted back to glucose, shifting energy cost to the liver.",
+    "deepseek_prompt_template": "The user has just done higher-intensity work. Describe the Cori Cycle in one sentence, focusing on how their muscles hand lactate off to the liver to recycle it into glucose, and suggest one recovery snack that supports this process."
+  },
+  {
+    "id": "cahill_cycle",
+    "name": "Cahill Cycle (Glucose–Alanine)",
+    "mechanism": "Muscle exports alanine to the liver, which converts it to glucose while handling nitrogen as urea.",
+    "deepseek_prompt_template": "In a deficit or long fast, explain in one sentence how the Cahill (glucose–alanine) cycle means the body can turn amino acids from muscle into glucose, and give one practical tip to protect lean mass."
+  },
+  {
+    "id": "ketone_glucose_sparing",
+    "name": "Ketone–Glucose Sparing",
+    "mechanism": "When ketone bodies are elevated, the brain and other tissues partially switch from glucose to ketones, lowering glucose demand and protein breakdown.",
+    "deepseek_prompt_template": "If the user is low-carb or fasted, describe how ketones help spare glucose and muscle protein, and suggest one way to use this effect without feeling overly restricted."
+  },
+  {
+    "id": "protein_sparing_effect",
+    "name": "Protein Sparing Effect",
+    "mechanism": "Adequate energy from carbs and fats reduces the need to break down muscle protein to supply glucose via gluconeogenesis.",
+    "deepseek_prompt_template": "Given their calorie and macro intake, explain briefly how eating enough carbs or fats can spare muscle protein from being burned, and give one concrete macro tweak to keep them in a 'protein-sparing' zone while cutting."
+  },
+  {
+    "id": "reverse_randle",
+    "name": "Reverse Randle Concept",
+    "mechanism": "Lowering fatty acid levels and improving insulin sensitivity shifts muscle back towards greater glucose uptake and oxidation.",
+    "deepseek_prompt_template": "If their recent pattern shows many fatty, late meals, explain how dialing down evening fat helps their muscles 'switch back on' for glucose, and suggest one simple lower-fat, higher-carb meal structure for nights."
+  },
+  {
+    "id": "ffa_insulin_antagonism",
+    "name": "FFA–Insulin Antagonism",
+    "mechanism": "High circulating free fatty acids acutely interfere with insulin signalling, causing temporary insulin resistance and higher glucose.",
+    "deepseek_prompt_template": "After a heavy high-fat meal, explain in plain language how elevated blood fats can make insulin work less effectively for a few hours, and give one actionable step (like a short walk or leaner next meal) to reduce that effect."
+  },
+  {
+    "id": "crabtree_effect",
+    "name": "Crabtree Effect",
+    "mechanism": "Very high glucose availability can favour glycolysis and suppress oxidative phosphorylation, even when oxygen is present.",
+    "deepseek_prompt_template": "If they are stacking very carb-heavy meals, explain how a 'Crabtree-like' effect pushes cells into quick sugar burning rather than efficient oxidation, and suggest one way to smooth carb intake across the day."
+  },
+  {
+    "id": "pasteur_effect",
+    "name": "Pasteur Effect",
+    "mechanism": "Oxygen availability shifts metabolism from anaerobic glycolysis toward oxidative phosphorylation, reducing glucose demand.",
+    "deepseek_prompt_template": "After breathless efforts, briefly explain how better oxygen delivery (e.g. walking or easy cardio) lets the body use fuel more efficiently and rely less on frantic sugar burning."
+  },
+  {
+    "id": "warburg_effect",
+    "name": "Warburg Effect",
+    "mechanism": "Some cells preferentially use glycolysis even in the presence of oxygen, with lactate production.",
+    "deepseek_prompt_template": "Translate the 'Warburg-like' fast glycolysis idea into everyday terms for high-intensity bursts, and give one suggestion on how to support recovery without overshooting carbs."
+  },
+  {
+    "id": "citrate_pfk_inhibition",
+    "name": "Citrate Inhibition of PFK",
+    "mechanism": "High citrate levels signal a well-fed state and inhibit phosphofructokinase, slowing glycolysis when downstream pathways are saturated.",
+    "deepseek_prompt_template": "Explain simply how, when energy pathways are backed up, extra carbs can get 'turned away' by enzymes like PFK, and suggest a smaller or more balanced carb portion for this user."
+  },
+  {
+    "id": "atp_nadh_tca_inhibition",
+    "name": "ATP/NADH Inhibition of TCA Enzymes",
+    "mechanism": "High ATP and NADH levels inhibit key TCA cycle enzymes, signalling that energy supply exceeds demand.",
+    "deepseek_prompt_template": "In one sentence, describe how a surplus of energy (lots of ATP/NADH) tells their mitochondria to ease off burning more fuel, and give one tip about matching meal size to activity."
+  },
+  {
+    "id": "ampk_mtor_axis",
+    "name": "AMPK–mTOR Axis",
+    "mechanism": "AMPK senses energy shortage and promotes catabolic repair pathways; mTOR senses abundance and drives growth and synthesis.",
+    "deepseek_prompt_template": "Given their fast–feed pattern, explain briefly how AMPK is their 'repair mode' and mTOR their 'growth mode', and suggest one timing tweak so they get both good recovery and growth across the week."
+  },
+  {
+    "id": "sirtuins_energy_status",
+    "name": "SIRT Family (Energy & Longevity Signals)",
+    "mechanism": "Sirtuins respond to energy status and NAD+ levels, linking nutrition and fasting to repair and ageing pathways.",
+    "deepseek_prompt_template": "If the user is experimenting with longer fasts, summarise in plain language how sirtuin-type signals respond to energy shortage, and give one conservative, sustainable way to use that without burning out."
+  },
+  {
+    "id": "ulk1_autophagy",
+    "name": "ULK1 & Autophagy",
+    "mechanism": "ULK1 activation triggers autophagy when nutrients and growth signals are low, recycling cellular components.",
+    "deepseek_prompt_template": "For longer gaps between meals, explain how a mild rise in autophagy can act like 'cellular housekeeping', and suggest one safe fasting window that fits their current goal."
+  },
+  {
+    "id": "scfa_glucose_competition",
+    "name": "SCFAs Competing with Glucose",
+    "mechanism": "Short-chain fatty acids from gut fermentation provide an alternative fuel, partially sparing glucose.",
+    "deepseek_prompt_template": "If their fibre intake is rising, explain how gut bacteria turn fibre into small fats (SCFAs) that can share the energy load with glucose, and recommend one high-fibre food that suits their condition."
+  },
+  {
+    "id": "anaplerosis_cataplerosis",
+    "name": "Anaplerotic/Cataplerotic Balance",
+    "mechanism": "Anaplerotic reactions refill TCA intermediates; cataplerotic reactions pull them out for biosynthesis and gluconeogenesis.",
+    "deepseek_prompt_template": "Translate the idea of 'refilling vs draining' their metabolic engine (TCA cycle), and suggest one steady habit (like consistent protein and veg) to keep that engine balanced."
+  },
+  {
+    "id": "urea_cycle_nitrogen_handling",
+    "name": "Urea Cycle (Nitrogen Handling)",
+    "mechanism": "The urea cycle disposes of ammonia generated from amino acid metabolism, crucial when protein intake or breakdown is high.",
+    "deepseek_prompt_template": "If their protein intake is high, explain simply how the body has to detoxify extra nitrogen through the urea cycle, and give one practical ceiling for daily protein that fits their goal."
+  }
+]   

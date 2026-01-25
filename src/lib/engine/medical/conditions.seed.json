@@ -1,0 +1,110 @@
+[
+  {
+    "id": "coeliac",
+    "name": "Coeliac Disease",
+    "category": "Autoimmune & GI",
+    "diet_impact": "Gluten triggers immune response and intestinal damage in the small intestine, impairing nutrient absorption.",
+    "strictness": "critical",
+    "tags": ["gluten-free"],
+    "rules_json": {
+      "general_rules": ["100% exclusion of gluten from wheat, barley, rye and non-certified oats."],
+      "emphasise_foods": ["Naturally gluten-free whole foods.","Adequate protein intake to maintain muscle mass.","Healthy fats for gut healing and calorie sufficiency."],
+      "never_recommend": ["Wheat, barley, rye and non-certified oats.","Standard pasta, bread, cakes, most breakfast cereals, many sauces and ready meals containing gluten."]
+    },
+    "never_recommend_json": {
+      "ingredients": ["wheat","barley","rye","regular oats"],
+      "patterns": ["contains-gluten"]
+    },
+    "dga_score": 1.0
+  },
+  {
+    "id": "crohns",
+    "name": "Crohn's Disease",
+    "category": "Autoimmune & GI",
+    "diet_impact": "Inflammation anywhere along the GI tract; high fibre and high-fat foods can worsen flares and symptoms.",
+    "strictness": "moderate",
+    "tags": ["low-residue","gentle-digest","easy-to-chew"],
+    "rules_json": {
+      "general_rules": ["Reduce insoluble fibre during flares.","Prefer low-residue, easy-to-digest meals.","Maintain adequate protein with lower fat content.","Limit lactose if poorly tolerated."],
+      "emphasise_foods": ["Refined grains like white rice, rice pasta, potatoes, oats without seeds or nuts.","Cooked/peeled fruits and vegetables.","Lean proteins (eggs, white meat poultry, fish, tofu).","Non-caffeinated, non-alcoholic fluids."],
+      "never_recommend": ["Very high-fibre whole grains during flares.","High-fat meats and fried foods.","Raw cruciferous vegetables and tough raw veg.","Alcohol, caffeine, strongly carbonated drinks.","Very spicy foods with heavy garlic/onion."]
+    },
+    "never_recommend_json": {
+      "ingredients": ["whole-wheat","rye","barley","sausage","bacon"],
+      "patterns": ["very-spicy","deep-fried","high-fibre-wholegrain"]
+    },
+    "dga_score": 0.8
+  },
+  {
+    "id": "ulcerative_colitis",
+    "name": "Ulcerative Colitis",
+    "category": "Autoimmune & GI",
+    "diet_impact": "Colon and rectum inflammation; high fibre and insoluble residues can worsen flares and urgency.",
+    "strictness": "moderate",
+    "tags": ["low-residue","flare-safe","bland"],
+    "rules_json": {
+      "general_rules": ["Low-residue diet during active flares.","Limit insoluble fibre, seeds and tough skins.","Avoid caffeine, alcohol and very spicy foods."],
+      "emphasise_foods": ["Refined grains (white rice, white bread, plain crackers).","Ripe or canned fruits without skins or seeds.","Well-cooked, non-cruciferous vegetables.","Lean proteins and modest low-fat dairy if tolerated."],
+      "never_recommend": ["High-fibre whole grains (brown rice, quinoa, whole wheat, barley).","Raw cruciferous vegetables and dried fruits.","Nuts and seeds.","Very spicy foods, caffeine and alcohol."]
+    },
+    "never_recommend_json": {
+      "ingredients": ["bran","quinoa","nuts","seeds"],
+      "patterns": ["raw-cruciferous","very-spicy","high-fibre-wholegrain"]
+    },
+    "dga_score": 0.8
+  },
+  {
+    "id": "ibs",
+    "name": "Irritable Bowel Syndrome",
+    "category": "GI",
+    "diet_impact": "Symptoms are often triggered by fermentable carbohydrates (FODMAPs).",
+    "strictness": "medium",
+    "tags": ["low-FODMAP","gut-friendly"],
+    "rules_json": {
+      "general_rules": ["Limit high-FODMAP foods during elimination.","Prefer low-FODMAP fruits, vegetables and grains.","Reintroduce triggers slowly based on tolerance."],
+      "emphasise_foods": ["Low-FODMAP fruits (bananas, berries, citrus, kiwi).","Low-FODMAP vegetables (carrots, courgette, aubergine, spinach).","Lactose-free or plant-based milks.","Gluten-free or low-FODMAP grains."],
+      "never_recommend": ["Onions and garlic.","Wheat-based breads and pastas during strict phase.","Apples, pears, stone fruits and many beans.","Honey and high-fructose sweeteners."]
+    },
+    "never_recommend_json": {
+      "ingredients": ["onion","garlic","wheat-flour","honey"],
+      "patterns": ["high-FODMAP"]
+    },
+    "dga_score": 0.7
+  },
+  {
+    "id": "pancreatitis",
+    "name": "Pancreatitis (Acute/Chronic)",
+    "category": "GI",
+    "diet_impact": "Fat intake drives pancreatic enzyme secretion; high-fat foods and alcohol exacerbate pain and inflammation.",
+    "strictness": "high",
+    "tags": ["low-fat","lean-protein","pancreas-friendly"],
+    "rules_json": {
+      "general_rules": ["Very low-fat diet (often 30–50 g per day in chronic disease).","Small, frequent meals rather than large ones.","Absolute avoidance of alcohol.","Emphasise lean protein and complex carbohydrates."],
+      "emphasise_foods": ["Skinless poultry, lean meats, white fish, egg whites.","Low-fat or non-fat dairy if tolerated, or suitable alternatives.","Whole grains and fruits/vegetables not prepared with added fats."],
+      "never_recommend": ["Alcohol of any kind.","Fried foods and deep-fried snacks.","High-fat meats and sausages.","Cream-based sauces and full-fat dairy.","Very greasy or oily meals."]
+    },
+    "never_recommend_json": {
+      "ingredients": ["butter","cream","lard","bacon","sausage"],
+      "patterns": ["deep-fried","very-greasy","contains-alcohol"]
+    },
+    "dga_score": 0.9
+  },
+  {
+    "id": "t2d",
+    "name": "Type 2 Diabetes",
+    "category": "Metabolic",
+    "diet_impact": "Carbohydrates and overall energy intake strongly influence blood glucose and insulin resistance.",
+    "strictness": "medium",
+    "tags": ["low-carb","high-fiber","balanced"],
+    "rules_json": {
+      "general_rules": ["Limit total carbohydrates per meal (commonly 45–60 g, personalised).","Prefer low-GI carbs and high-fibre foods.","Avoid sugar-sweetened beverages."],
+      "emphasise_foods": ["Non-starchy vegetables.","High-fibre whole grains in moderate portions.","Lean protein and healthy fats to blunt glucose spikes."],
+      "never_recommend": ["Sugary sodas and energy drinks.","Refined sweets and pastries.","Huge portions of white rice, white bread or potatoes."]
+    },
+    "never_recommend_json": {
+      "ingredients": ["sugar-sweetened-beverage"],
+      "patterns": ["refined-dessert","large-refined-carb-portion"]
+    },
+    "dga_score": 1.0
+  }
+]

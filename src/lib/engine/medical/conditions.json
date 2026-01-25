@@ -1,0 +1,483 @@
+[
+  {
+    "id": "coeliac",
+    "name": "Coeliac Disease",
+    "category": "Autoimmune & GI",
+    "strictness": "critical",
+    "diet_impact": "Gluten triggers immune response and intestinal damage.",
+    "rules_json": {
+      "general_rules": [
+        "Strict Gluten Free diet required."
+      ],
+      "never_recommend": [
+        "Wheat, barley, rye, oats (unless certified GF)",
+        "Pasta, cakes, bread, sauces with gluten"
+      ],
+      "emphasise_foods": [
+        "Rice, corn, quinoa, buckwheat",
+        "Meat, fish, eggs, legumes, nuts",
+        "Fruits and vegetables"
+      ]
+    },
+    "never_recommend_json": {
+      "ingredients": ["wheat", "barley", "rye", "malt"],
+      "patterns": ["contains-gluten"]
+    }
+  },
+  {
+    "id": "crohns",
+    "name": "Crohn's Disease",
+    "category": "Autoimmune & GI",
+    "strictness": "moderate",
+    "diet_impact": "Inflammation of GI tract; fiber/fat tolerance varies by flare status.",
+    "rules_json": {
+      "general_rules": [
+        "Low fiber/residue during flares.",
+        "Low fat if steatorrhea is present.",
+        "Small frequent meals."
+      ],
+      "never_recommend": [
+        "High fiber grains (whole wheat, rye)",
+        "Raw cruciferous vegetables, nuts, seeds",
+        "Spicy foods, alcohol, caffeine",
+        "Fried/greasy foods"
+      ],
+      "emphasise_foods": [
+        "White rice, potatoes, oatmeal",
+        "Cooked vegetables, lean poultry/fish",
+        "Smooth nut butters"
+      ]
+    }
+  },
+  {
+    "id": "ulcerative_colitis",
+    "name": "Ulcerative Colitis",
+    "category": "Autoimmune & GI",
+    "strictness": "moderate",
+    "diet_impact": "Inflammation of colon/rectum.",
+    "rules_json": {
+      "general_rules": [
+        "Low residue diet during flares."
+      ],
+      "never_recommend": [
+        "High fiber whole grains",
+        "Raw fruits/veggies with skins/seeds",
+        "Nuts, seeds, popcorn",
+        "Spicy foods, alcohol, caffeine"
+      ],
+      "emphasise_foods": [
+        "Refined grains (white rice/bread)",
+        "Cooked veggies, canned fruit",
+        "Lean protein (tofu, fish, poultry)"
+      ]
+    }
+  },
+  {
+    "id": "ibs",
+    "name": "Irritable Bowel Syndrome",
+    "category": "Autoimmune & GI",
+    "strictness": "medium",
+    "diet_impact": "Triggered by FODMAPs (fermentable carbs).",
+    "rules_json": {
+      "general_rules": [
+        "Low-FODMAP diet favored."
+      ],
+      "never_recommend": [
+        "High FODMAP foods (onion, garlic, wheat, honey)",
+        "Apples, pears, stone fruits",
+        "High lactose dairy"
+      ],
+      "emphasise_foods": [
+        "Low FODMAP fruits (banana, berry, citrus)",
+        "Low FODMAP veg (carrot, spinach, potato)",
+        "Lactose-free dairy, GF grains"
+      ]
+    },
+    "never_recommend_json": {
+      "ingredients": ["onion", "garlic", "honey", "high-fructose-corn-syrup"],
+      "patterns": ["high-fodmap"]
+    }
+  },
+  {
+    "id": "gerd",
+    "name": "GORD / Acid Reflux",
+    "category": "Autoimmune & GI",
+    "strictness": "low-moderate",
+    "diet_impact": "Stomach acid backflow causes heartburn.",
+    "rules_json": {
+      "general_rules": [
+        "Avoid triggers that relax esophageal sphincter."
+      ],
+      "never_recommend": [
+        "Fried/fast food, pizza",
+        "Spicy foods (chili, pepper)",
+        "Fatty meats, cheese",
+        "Tomato, citrus, chocolate, mint",
+        "Carbonated drinks, caffeine"
+      ],
+      "emphasise_foods": [
+        "Alkaline foods (banana, melon, nuts)",
+        "Watery foods (celery, cucumber)",
+        "Ginger, oatmeal, brown rice",
+        "Lean poultry/fish"
+      ]
+    }
+  },
+  {
+    "id": "eoe",
+    "name": "Eosinophilic Esophagitis",
+    "category": "Autoimmune & GI",
+    "strictness": "high",
+    "diet_impact": "Allergic inflammation of esophagus.",
+    "rules_json": {
+      "general_rules": [
+        "6-Food Elimination often required."
+      ],
+      "never_recommend": [
+        "Dairy (milk, cheese, yogurt)",
+        "Wheat (bread, pasta)",
+        "Soy (tofu, soy sauce)",
+        "Eggs",
+        "Nuts (peanut, tree nuts)",
+        "Seafood (fish, shellfish)"
+      ],
+      "emphasise_foods": [
+        "Coconut/oat/rice milk",
+        "GF grains (corn, quinoa, rice)",
+        "Meat (beef, pork, poultry)",
+        "Fruit/Veg purees"
+      ]
+    },
+    "never_recommend_json": {
+      "ingredients": ["milk", "wheat", "soy", "egg", "peanut", "shrimp"],
+      "patterns": ["contains-dairy", "contains-soy", "contains-nuts"]
+    }
+  },
+  {
+    "id": "pancreatitis",
+    "name": "Pancreatitis",
+    "category": "Autoimmune & GI",
+    "strictness": "high",
+    "diet_impact": "Fat stimulates pancreas causing pain.",
+    "rules_json": {
+      "general_rules": [
+        "Low fat diet (30-50g/day).",
+        "No alcohol."
+      ],
+      "never_recommend": [
+        "Fried foods, fatty meats (bacon, sausage)",
+        "Full fat dairy, cream sauces",
+        "Avocado, nuts (in excess)",
+        "Alcohol"
+      ],
+      "emphasise_foods": [
+        "Lean protein (egg white, tuna, skinless poultry)",
+        "Low fat dairy, whole grains",
+        "Fruits/Veg (no added fat)"
+      ]
+    }
+  },
+  {
+    "id": "t1d",
+    "name": "Type 1 Diabetes",
+    "category": "Endocrine & Metabolic",
+    "strictness": "high",
+    "diet_impact": "Carb intake must match insulin.",
+    "rules_json": {
+      "general_rules": [
+        "Consistent carb counting.",
+        "Balance carbs with protein/fat."
+      ],
+      "never_recommend": [
+        "Sugary drinks/soda",
+        "High sugar sweets (candy, jam)",
+        "Processed carbs (white bread/pasta) without insulin"
+      ],
+      "emphasise_foods": [
+        "Whole grains, beans, lentils",
+        "Non-starchy veg",
+        "Lean protein"
+      ]
+    }
+  },
+  {
+    "id": "t2d",
+    "name": "Type 2 Diabetes",
+    "category": "Endocrine & Metabolic",
+    "strictness": "medium",
+    "diet_impact": "Carbs affect blood glucose control.",
+    "rules_json": {
+      "general_rules": [
+        "Control carb portions.",
+        "Prioritize low GI foods."
+      ],
+      "never_recommend": [
+        "Sugary drinks/juice",
+        "Refined carbs (white flour)",
+        "Sweets/desserts",
+        "High fat fried foods"
+      ],
+      "emphasise_foods": [
+        "Complex carbs (oats, quinoa)",
+        "Fiber rich veg",
+        "Healthy fats (nuts, olive oil)"
+      ]
+    }
+  },
+  {
+    "id": "gestational_diabetes",
+    "name": "Gestational Diabetes",
+    "category": "Endocrine & Metabolic",
+    "strictness": "high",
+    "diet_impact": "Glucose control crucial for pregnancy.",
+    "rules_json": {
+      "general_rules": [
+        "Distribute carbs through day.",
+        "Pair carbs with protein."
+      ],
+      "never_recommend": [
+        "Sugary foods/drinks",
+        "Large portions of starch (rice, potato)",
+        "Fruit juice"
+      ],
+      "emphasise_foods": [
+        "Low GI fruits/veg",
+        "Lean protein",
+        "Whole grains"
+      ]
+    }
+  },
+  {
+    "id": "pcos",
+    "name": "PCOS",
+    "category": "Endocrine & Metabolic",
+    "strictness": "medium",
+    "diet_impact": "Insulin resistance common.",
+    "rules_json": {
+      "general_rules": [
+        "Anti-inflammatory focus.",
+        "Low GI diet."
+      ],
+      "never_recommend": [
+        "Sugary drinks/snacks",
+        "Refined white flour products",
+        "Fried foods, processed meats"
+      ],
+      "emphasise_foods": [
+        "High fiber foods",
+        "Fatty fish (salmon)",
+        "Berries, leafy greens"
+      ]
+    }
+  },
+  {
+    "id": "hyperlipidemia",
+    "name": "Hyperlipidemia",
+    "category": "Endocrine & Metabolic",
+    "strictness": "medium",
+    "diet_impact": "High cholesterol/triglycerides.",
+    "rules_json": {
+      "general_rules": [
+        "Limit saturated/trans fats.",
+        "Increase soluble fiber."
+      ],
+      "never_recommend": [
+        "Red meat, butter, full fat cheese",
+        "Fried foods, baked goods (trans fats)",
+        "Organ meats"
+      ],
+      "emphasise_foods": [
+        "Oats, beans, lentils",
+        "Nuts, avocado, olive oil",
+        "Fatty fish"
+      ]
+    }
+  },
+  {
+    "id": "hypertension",
+    "name": "Hypertension",
+    "category": "Cardiovascular",
+    "strictness": "medium",
+    "diet_impact": "Sodium affects blood pressure.",
+    "rules_json": {
+      "general_rules": [
+        "Limit sodium (<1500-2300mg).",
+        "DASH diet principles."
+      ],
+      "never_recommend": [
+        "Salty snacks, canned soup",
+        "Processed/deli meats",
+        "Pickles, soy sauce"
+      ],
+      "emphasise_foods": [
+        "Potassium rich (banana, potato)",
+        "Leafy greens, beets",
+        "Low fat dairy"
+      ]
+    },
+    "never_recommend_json": {
+      "ingredients": ["salt", "sodium"],
+      "patterns": ["high-sodium"]
+    }
+  },
+  {
+    "id": "heart_failure",
+    "name": "Heart Failure",
+    "category": "Cardiovascular",
+    "strictness": "high",
+    "diet_impact": "Fluid retention driven by sodium.",
+    "rules_json": {
+      "general_rules": [
+        "Strict low sodium.",
+        "Fluid restriction often required."
+      ],
+      "never_recommend": [
+        "Salt, canned foods",
+        "Processed meats (bacon, ham)",
+        "Fast food"
+      ],
+      "emphasise_foods": [
+        "Fresh meats/veg",
+        "Homemade low-salt meals"
+      ]
+    }
+  },
+  {
+    "id": "ckd",
+    "name": "CKD (Stages 2-5)",
+    "category": "Renal",
+    "strictness": "high",
+    "diet_impact": "Kidneys can't filter waste (protein, Na, K, P).",
+    "rules_json": {
+      "general_rules": [
+        "Limit protein (unless on dialysis).",
+        "Limit sodium, potassium, phosphorus."
+      ],
+      "never_recommend": [
+        "Dark sodas (phosphorus)",
+        "Processed meats, canned food",
+        "High K foods (if restricted): banana, potato, tomato",
+        "Dairy (high P)"
+      ],
+      "emphasise_foods": [
+        "Low K fruits (apple, berry)",
+        "Cauliflower, peppers",
+        "Egg whites"
+      ]
+    }
+  },
+  {
+    "id": "kidney_stones",
+    "name": "Kidney Stones (General)",
+    "category": "Renal",
+    "strictness": "medium",
+    "diet_impact": "Varies by stone type (Oxalate vs Uric Acid).",
+    "rules_json": {
+      "general_rules": [
+        "High fluid intake crucial.",
+        "Limit sodium."
+      ],
+      "never_recommend": [
+        "High oxalate: Spinach, rhubarb, almonds, chocolate",
+        "High sodium foods",
+        "High animal protein (uric acid risk)"
+      ],
+      "emphasise_foods": [
+        "Water, citrus juices",
+        "Calcium rich foods (eaten with meals)"
+      ]
+    }
+  },
+  {
+    "id": "gout",
+    "name": "Gout",
+    "category": "Other",
+    "strictness": "moderate-high",
+    "diet_impact": "Purines break down to uric acid.",
+    "rules_json": {
+      "general_rules": [
+        "Low purine diet."
+      ],
+      "never_recommend": [
+        "Organ meats (liver)",
+        "Red meat, game meat",
+        "Shellfish, sardines, anchovies",
+        "Alcohol (beer), sugary drinks"
+      ],
+      "emphasise_foods": [
+        "Low fat dairy",
+        "Cherries, Vitamin C",
+        "Complex carbs"
+      ]
+    }
+  },
+  {
+    "id": "liver_cirrhosis",
+    "name": "Cirrhosis",
+    "category": "Liver",
+    "strictness": "high",
+    "diet_impact": "Liver damage affects metabolism/fluid.",
+    "rules_json": {
+      "general_rules": [
+        "No alcohol.",
+        "Low sodium (ascites risk).",
+        "Small frequent meals."
+      ],
+      "never_recommend": [
+        "Alcohol",
+        "Raw seafood (bacteria risk)",
+        "High sodium foods",
+        "Fatty/fried foods (if malabsorption)"
+      ],
+      "emphasise_foods": [
+        "Lean protein (plant/dairy often better tolerated)",
+        "Low sodium staples"
+      ]
+    }
+  },
+  {
+    "id": "lactose_intolerance",
+    "name": "Lactose Intolerance",
+    "category": "Allergies",
+    "strictness": "medium",
+    "diet_impact": "Lactose malabsorption.",
+    "rules_json": {
+      "general_rules": [
+        "Avoid high lactose dairy."
+      ],
+      "never_recommend": [
+        "Milk, ice cream, soft cheese"
+      ],
+      "emphasise_foods": [
+        "Lactose-free milk",
+        "Hard aged cheese (low lactose)",
+        "Yogurt (active cultures)"
+      ]
+    }
+  },
+  {
+    "id": "nut_allergy",
+    "name": "Peanut/Tree Nut Allergy",
+    "category": "Allergies",
+    "strictness": "critical",
+    "diet_impact": "Anaphylaxis risk.",
+    "rules_json": {
+      "general_rules": [
+        "Strict avoidance."
+      ],
+      "never_recommend": [
+        "Peanuts, almonds, walnuts, cashews",
+        "Nut butters, pesto",
+        "Cross-contaminated baked goods"
+      ],
+      "emphasise_foods": [
+        "Seeds (sunflower, pumpkin)",
+        "Soy butter"
+      ]
+    },
+    "never_recommend_json": {
+      "ingredients": ["peanut", "almond", "walnut", "cashew"],
+      "patterns": ["contains-nuts"]
+    }
+  }
+]
