@@ -1,0 +1,14 @@
+<svg width="240" height="400" viewBox="0 0 240 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer dashed ring for plate/bowl alignment -->
+  ircle cx="120" cy="200" r="100" stroke="white" stroke-width="2" stroke-dasharray="8 8" stroke-opacity="0.6"/>
+  
+  <!-- Hand silhouette guide (approximate left hand holding phone or next to food) -->
+  <path d="M40 380 V 300 C 40 250, 60 220, 90 220" stroke="white" stroke-width="3" stroke-linecap="round" stroke-opacity="0.5" fill="none"/>
+  <path d="M90 220 L 80 160 C 78 140, 95 135, 100 155 L 110 210" stroke="white" stroke-width="3" stroke-linecap="round" stroke-opacity="0.5" fill="none"/> <!-- Thumb -->
+  <path d="M110 210 L 120 140 C 122 120, 140 120, 142 140 L 135 210" stroke="white" stroke-width="3" stroke-linecap="round" stroke-opacity="0.5" fill="none"/> <!-- Index -->
+  
+  <!-- Text hint -->
+  <text x="120" y="340" text-anchor="middle" fill="white" font-family="sans-serif" font-size="12" fill-opacity="0.8">
+    Align food here
+  </text>
+</svg>

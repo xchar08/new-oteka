@@ -1,0 +1,50 @@
+{
+  "name": "new-oteka",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "ionic:build": "npm run build",
+    "ionic:serve": "npm run dev"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.13",
+    "@ai-sdk/openai": "^3.0.18",
+    "@capacitor/android": "^8.0.1",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/cli": "^7.4.5",
+    "@capacitor/core": "^8.0.1",
+    "@capacitor/ios": "^8.0.1",
+    "@capacitor/local-notifications": "^8.0.0",
+    "@ionic/pwa-elements": "^3.3.0",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.91.1",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.1",
+    "ai": "^6.0.49",
+    "clsx": "^2.1.1",
+    "idb-keyval": "^6.2.2",
+    "lucide-react": "^0.563.0",
+    "next": "16.1.4",
+    "onnxruntime-web": "^1.23.2",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.10"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
