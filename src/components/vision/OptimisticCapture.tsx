@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { createClient } from '@/lib/supabase/client';
 
 export function OptimisticCapture({
   onCapture,
 }: {
-  onCapture: (blob: Blob) => Promise<{ total_calories?: number; summary?: string } | void>;
+  // onCapture is now optional/fallback, we handle upload internally here
+  onCapture?: (blob: Blob) => Promise<any>;
 }) {
   const [status, setStatus] = useState<'idle' | 'uploading' | 'complete'>('idle');
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -50,9 +52,6 @@ export function OptimisticCapture({
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       const ctx = canvas.getContext('2d');
-      
-      // Mirror if using front camera, but usually we use rear.
-      // For rear camera, standard draw is fine.
       ctx?.drawImage(videoRef.current, 0, 0);
 
       const blob = await new Promise<Blob | null>((resolve) =>
@@ -60,24 +59,45 @@ export function OptimisticCapture({
       );
       if (!blob) throw new Error('capture_failed');
 
+      // Convert Blob to Base64 for Edge Function
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+      });
+
+      const base64Image = await base64Promise;
+
+      // CALL SUPABASE EDGE FUNCTION
+      // This replaces the old fetch('/api/vision/analyze')
+      const supabase = createClient();
+
+      const functionPromise = supabase.functions.invoke('vision-pipeline', {
+        body: { image: base64Image },
+      });
+
       // UX requirement: keep foreground until upload ack (we enforce >= 1.5s)
-      const uploadPromise = onCapture(blob);
       const timerPromise = new Promise((r) => setTimeout(r, 1500));
       
-      // Wait for both to finish
-      const [uploadResult] = (await Promise.all([uploadPromise, timerPromise])) as any[];
+      // Wait for both
+      const [funcResult] = await Promise.all([functionPromise, timerPromise]);
 
+      if (funcResult.error) throw new Error(funcResult.error.message || 'Analysis failed');
+
+      const data = funcResult.data; // The JSON response from Edge Function
       setStatus('complete');
 
-      // Schedule local notification ~5s later (matches spec "push arrives 5s later")
+      // Schedule notification
       const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNative;
 
       if (isNative) {
-        // Request permissions if not already granted
         await LocalNotifications.requestPermissions();
-        
-        const calories = uploadResult?.total_calories;
-        const summary = uploadResult?.summary;
+        const calories = data?.summary?.calories;
+        const name = data?.summary?.name;
 
         await LocalNotifications.schedule({
           notifications: [
@@ -85,28 +105,28 @@ export function OptimisticCapture({
               id: Date.now(),
               title: 'Oteka Analysis Complete',
               body: calories
-                ? `${Math.round(calories)} kcal logged${summary ? ` (${summary})` : ''}`
+                ? `${Math.round(calories)} kcal logged (${name || 'Food'})`
                 : 'Your food log has been processed.',
               schedule: { at: new Date(Date.now() + 5000) },
-              smallIcon: "ic_stat_icon_config_sample", // Ensure this exists in Android res
+              smallIcon: "ic_stat_icon_config_sample",
               sound: "beep.wav"
             },
           ],
         });
       }
 
-      // Minimize app after upload ack (not before)
+      // Minimize app
       setTimeout(async () => {
         if (isNative) {
           await App.minimizeApp();
         } else {
           router.push('/dashboard');
         }
-      }, 800); // Slight delay so user sees the "Done!" checkmark
+      }, 800);
       
     } catch (e: any) {
       console.error(e);
-      alert('Upload Failed. Please try again.');
+      alert('Upload Failed: ' + (e.message || 'Unknown error'));
       setStatus('idle');
     }
   };
@@ -142,7 +162,6 @@ export function OptimisticCapture({
 
   return (
     <div className="relative h-screen w-full bg-black overflow-hidden">
-      {/* Viewfinder */}
       <video 
         ref={videoRef} 
         autoPlay 
@@ -150,22 +169,16 @@ export function OptimisticCapture({
         muted 
         className="absolute inset-0 w-full h-full object-cover" 
       />
-      
-      {/* AR Overlay Layer */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-        {/* The SVG asset acts as the semantic guide */}
         <img 
           src="/hand-overlay.svg" 
           alt="Alignment Guide" 
           className="w-72 h-auto opacity-70 drop-shadow-lg" 
         />
-        
         <p className="absolute bottom-32 text-white/90 font-medium text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-md border border-white/10">
           Align food within dashed area
         </p>
       </div>
-
-      {/* Shutter Button */}
       <div className="absolute bottom-12 left-0 right-0 flex justify-center z-10">
         <button
           onClick={handleClick}

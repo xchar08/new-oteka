@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '@/lib/state/appStore';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { createClient } from '@/lib/supabase/client';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -16,43 +17,48 @@ export default function CoachPage() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const supabase = createClient();
 
   // Auto-scroll
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollRef.current)
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
   const sendMessage = async () => {
     if (!input.trim() || busy) return;
-    
+
     const userMsg: Message = { role: 'user', content: input, ts: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setBusy(true);
 
     try {
-      // 1. Send to Advisor API
-      // Note: We reuse the /api/advisor/context route or a new /chat route
-      // For MVP, we'll assume a generic chat endpoint exists, or modify context route to accept input
-      const res = await fetch('/api/advisor/context', {
-        method: 'POST', // POST usually implies "Generating new advice based on input"
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: userMsg.content }) 
-      });
+      // UPDATED: Use Edge Function instead of /api/advisor/context
+      const { data, error } = await supabase.functions.invoke(
+        'advisor-context',
+        {
+          body: { context: 'chat', query: userMsg.content },
+        }
+      );
 
-      if (!res.ok) throw new Error("Advisor unreachable");
+      if (error) throw new Error(error.message || 'Advisor unreachable');
 
-      const data = await res.json();
-      
-      const aiMsg: Message = { 
-        role: 'assistant', 
-        content: data.advice || "I'm analyzing your metrics...", 
-        ts: Date.now() 
+      const aiMsg: Message = {
+        role: 'assistant',
+        content: data.advice || "I'm analyzing your metrics...",
+        ts: Date.now(),
       };
-      setMessages(prev => [...prev, aiMsg]);
-      
+      setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Connection error. Try again.", ts: Date.now() }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: 'Connection error. Try again.',
+          ts: Date.now(),
+        },
+      ]);
     } finally {
       setBusy(false);
     }
@@ -63,7 +69,8 @@ export default function CoachPage() {
       <div className="p-4 border-b bg-white sticky top-0 z-10">
         <h1 className="text-xl font-bold">Metabolic Advisor</h1>
         <p className="text-xs text-green-600 font-medium flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"/> Online
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />{' '}
+          Online
         </p>
       </div>
 
@@ -73,42 +80,54 @@ export default function CoachPage() {
             Ask about your glucose trends, protein targets, or meal timing.
           </div>
         )}
-        
+
         {messages.map((m) => (
-          <div key={m.ts} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`
+          <div
+            key={m.ts}
+            className={`flex ${
+              m.role === 'user' ? 'justify-end' : 'justify-start'
+            }`}
+          >
+            <div
+              className={`
               max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed shadow-sm
-              ${m.role === 'user' 
-                ? 'bg-blue-600 text-white rounded-tr-none' 
-                : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'}
-            `}>
+              ${
+                m.role === 'user'
+                  ? 'bg-blue-600 text-white rounded-tr-none'
+                  : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
+              }
+            `}
+            >
               {m.content}
             </div>
           </div>
         ))}
-        
+
         {busy && (
-           <div className="flex justify-start">
-             <div className="bg-gray-200 text-gray-500 text-xs px-3 py-2 rounded-full animate-pulse">
-               Thinking...
-             </div>
-           </div>
+          <div className="flex justify-start">
+            <div className="bg-gray-200 text-gray-500 text-xs px-3 py-2 rounded-full animate-pulse">
+              Thinking...
+            </div>
+          </div>
         )}
       </div>
 
       <div className="p-4 bg-white border-t">
-        <form 
+        <form
           className="flex gap-2"
-          onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            sendMessage();
+          }}
         >
-          <input 
+          <input
             className="flex-1 bg-gray-100 border-0 rounded-full px-4 py-3 text-sm focus:ring-2 ring-blue-500 outline-none"
             placeholder="Ask anything..."
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={(e) => setInput(e.target.value)}
           />
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={busy || !input.trim()}
             className="rounded-full w-12 h-12 flex items-center justify-center p-0"
           >

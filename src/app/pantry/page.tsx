@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ReviewNeededCard } from '@/components/pantry/ReviewNeededCard';
 import { enqueueMutation } from '@/lib/offline/queue';
-import { processOfflineQueue } from '@/lib/offline/sync'; // Fixed import
+import { processOfflineQueue } from '@/lib/offline/sync';
 import { useAppStore } from '@/lib/state/appStore';
 import { useConnectionMode } from '@/lib/hooks/useConnectionMode';
 
@@ -49,6 +49,7 @@ export default function PantryPage() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -92,12 +93,10 @@ export default function PantryPage() {
       return;
     }
 
-    // Online: Try direct fetch first
+    // Online: Try Edge Function first
     try {
-      const res = await fetch('/api/sync/apply', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
+      const { error } = await supabase.functions.invoke('sync-apply', {
+        body: {
           queue_item: {
             id: crypto.randomUUID(),
             type: 'PANTRY_VERIFY',
@@ -105,19 +104,17 @@ export default function PantryPage() {
             client_updated_at_ms: payload.client_updated_at_ms,
           },
           payload,
-        }),
+        },
       });
 
-      if (!res.ok) {
-        // If server error or conflict, fallback to queue
-        throw new Error('Sync failed');
+      if (error) {
+        throw new Error(error.message || 'Sync failed');
       }
-      
-      // Reload to ensure state matches server (e.g. if server applied conflict logic)
-      await load();
 
+      // Reload to ensure state matches server
+      await load();
     } catch (e) {
-      console.warn("Direct sync failed, queuing mutation", e);
+      console.warn('Direct sync failed, queuing mutation', e);
       await enqueueMutation({
         id: crypto.randomUUID(),
         type: 'PANTRY_VERIFY',
@@ -128,7 +125,13 @@ export default function PantryPage() {
     }
   }
 
-  if (loading) return <div className="p-6 text-center text-gray-500">Loading pantry...</div>;
+  if (loading) {
+    return (
+      <div className="p-6 text-center text-gray-500">
+        Loading pantry...
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6 pb-24">
@@ -137,11 +140,14 @@ export default function PantryPage() {
       {reviewNeeded.length > 0 && (
         <section className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl">
-            <h2 className="text-lg font-semibold text-orange-800 mb-2">Verify Spoilage</h2>
+            <h2 className="text-lg font-semibold text-orange-800 mb-2">
+              Verify Spoilage
+            </h2>
             <p className="text-sm text-orange-600 mb-4">
-              These {reviewNeeded.length} items have a low probability score based on decay rates.
+              These {reviewNeeded.length} items have a low probability score
+              based on decay rates.
             </p>
-            
+
             <div className="space-y-3">
               {reviewNeeded.map((r) => (
                 <ReviewNeededCard
@@ -165,17 +171,27 @@ export default function PantryPage() {
             Pantry is empty.
           </div>
         )}
-        
+
         <div className="space-y-2">
           {active.map((r) => (
-            <div key={r.id} className="rounded-xl border border-gray-100 p-4 bg-white shadow-sm flex justify-between items-center">
+            <div
+              key={r.id}
+              className="rounded-xl border border-gray-100 p-4 bg-white shadow-sm flex justify-between items-center"
+            >
               <div>
-                <div className="font-medium text-gray-900">{r.foods?.name ?? 'Unknown'}</div>
+                <div className="font-medium text-gray-900">
+                  {r.foods?.name ?? 'Unknown'}
+                </div>
                 <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
-                  <span className={`w-2 h-2 rounded-full ${
-                    r.probability_score > 0.7 ? 'bg-green-500' : 'bg-yellow-500'
-                  }`} />
-                  Health: {Math.round(Number(r.probability_score) * 100)}%
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      r.probability_score > 0.7
+                        ? 'bg-green-500'
+                        : 'bg-yellow-500'
+                    }`}
+                  />
+                  Health:{' '}
+                  {Math.round(Number(r.probability_score) * 100)}%
                 </div>
               </div>
               <button

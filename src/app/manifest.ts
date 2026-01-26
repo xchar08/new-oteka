@@ -1,5 +1,8 @@
 import { MetadataRoute } from 'next';
 
+// This line fixes the build error by forcing static generation
+export const dynamic = 'force-static'; 
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Oteka Metabolic',

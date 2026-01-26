@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import { Camera, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/client';
 
 export default function MenuScannerPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+
+  const supabase = createClient();
 
   // Helper: Resize image to max 1024px width/height to speed up upload
   const resizeImage = (file: File): Promise<string> => {
@@ -36,45 +39,42 @@ export default function MenuScannerPage() {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
-        
-        // Return base64 without prefix for API
+
         const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        resolve(dataUrl.split(',')[1]);
+        resolve(dataUrl.split(',')[1]); // base64 without prefix
       };
       img.onerror = reject;
     });
   };
-  
+
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setAnalyzing(true);
     setError(null);
-    
+
     try {
       // 1. Client-side Resize
       const base64 = await resizeImage(file);
-      
-      // 2. Call Server API
-      const res = await fetch('/api/vision/menu', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64 })
+
+      // 2. Call Edge Function (vision-menu)
+      const { data, error } = await supabase.functions.invoke('vision-menu', {
+        body: { image: base64, goal: 'travel' }, // you can pass real goal from user state
       });
 
-      if (!res.ok) throw new Error('Failed to analyze menu');
-      
-      const data = await res.json();
-      setResult(data);
+      if (error) {
+        console.error(error);
+        throw new Error(error.message || 'Failed to analyze menu');
+      }
 
+      setResult(data);
     } catch (err: any) {
       console.error(err);
-      setError("Could not read menu. Ensure good lighting and try again.");
+      setError('Could not read menu. Ensure good lighting and try again.');
     } finally {
       setAnalyzing(false);
-      // Reset input value to allow re-selecting same file if needed
-      e.target.value = ''; 
+      e.target.value = ''; // allow re-selecting same file
     }
   };
 
@@ -85,7 +85,6 @@ export default function MenuScannerPage() {
         <p className="text-gray-500 text-sm">AI Analysis • Travel Mode</p>
       </header>
 
-      {/* ERROR STATE */}
       {error && (
         <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-center gap-3">
           <AlertCircle size={20} />
@@ -93,7 +92,6 @@ export default function MenuScannerPage() {
         </div>
       )}
 
-      {/* EMPTY STATE / CAPTURE BUTTON */}
       {!result && !analyzing && (
         <div className="border-2 border-dashed border-gray-300 h-64 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
           <label className="flex flex-col items-center cursor-pointer w-full h-full justify-center">
@@ -102,12 +100,17 @@ export default function MenuScannerPage() {
             </div>
             <span className="text-blue-600 font-semibold text-lg">Scan Menu</span>
             <span className="text-gray-400 text-sm mt-1">Tap to open camera</span>
-            <input type="file" accept="image/*" capture="environment" onChange={handleCapture} className="hidden" />
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleCapture}
+              className="hidden"
+            />
           </label>
         </div>
       )}
 
-      {/* LOADING STATE */}
       {analyzing && (
         <div className="text-center p-12 space-y-4">
           <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
@@ -118,43 +121,63 @@ export default function MenuScannerPage() {
         </div>
       )}
 
-      {/* RESULTS DISPLAY */}
       {result && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">{result.restaurant_name || "Menu Results"}</h2>
-            <Button onClick={() => setResult(null)} className="text-gray-500 px-2 py-1 text-sm">
+            <h2 className="text-xl font-bold text-gray-900">
+              {result.restaurant_name || 'Menu Results'}
+            </h2>
+            <Button
+              onClick={() => setResult(null)}
+              className="text-gray-500 px-2 py-1 text-sm"
+            >
               <RefreshCw size={16} className="mr-2" /> Scan Again
             </Button>
           </div>
 
           <div className="grid gap-4">
-            {result.items.map((item: any, idx: number) => (
-              <div key={idx} className="border border-gray-200 p-4 rounded-xl shadow-sm bg-white">
+            {result.items?.map((item: any, idx: number) => (
+              <div
+                key={idx}
+                className="border border-gray-200 p-4 rounded-xl shadow-sm bg-white"
+              >
                 <div className="flex justify-between items-start mb-1">
-                  <span className="font-bold text-gray-900 text-lg">{item.name}</span>
-                  <span className={`font-mono font-bold ${
-                    item.health_score >= 8 ? 'text-green-600' : 'text-gray-600'
-                  }`}>
+                  <span className="font-bold text-gray-900 text-lg">
+                    {item.name}
+                  </span>
+                  <span
+                    className={`font-mono font-bold ${
+                      item.health_score >= 8
+                        ? 'text-green-600'
+                        : 'text-gray-600'
+                    }`}
+                  >
                     {item.estimated_calories} kcal
                   </span>
                 </div>
-                
-                <p className="text-sm text-gray-600 mb-3">{item.description}</p>
-                
+
+                <p className="text-sm text-gray-600 mb-3">
+                  {item.description}
+                </p>
+
                 <div className="flex flex-wrap gap-2 items-center">
-                  {/* Health Score Badge */}
-                  <span className={`px-2 py-1 rounded text-xs font-bold border ${
-                    item.health_score >= 8 ? 'bg-green-50 text-green-700 border-green-200' :
-                    item.health_score >= 5 ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                    'bg-red-50 text-red-700 border-red-200'
-                  }`}>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-bold border ${
+                      item.health_score >= 8
+                        ? 'bg-green-50 text-green-700 border-green-200'
+                        : item.health_score >= 5
+                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                        : 'bg-red-50 text-red-700 border-red-200'
+                    }`}
+                  >
                     Score: {item.health_score}/10
                   </span>
 
-                  {/* Tags */}
-                  {item.tags.map((tag: string) => (
-                    <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                  {item.tags?.map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
+                    >
                       {tag}
                     </span>
                   ))}
@@ -164,7 +187,9 @@ export default function MenuScannerPage() {
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
-             <strong>Dietary Note:</strong> {result.dietary_warnings?.join(', ') || "No major warnings detected."}
+            <strong>Dietary Note:</strong>{' '}
+            {result.dietary_warnings?.join(', ') ||
+              'No major warnings detected.'}
           </div>
 
           <Button onClick={() => setResult(null)} className="w-full h-12 text-lg">

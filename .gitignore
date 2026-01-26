@@ -43,3 +43,31 @@ next-env.d.ts
 /public/models/*
 
 planner-wasm/
+
+# Capacitor/Cordova
+android/capacitor-cordova-android-plugins/
+ios/Pods/
+capacitor.config.json
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/key.properties
+android/gradlew
+android/gradlew.bat
+!android/gradle.properties
+!android/gradlew-wrapper.properties
+!android/settings.gradle
+!android/build.gradle
+!android/app/build.gradle
+
+# iOS
+ios/.gradle/
+ios/build/
+ios/Pods/
+ios/Podfile.lock
+ios/Runner.xcworkspace/
+ios/Runner.xcodeproj/project.xcworkspace/
+ios/Runner.xcodeproj/xcuserdata/

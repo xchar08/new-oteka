@@ -1,5 +1,6 @@
 -- Enable Extensions
 create extension if not exists vector;
+create extension if not exists pg_cron; -- ADDED: Required for entropy cycle
 
 -- 1. HOUSEHOLDS
 create table if not exists households (
@@ -109,6 +110,43 @@ create table if not exists cache_entries (
   expires_at timestamptz not null
 );
 create index if not exists idx_cache_expires on cache_entries(expires_at);
+
+-- ADDED: ENTROPY LOGIC (Replaces API Route) =================================
+
+-- Function to run the decay cycle
+create or replace function run_entropy_cycle()
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  -- Update probability scores
+  -- Formula matches your TS: P_new = P_old * (1 - k)
+  -- Uses coalesce(..., 0.05) for default decay rate if null
+  update pantry
+  set 
+    probability_score = greatest(0, probability_score * (1 - coalesce(foods.category_decay_rate, 0.05))),
+    status = case 
+      when (probability_score * (1 - coalesce(foods.category_decay_rate, 0.05))) < 0.3 then 'review_needed'
+      else status
+    end
+  from foods
+  where pantry.food_id = foods.id
+  and pantry.status = 'active';
+  
+end;
+$$;
+
+-- Schedule the job (Runs daily at 00:00 GMT)
+-- Note: 'cron' schema functions might need explicit schema qualification depending on search_path
+select cron.schedule(
+  'entropy-daily-cycle',
+  '0 0 * * *', 
+  'select run_entropy_cycle()'
+);
+
+-- END ENTROPY LOGIC ========================================================
+
 
 -- RLS SECURITY POLICIES
 alter table users enable row level security;
