@@ -17,10 +17,9 @@ export default function DashboardPage() {
   const [activeConditions, setActiveConditions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const { isOnline, lastSyncAt } = useAppStore(s => ({ 
-    isOnline: s.isOnline, 
-    lastSyncAt: s.lastSyncAt 
-  }));
+  // FIX: Select state atomically to prevent infinite loops
+  const isOnline = useAppStore(s => s.isOnline);
+  // const lastSyncAt = useAppStore(s => s.lastSyncAt); // Uncomment if needed
 
   const supabase = createClient();
 
@@ -38,7 +37,7 @@ export default function DashboardPage() {
         
       setUser(profile);
 
-      // 2. Fetch Active Conditions (Medical Guardrails) - NEW
+      // 2. Fetch Active Conditions (Medical Guardrails)
       const { data: conditionsData } = await supabase
         .from('user_conditions')
         .select('conditions(name)')

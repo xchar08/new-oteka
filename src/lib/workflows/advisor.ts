@@ -86,7 +86,7 @@ Using the phenomenon above ONLY if relevant, give one actionable insight for the
 
   // 4. Call Reasoning Engine
   const { text } = await generateText({
-    model: google('gemini-1.5-pro'),
+    model: google('gemini-3.0-pro'),
     prompt: fullPrompt,
     temperature: 0.4, // a bit lower for consistency
   });

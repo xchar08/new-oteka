@@ -18,7 +18,7 @@ export const MenuSchema = z.object({
 export async function parseMenuImage(imageBase64: string, userGoal: string) {
   // Uses Gemini 3.0 (via 1.5-flash proxy) to OCR and reason simultaneously
   const { object } = await generateObject({
-    model: google('gemini-1.5-flash'),
+    model: google('gemini-3.0-flash'),
     schema: MenuSchema,
     messages: [
       {

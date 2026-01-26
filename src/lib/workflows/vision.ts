@@ -17,7 +17,7 @@ async function identifyScene(imageBase64: string) {
   const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY });
   
   const { object } = await generateObject({
-    model: google('gemini-1.5-flash'),
+    model: google('gemini-3.0-flash'),
     schema: z.object({
       scene_description: z.string(),
       items: z.array(z.string()).describe("List of visible food items"),
@@ -145,7 +145,7 @@ export async function runVisionPipeline(userId: string, imageBase64: string) {
 
   // 6. Audit Log
   await logWorkflowEvent(userId, 'vision_log', 'success', {
-    vision_model: 'gemini-1.5-flash',
+    vision_model: 'gemini-3.0-flash',
     physics_model: 'deepseek-ai/DeepSeek-R1',
     confidence: confidenceScore,
     hand_width_ref: user.hand_width_mm,
