@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { SyncManager } from '@/components/offline/SyncManager';
+import AuthGuard from '@/components/AuthGuard'; // <--- Import the new AuthGuard
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,12 +30,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-gray-50`}>
-        {/* SyncManager handles Service Worker & Offline Queue listeners */}
-        <SyncManager />
-        
-        {children}
-        
-        <BottomNav />
+        {/* AuthGuard protects the entire application flow */}
+        <AuthGuard>
+          {/* SyncManager handles Service Worker & Offline Queue listeners */}
+          <SyncManager />
+          
+          {children}
+          
+          <BottomNav />
+        </AuthGuard>
       </body>
     </html>
   );

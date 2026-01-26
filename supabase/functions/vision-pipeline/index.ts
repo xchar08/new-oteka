@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1"
 
-// Constants
-const GOOGLE_API_KEY = Deno.env.get('PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY') || '';
+// ✅ FIXED: Removed PUBLIC_ prefix (server-only secret)
+const GOOGLE_API_KEY = Deno.env.get('GOOGLE_GENERATIVE_AI_API_KEY') ?? '';
 
 serve(async (req) => {
   try {
@@ -10,9 +10,10 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) return new Response('Missing Authorization', { status: 401 })
 
+    // ✅ FIXED: Service role key for server-side (bypasses RLS)
     const supabase = createClient(
-      Deno.env.get('PUBLIC_SUPABASE_URL') ?? '',
-      Deno.env.get('PUBLIC_SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     )
 
@@ -77,6 +78,9 @@ serve(async (req) => {
     }), { headers: { "Content-Type": "application/json" } })
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json" } })
+    return new Response(JSON.stringify({ error: err.message }), { 
+      status: 500, 
+      headers: { "Content-Type": "application/json" } 
+    })
   }
 })

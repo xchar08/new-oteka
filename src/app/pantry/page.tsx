@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ReviewNeededCard } from '@/components/pantry/ReviewNeededCard';
 import { enqueueMutation } from '@/lib/offline/queue';
@@ -19,7 +19,9 @@ export default function PantryPage() {
   useConnectionMode();
 
   const supabase = createClient();
-  const { isOnline } = useAppStore((s) => ({ isOnline: s.isOnline }));
+  
+  // ✅ FIX: Select primitive value to prevent infinite re-renders
+  const isOnline = useAppStore((s) => s.isOnline);
   const setLastSyncAt = useAppStore((s) => s.setLastSyncAt);
 
   const [rows, setRows] = useState<PantryRow[]>([]);
@@ -35,7 +37,8 @@ export default function PantryPage() {
     [rows]
   );
 
-  async function load() {
+  // ✅ FIX: Wrap in useCallback to stabilize the function reference
+  const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('pantry')
@@ -45,13 +48,14 @@ export default function PantryPage() {
 
     if (!error && data) setRows(data as any);
     setLoading(false);
-  }
+  }, [supabase]);
 
+  // Initial Load
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [load]);
 
+  // Sync Listener
   useEffect(() => {
     // Opportunistic sync when coming online
     if (isOnline) {
@@ -61,7 +65,7 @@ export default function PantryPage() {
         await load();
       })();
     }
-  }, [isOnline, setLastSyncAt]);
+  }, [isOnline, setLastSyncAt, load]);
 
   async function verify(pantryId: number, status: 'active' | 'consumed') {
     const { data: auth } = await supabase.auth.getUser();
@@ -125,10 +129,10 @@ export default function PantryPage() {
     }
   }
 
-  if (loading) {
+  if (loading && rows.length === 0) {
     return (
-      <div className="p-6 text-center text-gray-500">
-        Loading pantry...
+      <div className="p-6 text-center text-gray-500 flex justify-center items-center h-[50vh]">
+        <div className="animate-pulse">Loading pantry...</div>
       </div>
     );
   }

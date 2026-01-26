@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1"
 
-const NEBIUS_API_KEY = Deno.env.get('PUBLIC_NEBIUS_API_KEY') || '';
-const NEBIUS_BASE_URL = Deno.env.get('PUBLIC_NEBIUS_BASE_URL') || '';
+const NEBIUS_API_KEY = Deno.env.get('NEBIUS_API_KEY') || '';
+const NEBIUS_BASE_URL = Deno.env.get('NEBIUS_BASE_URL') || '';
 
 serve(async (req) => {
   try {
@@ -11,8 +11,8 @@ serve(async (req) => {
     if (!authHeader) return new Response('Unauthorized', { status: 401 })
     
     const supabase = createClient(
-      Deno.env.get('PUBLIC_SUPABASE_URL') ?? '',
-      Deno.env.get('PUBLIC_SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     )
     const { data: { user } } = await supabase.auth.getUser()

@@ -2,8 +2,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.0.0?target=deno&no-check";
 
-const STRIPE_API_KEY = Deno.env.get("PUBLIC_STRIPE_API_KEY") ?? "";
-const STRIPE_WEBHOOK_SECRET = Deno.env.get("PUBLIC_STRIPE_WEBHOOK_SECRET") ?? "";
+const STRIPE_API_KEY = Deno.env.get("STRIPE_API_KEY") ?? "";           // ✅ NOT PUBLIC
+const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? ""; // ✅ NOT PUBLIC
 
 const stripe = new Stripe(STRIPE_API_KEY, {
   apiVersion: "2024-11-20",
@@ -41,8 +41,19 @@ serve(async (request: Request) => {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.client_reference_id; // You set this when creating the Checkout Session
+        
         console.log("Checkout completed for user:", userId);
+        
         // TODO: Write to Supabase (grant premium, etc.)
+        // Example:
+        /*
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+          { global: { headers: {} } }
+        );
+        await supabase.from('subscriptions').insert({...});
+        */
         break;
       }
       default:

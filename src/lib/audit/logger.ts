@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server.server';
 
 export async function logWorkflowEvent(
   userId: string,

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { createClient } from '@/lib/supabase/client';
+import { storeOfflineVisionData } from '@/lib/vision/offline-store'; // ✅ Added offline fallback
 
 export function OptimisticCapture({
   onCapture,
@@ -72,21 +73,37 @@ export function OptimisticCapture({
 
       const base64Image = await base64Promise;
 
-      // CALL SUPABASE EDGE FUNCTION
-      // This replaces the old fetch('/api/vision/analyze')
+      // ✅ FIXED: Get session & add Authorization header
       const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Please log in first');
+      }
 
+      // CALL SUPABASE EDGE FUNCTION with auth
       const functionPromise = supabase.functions.invoke('vision-pipeline', {
         body: { image: base64Image },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`  // ✅ CRITICAL FIX
+        }
       });
 
-      // UX requirement: keep foreground until upload ack (we enforce >= 1.5s)
+      // UX requirement: keep foreground until upload ack (>= 1.5s)
       const timerPromise = new Promise((r) => setTimeout(r, 1500));
       
       // Wait for both
       const [funcResult] = await Promise.all([functionPromise, timerPromise]);
 
-      if (funcResult.error) throw new Error(funcResult.error.message || 'Analysis failed');
+      if (funcResult.error) {
+        console.error('Edge Function Error:', funcResult.error);
+        // ✅ FALLBACK: Save offline
+        await storeOfflineVisionData('current-user-id', { 
+          calories: 0, 
+          name: 'Unknown (offline)' 
+        }, base64Image);
+        throw new Error('Server unavailable - saved offline');
+      }
 
       const data = funcResult.data; // The JSON response from Edge Function
       setStatus('complete');
