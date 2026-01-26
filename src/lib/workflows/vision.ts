@@ -2,21 +2,22 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { logWorkflowEvent } from '@/lib/audit/logger'; // Assuming this exists or will be created
-import { checkMedicalContraindications } from '@/lib/engine/medical/rules'; // Link to medical engine
+import { logWorkflowEvent } from '@/lib/audit/logger'; 
+import { checkMedicalContraindications } from '@/lib/engine/medical/rules'; 
 
 /**
  * SERVER VISION PIPELINE (Online Mode)
- * Node B: Identification (Gemini 3.0 via Vercel SDK)
- * Node C: Physics & Volume (DeepSeek R1 via Direct API)
+ * Node B: Identification (Gemini 1.5 Flash)
+ * Node C: Physics & Volume (DeepSeek R1 via Nebius)
  */
 
 // Node B: Identification
 async function identifyScene(imageBase64: string) {
+  // Use 1.5 Flash for speed and good vision capabilities
   const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY });
   
   const { object } = await generateObject({
-    model: google('gemini-1.5-flash'), // 1.5 Flash as 3.0 proxy
+    model: google('gemini-1.5-flash'),
     schema: z.object({
       scene_description: z.string(),
       items: z.array(z.string()).describe("List of visible food items"),
@@ -36,7 +37,7 @@ async function identifyScene(imageBase64: string) {
   return object;
 }
 
-// Node C: Physics Core (DeepSeek R1)
+// Node C: Physics Core (DeepSeek R1 via Nebius)
 async function calculateVolumeAndMass(
   items: string[], 
   handWidthMm: number, 
@@ -66,16 +67,16 @@ async function calculateVolumeAndMass(
     }
   `;
 
-  // Direct fetch to DeepSeek API (Vercel SDK support for R1 is limited/beta)
+  // Direct fetch to Nebius API
   try {
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    const response = await fetch('https://api.studio.nebius.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+        'Authorization': `Bearer ${process.env.NEBIUS_API_KEY}`
       },
       body: JSON.stringify({
-        model: "deepseek-reasoner",
+        model: "deepseek-ai/DeepSeek-R1",
         messages: [
           { role: "system", content: "You are a physics engine. Output valid JSON only." },
           { role: "user", content: prompt }
@@ -84,15 +85,24 @@ async function calculateVolumeAndMass(
       })
     });
 
-    if (!response.ok) throw new Error(`DeepSeek API Error: ${response.statusText}`);
+    if (!response.ok) throw new Error(`Nebius API Error: ${response.statusText}`);
     
     const data = await response.json();
-    const content = data.choices[0].message.content.replace(/```json|```/g, '').trim();
+    // DeepSeek R1 often includes <think> tags; clean them if necessary, 
+    // though the prompt asks for JSON ONLY. JSON.parse will fail if extra text exists.
+    let content = data.choices[0].message.content;
+    
+    // Simple cleanup to extract the JSON block
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      content = jsonMatch[0];
+    }
+
     return JSON.parse(content);
 
   } catch (err) {
-    console.error("DeepSeek Physics Failed:", err);
-    // Fallback: Return empty physics data so the flow doesn't crash completely
+    console.error("Physics Engine Failed:", err);
+    // Fallback: Return empty physics data so the flow doesn't crash
     return { foods: [], total_calories: 0, error: "Physics engine unavailable" };
   }
 }
@@ -124,9 +134,9 @@ export async function runVisionPipeline(userId: string, imageBase64: string) {
   // 4. Medical Safety Check
   const safetyCheck = await checkMedicalContraindications(userId, {
     calories: physicsResult.total_calories,
-    protein: physicsResult.foods.reduce((acc: number, f: any) => acc + (f.macros?.p || 0), 0),
-    carbs: physicsResult.foods.reduce((acc: number, f: any) => acc + (f.macros?.c || 0), 0),
-    fats: physicsResult.foods.reduce((acc: number, f: any) => acc + (f.macros?.f || 0), 0)
+    protein: physicsResult.foods?.reduce((acc: number, f: any) => acc + (f.macros?.p || 0), 0) || 0,
+    carbs: physicsResult.foods?.reduce((acc: number, f: any) => acc + (f.macros?.c || 0), 0) || 0,
+    fats: physicsResult.foods?.reduce((acc: number, f: any) => acc + (f.macros?.f || 0), 0) || 0
   });
 
   // 5. Volume Verification (Simulated)
@@ -136,7 +146,7 @@ export async function runVisionPipeline(userId: string, imageBase64: string) {
   // 6. Audit Log
   await logWorkflowEvent(userId, 'vision_log', 'success', {
     vision_model: 'gemini-1.5-flash',
-    physics_model: 'deepseek-reasoner',
+    physics_model: 'deepseek-ai/DeepSeek-R1',
     confidence: confidenceScore,
     hand_width_ref: user.hand_width_mm,
     safety_warnings: safetyCheck.warnings
