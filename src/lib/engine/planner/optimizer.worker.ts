@@ -7,12 +7,13 @@ addEventListener('message', async (e) => {
   if (type === 'START_NSGA2') {
     try {
       // 1. Initialize WASM
-      // IMPORTANT: We still load the binary from the PUBLIC folder URL
-      await init('/planner-wasm/planner_wasm_bg.wasm');
+      const wasmUrl = new URL('/planner-wasm/planner_wasm_bg.wasm', self.location.origin).href;
+      console.log('[Worker] Loading WASM from:', wasmUrl);
+      await init(wasmUrl);
+      console.log('[Worker] WASM initialized successfully');
 
       // 2. Prepare Input for Rust
-      // Map your JS data to the struct Rust expects
-      let request = {
+      const request = {
         target_calories: data.constraints.calories_max,
         target_protein: data.constraints.protein_target,
         target_carbs: 250, // Default or derive from constraints
@@ -28,32 +29,59 @@ addEventListener('message', async (e) => {
         }))
       };
 
+      console.log('[Worker] Request to Rust:', {
+        target_calories: request.target_calories,
+        target_protein: request.target_protein,
+        foods_count: request.available_foods.length,
+        sample_food: request.available_foods[0]
+      });
+
       // 3. Run Optimization (Rust)
+      console.log('[Worker] Starting optimize_meal_plan...');
       const result = optimize_meal_plan(request);
+      console.log('[Worker] Raw result from Rust:', result);
+      console.log('[Worker] Result type:', typeof result);
+      console.log('[Worker] Result keys:', result ? Object.keys(result) : 'null');
 
       // 4. Handle Result
-      if (result && result.selected_foods) {
-         // Transform back to your Solution type
-         const solution = {
-           menu: result.selected_foods.map((f: any) => f.name),
-           stats: {
-             calories: result.total_calories,
-             protein: result.total_protein
-           },
-           score: result.fitness_score
-         };
-
-         postMessage({ 
-           type: 'SUCCESS', 
-           payload: { solutions: [solution], retries_used: 0 } 
-         });
-      } else {
-        postMessage({ type: 'ERROR', payload: 'Optimization failed to return valid result' });
+      if (!result) {
+        postMessage({ type: 'ERROR', payload: 'Rust returned null/undefined' });
+        return;
       }
 
+      if (!result.selected_foods || !Array.isArray(result.selected_foods)) {
+        console.error('[Worker] Missing or invalid selected_foods:', result);
+        postMessage({ 
+          type: 'ERROR', 
+          payload: `Invalid result structure. Got: ${JSON.stringify(result).substring(0, 200)}` 
+        });
+        return;
+      }
+
+      // Transform back to your Solution type
+      const solution = {
+        menu: result.selected_foods.map((f: any) => f.name),
+        stats: {
+          calories: result.total_calories || 0,
+          protein: result.total_protein || 0
+        },
+        score: result.fitness_score || 0
+      };
+
+      console.log('[Worker] Transformed solution:', solution);
+
+      postMessage({ 
+        type: 'SUCCESS', 
+        payload: { solutions: [solution], retries_used: 0 } 
+      });
+
     } catch (err: any) {
-      console.error("WASM Optimization Failed:", err);
-      postMessage({ type: 'ERROR', payload: err.message });
+      console.error("[Worker] WASM Optimization Failed:", err);
+      console.error("[Worker] Error stack:", err.stack);
+      postMessage({ 
+        type: 'ERROR', 
+        payload: `${err.message || 'Unknown error'}\n${err.stack || ''}` 
+      });
     }
   }
 });

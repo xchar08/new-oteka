@@ -1,211 +1,122 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { ReviewNeededCard } from '@/components/pantry/ReviewNeededCard';
-import { enqueueMutation } from '@/lib/offline/queue';
-import { processOfflineQueue } from '@/lib/offline/sync';
-import { useAppStore } from '@/lib/state/appStore';
-import { useConnectionMode } from '@/lib/hooks/useConnectionMode';
+import React, { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { applyPantryEntropy, isGhost, PantryItem } from '@/lib/engine/pantry/entropy';
+import { Trash2, CheckCircle, RefreshCcw } from 'lucide-react';
 
-type PantryRow = {
-  id: number;
-  probability_score: number;
-  status: 'active' | 'review_needed' | 'consumed';
-  foods: { name: string } | null;
-};
+// Client-side supabase for the UI
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function PantryPage() {
-  useConnectionMode();
-
-  const supabase = createClient();
-  
-  // ✅ FIX: Select primitive value to prevent infinite re-renders
-  const isOnline = useAppStore((s) => s.isOnline);
-  const setLastSyncAt = useAppStore((s) => s.setLastSyncAt);
-
-  const [rows, setRows] = useState<PantryRow[]>([]);
+  const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const reviewNeeded = useMemo(
-    () => rows.filter((r) => r.status === 'review_needed'),
-    [rows]
-  );
+  useEffect(() => {
+    fetchPantry();
+  }, []);
 
-  const active = useMemo(
-    () => rows.filter((r) => r.status === 'active'),
-    [rows]
-  );
-
-  // ✅ FIX: Wrap in useCallback to stabilize the function reference
-  const load = useCallback(async () => {
+  async function fetchPantry() {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
       .from('pantry')
-      .select('id, probability_score, status, foods(name)')
-      .in('status', ['active', 'review_needed'])
-      .order('status', { ascending: false });
+      .select('*')
+      .eq('user_id', user.id);
 
-    if (!error && data) setRows(data as any);
+    if (data) {
+      // Calculate current entropy before displaying
+      // In a real app, this might be done via a highly efficient view or scheduled job,
+      // but client-side calculation ensures immediate responsiveness to time.
+      const updatedItems = applyPantryEntropy(data as unknown as PantryItem[]);
+      setItems(updatedItems);
+    }
     setLoading(false);
-  }, [supabase]);
-
-  // Initial Load
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  // Sync Listener
-  useEffect(() => {
-    // Opportunistic sync when coming online
-    if (isOnline) {
-      (async () => {
-        await processOfflineQueue();
-        setLastSyncAt(new Date().toISOString());
-        await load();
-      })();
-    }
-  }, [isOnline, setLastSyncAt, load]);
-
-  async function verify(pantryId: number, status: 'active' | 'consumed') {
-    const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
-    if (!userId) {
-      alert('Please log in first');
-      return;
-    }
-
-    const payload = {
-      pantry_id: pantryId,
-      status,
-      client_updated_at_ms: Date.now(),
-    };
-
-    // Optimistic UI update immediately
-    setRows((prev) =>
-      prev.map((r) => (r.id === pantryId ? { ...r, status } : r))
-    );
-
-    if (!isOnline) {
-      await enqueueMutation({
-        id: crypto.randomUUID(),
-        type: 'PANTRY_VERIFY',
-        user_id: userId,
-        payload,
-        client_updated_at_ms: payload.client_updated_at_ms,
-      });
-      return;
-    }
-
-    // Online: Try Edge Function first
-    try {
-      const { error } = await supabase.functions.invoke('sync-apply', {
-        body: {
-          queue_item: {
-            id: crypto.randomUUID(),
-            type: 'PANTRY_VERIFY',
-            user_id: userId,
-            client_updated_at_ms: payload.client_updated_at_ms,
-          },
-          payload,
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Sync failed');
-      }
-
-      // Reload to ensure state matches server
-      await load();
-    } catch (e) {
-      console.warn('Direct sync failed, queuing mutation', e);
-      await enqueueMutation({
-        id: crypto.randomUUID(),
-        type: 'PANTRY_VERIFY',
-        user_id: userId,
-        payload,
-        client_updated_at_ms: payload.client_updated_at_ms,
-      });
-    }
   }
 
-  if (loading && rows.length === 0) {
-    return (
-      <div className="p-6 text-center text-gray-500 flex justify-center items-center h-[50vh]">
-        <div className="animate-pulse">Loading pantry...</div>
-      </div>
-    );
+  async function verifyItem(id: string) {
+    // Reset probability to 1.0
+    await supabase.from('pantry').update({
+      probability_score: 1.0,
+      last_verified_at: new Date().toISOString()
+    }).eq('id', id);
+    fetchPantry();
   }
+
+  async function removeItem(id: string) {
+    await supabase.from('pantry').delete().eq('id', id);
+    fetchPantry();
+  }
+
+  const reviewNeeded = items.filter(i => isGhost(i.probability_score));
+  const goodItems = items.filter(i => !isGhost(i.probability_score));
+
+  if (loading) return <div className="p-8 text-center text-zinc-400">Loading Pantry...</div>;
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6 pb-24">
-      <h1 className="text-2xl font-bold">Pantry Inventory</h1>
+    <div className="min-h-screen bg-zinc-950 p-4 text-zinc-100 pb-24">
+      <header className="mb-8 mt-4">
+        <h1 className="text-3xl font-bold tracking-tight text-white">Smart Pantry</h1>
+        <p className="text-zinc-400">Physics-based inventory decay</p>
+      </header>
 
+      {/* GHOST CHECK SECTION */}
       {reviewNeeded.length > 0 && (
-        <section className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl">
-            <h2 className="text-lg font-semibold text-orange-800 mb-2">
-              Verify Spoilage
-            </h2>
-            <p className="text-sm text-orange-600 mb-4">
-              These {reviewNeeded.length} items have a low probability score
-              based on decay rates.
-            </p>
-
-            <div className="space-y-3">
-              {reviewNeeded.map((r) => (
-                <ReviewNeededCard
-                  key={r.id}
-                  id={r.id}
-                  name={r.foods?.name ?? 'Unknown Item'}
-                  probability={Number(r.probability_score)}
-                  onConfirmGood={() => verify(r.id, 'active')}
-                  onConfirmSpoiled={() => verify(r.id, 'consumed')}
-                />
-              ))}
-            </div>
+        <section className="mb-8 rounded-xl border border-amber-900/50 bg-amber-950/20 p-4">
+          <h2 className="mb-3 flex items-center text-lg font-semibold text-amber-400">
+            <RefreshCcw className="mr-2 h-5 w-5" />
+            Review Needed ({reviewNeeded.length})
+          </h2>
+          <div className="space-y-3">
+            {reviewNeeded.map(item => (
+              <div key={item.id} className="flex items-center justify-between rounded-lg bg-black/40 p-3">
+                <div>
+                  <h3 className="font-medium">{item.category} (ID: {item.id.slice(0, 4)})</h3>
+                  <div className="text-xs text-amber-500/80">Prob: {(item.probability_score * 100).toFixed(0)}%</div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => removeItem(item.id)} className="rounded-full bg-red-900/30 p-2 text-red-400 hover:bg-red-900/50">
+                    <Trash2 size={18} />
+                  </button>
+                  <button onClick={() => verifyItem(item.id)} className="rounded-full bg-emerald-900/30 p-2 text-emerald-400 hover:bg-emerald-900/50">
+                    <CheckCircle size={18} />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold text-gray-800">Active Items</h2>
-        {active.length === 0 && (
-          <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-            Pantry is empty.
-          </div>
-        )}
-
-        <div className="space-y-2">
-          {active.map((r) => (
-            <div
-              key={r.id}
-              className="rounded-xl border border-gray-100 p-4 bg-white shadow-sm flex justify-between items-center"
-            >
+      {/* MAIN INVENTORY */}
+      <section>
+        <h2 className="mb-4 text-xl font-semibold">Stocked Items</h2>
+        <div className="grid gap-3">
+          {goodItems.map(item => (
+            <div key={item.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
               <div>
-                <div className="font-medium text-gray-900">
-                  {r.foods?.name ?? 'Unknown'}
-                </div>
-                <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      r.probability_score > 0.7
-                        ? 'bg-green-500'
-                        : 'bg-yellow-500'
-                    }`}
-                  />
-                  Health:{' '}
-                  {Math.round(Number(r.probability_score) * 100)}%
+                <h3 className="font-medium">{item.category}</h3>
+                <div className="text-xs text-zinc-500">
+                  Prob: {(item.probability_score * 100).toFixed(0)}%
                 </div>
               </div>
-              <button
-                className="text-sm px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
-                onClick={() => verify(r.id, 'consumed')}
-              >
-                Use / Trash
-              </button>
+              {/* Small quick actions could go here */}
+              <div className="h-2 w-24 overflow-hidden rounded-full bg-zinc-800">
+                <div
+                  className="h-full bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${item.probability_score * 100}%` }}
+                />
+              </div>
             </div>
           ))}
+          {goodItems.length === 0 && (
+            <div className="py-8 text-center text-zinc-500 italic">No healthy items in pantry</div>
+          )}
         </div>
       </section>
     </div>
