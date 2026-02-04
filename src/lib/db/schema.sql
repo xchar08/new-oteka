@@ -1,5 +1,23 @@
--- Oteka Unified Database Schema
+-- Oteka Unified Database Schema (Idempotent)
 -- Last Updated: 2026-02-03
+
+/* 
+  UNCOMMENT FOR FULL RESET (WARNING: DELETES ALL DATA):
+  
+  drop trigger if exists on_auth_user_created on auth.users;
+  drop function if exists handle_new_user;
+  drop table if exists logs cascade;
+  drop table if exists workflows cascade;
+  drop table if exists pantry cascade;
+  drop table if exists foods cascade;
+  drop table if exists user_conditions cascade;
+  drop table if exists conditions cascade;
+  drop table if exists friendships cascade;
+  drop table if exists users cascade;
+  drop table if exists households cascade;
+  drop table if exists cache_entries cascade;
+  drop table if exists metabolic_phenomena cascade;
+*/
 
 -- Enable Extensions
 create extension if not exists vector;
@@ -131,7 +149,6 @@ security definer
 as $$
 begin
   -- Update probability scores
-  -- Formula: P_new = P_old * (1 - k)
   update pantry
   set 
     probability_score = greatest(0, probability_score * (1 - coalesce(foods.category_decay_rate, 0.05))),
@@ -147,6 +164,8 @@ $$;
 
 -- Schedule the job (Runs daily at 00:00 GMT)
 -- Requires pg_cron to be active in Supabase
+-- UNSCHEDULE FIRST IF EXISTS to avoid duplicate entries
+select cron.unschedule('entropy-daily-cycle') where exists (select 1 from cron.job where jobname = 'entropy-daily-cycle');
 select cron.schedule(
   'entropy-daily-cycle',
   '0 0 * * *', 
@@ -170,25 +189,44 @@ alter table metabolic_phenomena enable row level security;
 alter table cache_entries enable row level security;
 
 -- USERS
+drop policy if exists "Users view own profile" on users;
 create policy "Users view own profile" on users for select using (auth.uid() = id);
+
+drop policy if exists "Users update own profile" on users;
 create policy "Users update own profile" on users for update using (auth.uid() = id);
+
+drop policy if exists "Authenticated view profiles" on users;
 create policy "Authenticated view profiles" on users for select using (auth.role() = 'authenticated');
 
 -- FOODS
+drop policy if exists "Foods read (auth)" on foods;
 create policy "Foods read (auth)" on foods for select using (auth.role() = 'authenticated');
+
+drop policy if exists "Foods insert (auth)" on foods;
 create policy "Foods insert (auth)" on foods for insert with check (auth.role() = 'authenticated');
 
 -- PANTRY
+drop policy if exists "Pantry read own" on pantry;
 create policy "Pantry read own" on pantry for select using (auth.uid() = user_id);
+
+drop policy if exists "Pantry write own" on pantry;
 create policy "Pantry write own" on pantry for insert with check (auth.uid() = user_id);
+
+drop policy if exists "Pantry update own" on pantry;
 create policy "Pantry update own" on pantry for update using (auth.uid() = user_id);
+
+drop policy if exists "Pantry delete own" on pantry;
 create policy "Pantry delete own" on pantry for delete using (auth.uid() = user_id);
 
 -- LOGS / WORKFLOWS
+drop policy if exists "Logs access own" on logs;
 create policy "Logs access own" on logs for all using (auth.uid() = user_id);
+
+drop policy if exists "Workflows access own" on workflows;
 create policy "Workflows access own" on workflows for all using (auth.uid() = user_id);
 
 -- HOUSEHOLDS
+drop policy if exists "Households read member" on households;
 create policy "Households read member" on households for select using (
   exists (select 1 from users u where u.id = auth.uid() and u.household_id = households.id)
 );
