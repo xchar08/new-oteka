@@ -7,13 +7,16 @@ import dynamic from 'next/dynamic';
 const SyncManager = dynamic(() => import('@/components/offline/SyncManager').then(m => m.SyncManager), { ssr: false });
 const BottomNav = dynamic(() => import('@/components/layout/BottomNav').then(m => m.BottomNav), { ssr: false });
 const AuthGuard = dynamic(() => import('@/components/AuthGuard'), { ssr: false });
+const AuthLinkHandler = dynamic(() => import('@/components/providers/AuthLinkHandler').then(m => m.AuthLinkHandler), { ssr: false });
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
-        <AuthGuard>
-            <SyncManager />
-            {children}
-            <BottomNav />
-        </AuthGuard>
+        <AuthLinkHandler>
+            <AuthGuard>
+                <SyncManager />
+                {children}
+                <BottomNav />
+            </AuthGuard>
+        </AuthLinkHandler>
     );
 }
