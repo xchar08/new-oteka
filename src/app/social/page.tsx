@@ -75,14 +75,14 @@ export default function SocialPage() {
   }, [activeTab]);
 
   return (
-    <div className="p-6 pb-24 space-y-6">
+    <div className="min-h-screen bg-[var(--palenight-bg)] p-6 pb-24 space-y-6 text-zinc-100">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Trophy className="text-yellow-500" size={32} />
           <div>
             <h1 className="text-2xl font-bold">Rankings</h1>
-            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
+            <p className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">
               {activeTab === 'global' ? 'World Top 50' : activeTab === 'friends' ? 'Your Circle' : 'Household Stats'}
             </p>
           </div>
@@ -93,11 +93,11 @@ export default function SocialPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex p-1 bg-gray-100 rounded-lg">
+      <div className="flex p-1 bg-[var(--palenight-surface)] rounded-lg border border-white/5">
         <button
           onClick={() => setActiveTab('global')}
           className={`flex-1 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'global' ? 'bg-white shadow text-black' : 'text-gray-500 hover:text-gray-700'
+            activeTab === 'global' ? 'bg-[var(--palenight-bg)] shadow text-white' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           <Globe size={14} /> Global
@@ -105,7 +105,7 @@ export default function SocialPage() {
         <button
           onClick={() => setActiveTab('friends')}
           className={`flex-1 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'friends' ? 'bg-white shadow text-black' : 'text-gray-500 hover:text-gray-700'
+            activeTab === 'friends' ? 'bg-[var(--palenight-bg)] shadow text-white' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           <Users size={14} /> Friends
@@ -113,7 +113,7 @@ export default function SocialPage() {
         <button
           onClick={() => setActiveTab('household')}
           className={`flex-1 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'household' ? 'bg-white shadow text-black' : 'text-gray-500 hover:text-gray-700'
+            activeTab === 'household' ? 'bg-[var(--palenight-bg)] shadow text-white' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           <Home size={14} /> Home
@@ -121,15 +121,15 @@ export default function SocialPage() {
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden min-h-[300px]">
+      <div className="bg-[var(--palenight-surface)] rounded-xl shadow-lg border border-white/5 overflow-hidden min-h-[300px]">
         {loading ? (
           <div className="p-8 text-center text-gray-400">Updating ranks...</div>
         ) : leaders.length === 0 ? (
           <div className="p-10 text-center flex flex-col items-center gap-3">
-            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">
+            <div className="w-12 h-12 bg-palenight-bg rounded-full flex items-center justify-center text-zinc-500">
               {activeTab === 'household' ? <Home size={24}/> : <Users size={24}/>}
             </div>
-            <p className="text-gray-600 font-medium">No one here yet.</p>
+            <p className="text-zinc-400 font-medium">No one here yet.</p>
             {activeTab === 'household' && (
               <p className="text-sm text-gray-400">Join a household to share pantry stats.</p>
             )}
@@ -155,7 +155,7 @@ export default function SocialPage() {
                     w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm shadow-sm
                     ${idx === 0 ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-200' : 
                       idx === 1 ? 'bg-gray-100 text-gray-700' : 
-                      idx === 2 ? 'bg-orange-100 text-orange-700' : 'text-gray-400 bg-gray-50'}
+                      idx === 2 ? 'bg-orange-900/40 text-orange-400 border border-orange-700/50' : 'text-zinc-500 bg-palenight-bg border border-white/5'}
                   `}>
                     {idx + 1}
                   </span>

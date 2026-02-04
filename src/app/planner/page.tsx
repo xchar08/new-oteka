@@ -110,10 +110,10 @@ export default function PlannerPage() {
         
         <div className="space-y-4">
           {plans.map((plan, i) => (
-            <div key={i} className="border border-zinc-200 p-4 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
+            <div key={i} className="border border-white/5 p-4 rounded-xl bg-palenight-surface shadow-lg hover:brightness-110 transition-all text-zinc-100">
               <div className="flex justify-between items-start mb-2">
                  <h3 className="font-bold text-lg">Option {i + 1}</h3>
-                 <span className="bg-zinc-100 text-zinc-600 text-xs px-2 py-1 rounded-full font-mono">
+                  <span className="bg-palenight-bg text-zinc-400 text-xs px-2 py-1 rounded-full font-mono">
                     {plan.stats.calories} kcal
                  </span>
               </div>

@@ -59,17 +59,17 @@ export default function MedicalSettingsPage() {
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto space-y-6 pb-24">
-      <h1 className="text-2xl font-bold">Medical Guardrails</h1>
-      <p className="text-sm text-gray-500">
+    <div className="min-h-screen bg-palenight-bg p-6 max-w-md mx-auto space-y-6 pb-24 text-zinc-100">
+      <h1 className="text-2xl font-bold text-white">Medical Guardrails</h1>
+      <p className="text-sm text-zinc-400">
         Select any active medical conditions. The AI Vision system will automatically check food logs against these constraints.
       </p>
       
       <div className="space-y-3">
-        {loading && <div className="text-center py-4 text-gray-400">Loading conditions...</div>}
+        {loading && <div className="text-center py-4 text-zinc-500">Loading conditions...</div>}
         
         {!loading && conditions.length === 0 && (
-          <div className="p-4 bg-gray-50 rounded border text-center text-sm">
+          <div className="p-4 bg-palenight-surface rounded-xl border border-white/5 text-center text-sm text-zinc-400">
             No global conditions found in database.
           </div>
         )}
@@ -78,21 +78,23 @@ export default function MedicalSettingsPage() {
           <div 
             key={c.id} 
             className={`
-              flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer
-              ${c.active ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-white border-gray-200'}
+              flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer shadow-md
+              ${c.active 
+                ? 'bg-palenight-error/20 border-palenight-error/50' 
+                : 'bg-palenight-surface border-white/5 hover:bg-palenight-bg'}
             `}
             onClick={() => toggleCondition(c.id, c.active)}
           >
             <div className="flex items-center gap-3">
-              <div className={`w-5 h-5 rounded flex items-center justify-center border ${c.active ? 'bg-red-500 border-red-500 text-white' : 'border-gray-300'}`}>
+              <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${c.active ? 'bg-palenight-error border-palenight-error text-white' : 'border-zinc-700 bg-palenight-bg'}`}>
                 {c.active && '✓'}
               </div>
-              <span className={`font-medium ${c.active ? 'text-red-900' : 'text-gray-700'}`}>
+              <span className={`font-medium ${c.active ? 'text-white' : 'text-zinc-300'}`}>
                 {c.name}
               </span>
             </div>
             
-            {c.active && <span className="text-xs text-red-600 font-semibold">ACTIVE</span>}
+            {c.active && <span className="text-[10px] bg-palenight-error text-white px-1.5 py-0.5 rounded font-bold">ACTIVE</span>}
           </div>
         ))}
       </div>

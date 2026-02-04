@@ -116,7 +116,7 @@ export default function LogPage() {
 
   if (result) {
     return (
-      <div className="min-h-screen bg-zinc-950 p-6 text-white flex flex-col items-center justify-center space-y-6">
+      <div className="min-h-screen bg-[var(--palenight-bg)] p-6 text-white flex flex-col items-center justify-center space-y-6">
         <div className="text-center space-y-2">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/50">
             <RefreshCw className="h-8 w-8" />
@@ -125,17 +125,17 @@ export default function LogPage() {
           <p className="text-zinc-400">{result.summary.calories} kcal</p>
         </div>
 
-        <div className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-900 p-4 space-y-4">
+        <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[var(--palenight-surface)] p-4 space-y-4">
            <div className="grid grid-cols-3 gap-2 text-center">
-             <div className="rounded bg-zinc-950 p-2">
+             <div className="rounded bg-[var(--palenight-bg)] p-2">
                <div className="text-xs text-zinc-500">Protein</div>
                <div className="font-mono font-bold">{result.macros?.protein}g</div>
              </div>
-             <div className="rounded bg-zinc-950 p-2">
+             <div className="rounded bg-[var(--palenight-bg)] p-2">
                <div className="text-xs text-zinc-500">Carbs</div>
                <div className="font-mono font-bold">{result.macros?.carbs}g</div>
              </div>
-             <div className="rounded bg-zinc-950 p-2">
+             <div className="rounded bg-[var(--palenight-bg)] p-2">
                <div className="text-xs text-zinc-500">Fat</div>
                <div className="font-mono font-bold">{result.macros?.fat}g</div>
              </div>
@@ -182,9 +182,9 @@ export default function LogPage() {
            <button 
              onClick={handleCapture}
              disabled={analyzing}
-             className="h-20 w-20 rounded-full border-4 border-white flex items-center justify-center bg-white/20 backdrop-blur active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+             className="h-20 w-20 rounded-full border-4 border-white/20 flex items-center justify-center bg-white/10 backdrop-blur active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
            >
-             <div className="h-16 w-16 rounded-full bg-white shadow-lg" />
+             <div className="h-16 w-16 rounded-full bg-palenight-accent shadow-lg border border-white/20" />
            </button>
 
            {/* WEB FALLBACK INPUT (Hidden on Native) */}

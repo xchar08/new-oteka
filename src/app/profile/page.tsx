@@ -108,21 +108,21 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950 text-white">
+      <div className="flex h-screen items-center justify-center bg-[var(--palenight-bg)] text-white">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 pb-24 text-zinc-100">
+    <div className="min-h-screen bg-[var(--palenight-bg)] p-6 pb-24 text-zinc-100">
       <header className="mb-8 mt-2">
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
         <p className="text-zinc-400">Manage your metrics & settings</p>
       </header>
 
       {error && (
-        <Alert variant="destructive" className="mb-6 border-red-900 bg-red-950/50 text-red-200">
+        <Alert variant="destructive" className="mb-6 border-red-900 bg-[var(--palenight-error)]/20 text-red-100">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -131,30 +131,30 @@ export default function ProfilePage() {
 
       <div className="space-y-6">
         {/* IDENTITY */}
-        <Card className="border-zinc-800 bg-zinc-900/50 text-zinc-100">
+        <Card className="border-white/5 bg-[var(--palenight-surface)] text-zinc-100 shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg">Identity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="text-zinc-400">User ID</Label>
-              <div className="rounded bg-zinc-950 p-3 font-mono text-xs text-zinc-500 break-all">
+              <div className="rounded bg-[var(--palenight-bg)]/50 p-3 font-mono text-xs text-zinc-500 break-all border border-white/5">
                 {user?.id}
               </div>
             </div>
             <div className="space-y-2">
               <Label className="text-zinc-400">Display Name</Label>
-              <Input disabled value={user?.display_name || ''} className="bg-zinc-950 border-zinc-800" />
+              <Input disabled value={user?.display_name || ''} className="bg-[var(--palenight-bg)] border-white/10" />
             </div>
           </CardContent>
         </Card>
 
         {/* PHYSICS METRICS */}
-        <Card className="border-zinc-800 bg-zinc-900/50 text-zinc-100">
+        <Card className="border-white/5 bg-[var(--palenight-surface)] text-zinc-100 shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg flex justify-between items-center">
               Physics Calibration
-              <span className="text-xs font-normal text-amber-500 bg-amber-950/30 px-2 py-1 rounded">Critical for Vision</span>
+              <span className="text-xs font-normal text-[var(--palenight-warning)] bg-[var(--palenight-warning)]/10 px-2 py-1 rounded">Critical for Vision</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -164,7 +164,7 @@ export default function ProfilePage() {
                 type="number" 
                 value={handWidth} 
                 onChange={(e) => setHandWidth(e.target.value)} 
-                className="bg-zinc-950 border-zinc-800 text-white" 
+                className="bg-[var(--palenight-bg)] border-white/10 text-white" 
               />
               <p className="text-xs text-zinc-500">Measure the width of your palm (excluding thumb) for accurate volumetric analysis.</p>
             </div>
@@ -172,17 +172,59 @@ export default function ProfilePage() {
         </Card>
 
         {/* METABOLIC GOALS */}
-        <Card className="border-zinc-800 bg-zinc-900/50 text-zinc-100">
+        <Card className="border-white/5 bg-[var(--palenight-surface)] text-zinc-100 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-lg">Metabolic Settings</CardTitle>
+            <CardTitle className="text-lg">Biometrics & Goals</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
+             <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">Weight (kg)</Label>
+                  <Input 
+                    type="number"
+                    value={user?.metabolic_state_json?.weight || ''}
+                    onChange={(e) => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, weight: Number(e.target.value)}})}
+                    className="bg-[var(--palenight-bg)] border-white/10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">Height (cm)</Label>
+                  <Input 
+                    type="number"
+                    value={user?.metabolic_state_json?.height || ''}
+                    onChange={(e) => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, height: Number(e.target.value)}})}
+                    className="bg-[var(--palenight-bg)] border-white/10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">Age</Label>
+                  <Input 
+                    type="number"
+                    value={user?.metabolic_state_json?.age || ''}
+                    onChange={(e) => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, age: Number(e.target.value)}})}
+                    className="bg-[var(--palenight-bg)] border-white/10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">Gender</Label>
+                  <select 
+                    value={user?.metabolic_state_json?.gender || 'male'}
+                    onChange={(e) => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, gender: e.target.value}})}
+                    className="w-full rounded-md border border-white/10 bg-[var(--palenight-bg)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+             </div>
+
+            <div className="space-y-2 pt-4 border-t border-white/5">
               <Label className="text-zinc-400">Current Goal</Label>
               <select 
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
-                className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-white/10 bg-[var(--palenight-bg)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="maintenance">Maintenance</option>
                 <option value="fat_loss">Fat Loss</option>

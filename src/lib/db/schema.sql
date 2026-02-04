@@ -257,3 +257,21 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- ========================================================
+-- 12. SUBSCRIPTIONS (Stripe)
+-- ========================================================
+create table if not exists subscriptions (
+  id text primary key, -- Stripe Subscription ID
+  user_id uuid references users(id) not null,
+  status text not null, -- active, past_due, canceled
+  price_id text not null,
+  current_period_end timestamptz not null,
+  created_at timestamptz default now()
+);
+
+alter table subscriptions enable row level security;
+
+drop policy if exists "Users view own subscription" on subscriptions;
+create policy "Users view own subscription" on subscriptions for select using (auth.uid() = user_id);
+

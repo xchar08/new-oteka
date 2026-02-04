@@ -150,12 +150,12 @@ export function OptimisticCapture({
 
   if (status === 'uploading') {
     return (
-      <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="fixed inset-0 bg-palenight-bg flex items-center justify-center z-50 backdrop-blur-sm">
         <div className="w-64 space-y-6 text-center">
           <div className="text-white text-xl font-bold animate-pulse">Analyzing...</div>
-          <div className="h-2 bg-gray-700 rounded-full overflow-hidden w-full">
+          <div className="h-2 bg-palenight-surface rounded-full overflow-hidden w-full">
             <div
-              className="h-full bg-blue-500 animate-[width_1.5s_ease-out_forwards]"
+              className="h-full bg-palenight-accent animate-[width_1.5s_ease-out_forwards]"
               style={{ width: '100%' }}
             />
           </div>
@@ -167,7 +167,7 @@ export function OptimisticCapture({
 
   if (status === 'complete') {
     return (
-      <div className="fixed inset-0 bg-green-600 flex items-center justify-center z-50 animate-in fade-in duration-300">
+      <div className="fixed inset-0 bg-palenight-success flex items-center justify-center z-50 animate-in fade-in duration-300">
         <div className="text-center text-white space-y-2">
           <div className="text-6xl mb-4">✓</div>
           <div className="text-3xl font-bold">Logged!</div>

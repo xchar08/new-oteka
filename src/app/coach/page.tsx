@@ -65,11 +65,11 @@ export default function CoachPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      <div className="p-4 border-b bg-white sticky top-0 z-10">
-        <h1 className="text-xl font-bold">Metabolic Advisor</h1>
-        <p className="text-xs text-green-600 font-medium flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />{' '}
+    <div className="flex flex-col h-screen bg-palenight-bg text-zinc-100">
+      <div className="p-4 border-b border-white/5 bg-palenight-surface sticky top-0 z-10">
+        <h1 className="text-xl font-bold text-white">Metabolic Advisor</h1>
+        <p className="text-xs text-palenight-success font-medium flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-palenight-success animate-pulse" />{' '}
           Online
         </p>
       </div>
@@ -90,11 +90,11 @@ export default function CoachPage() {
           >
             <div
               className={`
-              max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed shadow-sm
+              max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed shadow-md
               ${
                 m.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-tr-none'
-                  : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
+                  ? 'bg-palenight-accent text-white rounded-tr-none'
+                  : 'bg-palenight-surface text-zinc-100 border border-white/5 rounded-tl-none'
               }
             `}
             >
@@ -112,7 +112,7 @@ export default function CoachPage() {
         )}
       </div>
 
-      <div className="p-4 bg-white border-t">
+      <div className="p-4 bg-palenight-surface border-t border-white/5">
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -121,7 +121,7 @@ export default function CoachPage() {
           }}
         >
           <input
-            className="flex-1 bg-gray-100 border-0 rounded-full px-4 py-3 text-sm focus:ring-2 ring-blue-500 outline-none"
+            className="flex-1 bg-palenight-bg border border-white/10 rounded-full px-4 py-3 text-sm text-white focus:ring-2 ring-palenight-accent outline-none"
             placeholder="Ask anything..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -129,7 +129,7 @@ export default function CoachPage() {
           <Button
             type="submit"
             disabled={busy || !input.trim()}
-            className="rounded-full w-12 h-12 flex items-center justify-center p-0"
+            className="rounded-full w-12 h-12 flex items-center justify-center p-0 bg-palenight-accent hover:bg-palenight-accent/80"
           >
             →
           </Button>

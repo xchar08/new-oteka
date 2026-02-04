@@ -148,9 +148,9 @@ export default function ShoppingPage() {
       
       <div className="space-y-3">
         {items.map(item => (
-          <div key={item.id} className="flex items-center justify-between p-4 bg-white border rounded-lg shadow-sm">
+          <div key={item.id} className="flex items-center justify-between p-4 bg-palenight-surface border border-white/5 rounded-lg shadow-md">
             <div>
-              <div className="font-semibold text-gray-900">{item.name}</div>
+              <div className="font-semibold text-zinc-100">{item.name}</div>
               <div className={`text-xs inline-block px-2 py-0.5 rounded mt-1 font-medium ${
                 item.category === 'Pantry Restock' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
               }`}>

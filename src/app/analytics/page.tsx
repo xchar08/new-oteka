@@ -71,21 +71,21 @@ export default function AnalyticsPage() {
   if (loading) return <div className="p-8 text-center text-gray-500">Calculating Metabolic Trends...</div>;
 
   return (
-    <div className="p-6 pb-24 space-y-6 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold">Metabolic Trends</h1>
+    <div className="min-h-screen bg-palenight-bg p-6 pb-24 space-y-6 max-w-lg mx-auto text-zinc-100">
+      <h1 className="text-2xl font-bold text-white">Metabolic Trends</h1>
       
       {/* 1. Macro Radar */}
-      <Card>
+      <Card className="bg-palenight-surface border-white/5 shadow-xl">
         <CardHeader>
-          <div className="text-sm font-semibold text-gray-500">7-Day Rolling Average</div>
+          <div className="text-sm font-semibold text-zinc-400">7-Day Rolling Average</div>
         </CardHeader>
         <CardContent>
           {stats ? (
             <NutrientRadar 
               macros={[
-                { label: 'Protein', current: stats.protein_avg, target: 180, color: 'bg-blue-500' },
-                { label: 'Carbs', current: stats.carbs_avg, target: 250, color: 'bg-green-500' },
-                { label: 'Fats', current: stats.fats_avg, target: 70, color: 'bg-yellow-500' },
+                { label: 'Protein', current: stats.protein_avg, target: 180, color: 'bg-palenight-secondary' },
+                { label: 'Carbs', current: stats.carbs_avg, target: 250, color: 'bg-palenight-success' },
+                { label: 'Fats', current: stats.fats_avg, target: 70, color: 'bg-palenight-warning' },
               ]} 
             />
           ) : (
@@ -96,13 +96,13 @@ export default function AnalyticsPage() {
 
       {/* 2. Key Insights Grid */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-xl border shadow-sm">
-           <div className="text-xs text-gray-500 uppercase font-bold">Daily Load</div>
-           <div className="text-2xl font-bold mt-1">{stats?.total_calories} <span className="text-sm font-normal text-gray-400">kcal</span></div>
+        <div className="bg-palenight-surface p-4 rounded-xl border border-white/5 shadow-lg">
+           <div className="text-xs text-zinc-500 uppercase font-bold">Daily Load</div>
+           <div className="text-2xl font-bold mt-1 text-white">{stats?.total_calories} <span className="text-sm font-normal text-zinc-500">kcal</span></div>
         </div>
-        <div className="bg-white p-4 rounded-xl border shadow-sm">
-           <div className="text-xs text-gray-500 uppercase font-bold">Adherence</div>
-           <div className="text-2xl font-bold mt-1">{stats?.log_count} <span className="text-sm font-normal text-gray-400">logs</span></div>
+        <div className="bg-palenight-surface p-4 rounded-xl border border-white/5 shadow-lg">
+           <div className="text-xs text-zinc-500 uppercase font-bold">Adherence</div>
+           <div className="text-2xl font-bold mt-1 text-white">{stats?.log_count} <span className="text-sm font-normal text-zinc-500">logs</span></div>
         </div>
       </div>
     </div>

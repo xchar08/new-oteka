@@ -10,14 +10,22 @@
 }
 
 :root {
+  /* Material Palenight Palette */
+  --palenight-bg: #292D3E;
+  --palenight-surface: #444267;
+  --palenight-accent: #c792ea;
+  --palenight-secondary: #89ddff;
+  --palenight-success: #c3e88d;
+  --palenight-warning: #ffcb6b;
+  --palenight-error: #ff5370;
+  
   --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 0, 0, 0;
-  --background-end-rgb: 0, 0, 0; /* Force Dark Mode */
+  --background-rgb: 41, 45, 62; /* 292D3E in rgb */
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: black; /* Default to native black */
+  background-color: var(--palenight-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

@@ -109,7 +109,7 @@ export default function OfflineCapturePage() {
       <button 
         onClick={handleCapture}
         disabled={processing || !videoRef.current?.srcObject}
-        className="absolute bottom-12 bg-white text-black w-20 h-20 rounded-full border-4 border-gray-300 flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all z-20 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="absolute bottom-12 bg-palenight-accent text-white w-20 h-20 rounded-full border-4 border-white/20 flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all z-20 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {processing ? (
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />

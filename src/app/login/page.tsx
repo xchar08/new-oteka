@@ -73,11 +73,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-gray-50">
-      <Card className="w-full max-w-md bg-white">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-palenight-bg">
+      <Card className="w-full max-w-md bg-palenight-surface border-white/10 text-zinc-100 shadow-2xl">
         <CardHeader>
-          <h1 className="text-2xl font-bold text-center">Welcome to Oteka</h1>
-          <p className="text-center text-gray-500">Metabolic Intelligence</p>
+          <h1 className="text-2xl font-bold text-center text-white">Welcome to Oteka</h1>
+          <p className="text-center text-zinc-400">Metabolic Intelligence</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -116,14 +116,14 @@ export default function LoginPage() {
               </Button>
 
               <div className="relative my-2">
-                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-gray-500">Or continue with</span></div>
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5" /></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-palenight-surface px-2 text-zinc-500">Or continue with</span></div>
               </div>
 
               <Button 
                 type="button" 
                 variant="outline" 
-                className="w-full flex items-center justify-center gap-2"
+                className="w-full flex items-center justify-center gap-2 border-white/10 text-zinc-300 hover:bg-palenight-bg"
                 onClick={handleGoogleLogin}
                 disabled={loading}
               >

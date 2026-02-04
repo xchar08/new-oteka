@@ -93,13 +93,15 @@ export default function MenuScannerPage() {
       )}
 
       {!result && !analyzing && (
-        <div className="border-2 border-dashed border-gray-300 h-64 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-          <label className="flex flex-col items-center cursor-pointer w-full h-full justify-center">
-            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
-              <Camera size={32} />
+        <div className="border-2 border-dashed border-white/10 h-64 flex items-center justify-center rounded-xl bg-palenight-surface/50 hover:bg-palenight-surface transition-colors cursor-pointer group">
+          <label className="flex flex-col items-center justify-center w-full h-full">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 bg-palenight-bg rounded-full flex items-center justify-center mx-auto text-palenight-accent group-hover:scale-110 transition-transform">
+                <Camera size={32} />
+              </div>
+              <span className="text-blue-600 font-semibold text-lg">Scan Menu</span>
+              <span className="text-gray-400 text-sm mt-1">Tap to open camera</span>
             </div>
-            <span className="text-blue-600 font-semibold text-lg">Scan Menu</span>
-            <span className="text-gray-400 text-sm mt-1">Tap to open camera</span>
             <input
               type="file"
               accept="image/*"
@@ -139,7 +141,7 @@ export default function MenuScannerPage() {
             {result.items?.map((item: any, idx: number) => (
               <div
                 key={idx}
-                className="border border-gray-200 p-4 rounded-xl shadow-sm bg-white"
+                className="border border-white/5 p-4 rounded-xl shadow-lg bg-palenight-surface text-zinc-100"
               >
                 <div className="flex justify-between items-start mb-1">
                   <span className="font-bold text-gray-900 text-lg">
