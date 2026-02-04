@@ -10,16 +10,27 @@
 }
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0; /* Force Dark Mode */
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: white;
+  background: black; /* Default to native black */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Camera Preview Transparency */
+body.camera-active {
+  background: transparent !important;
+}
+
+body.camera-active #__next,
+body.camera-active main,
+body.camera-active div[class*="min-h-screen"] {
+  background: transparent !important;
 }
 
 /* Hide scrollbar for PWA aesthetic */

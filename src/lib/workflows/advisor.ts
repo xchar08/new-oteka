@@ -1,11 +1,11 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
-import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
+import { createOpenAI } from "@ai-sdk/openai";
+import { generateObject } from "ai";
+import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
 const nebius = createOpenAI({
@@ -39,19 +39,40 @@ export async function runMetabolicAdvisor(userId: string, context: any) {
     Provide specific, actionable advice.
   `;
 
-  const { object: result } = await generateObject({
-    model: nebius('deepseek-ai/DeepSeek-R1'),
-    schema: AdvisorSchema,
-    prompt: prompt,
-  });
+  try {
+    const { object: result } = await generateObject({
+      model: nebius("deepseek-ai/DeepSeek-R1"),
+      schema: AdvisorSchema,
+      prompt: prompt,
+    });
 
-  // Log to workflows
-  await supabase.from('workflows').insert({
-    user_id: userId,
-    trigger_event: 'metabolic_advisor',
-    last_run_status: 'success',
-    logs_json: { context, result }
-  });
+    // Log to workflows
+    await supabase.from("workflows").insert({
+      user_id: userId,
+      trigger_event: "metabolic_advisor",
+      last_run_status: "success",
+      logs_json: { context, result },
+    });
 
-  return result;
+    return result;
+  } catch (error) {
+    console.error("Advisor Error:", error);
+
+    // Log failure
+    await supabase.from("workflows").insert({
+      user_id: userId,
+      trigger_event: "metabolic_advisor",
+      last_run_status: "failed",
+      logs_json: { context, error: String(error) },
+    });
+
+    // Return safe fallback
+    return {
+      analysis: "Service unavailable.",
+      recommendations: ["Focus on whole foods.", "Stay hydrated."],
+      metabolic_tags: ["API_ERROR"],
+      actionable_insight:
+        "Could not connect to Metabolic Advisor at this time.",
+    };
+  }
 }

@@ -14,6 +14,7 @@
   "dependencies": {
     "@ai-sdk/google": "^3.0.13",
     "@ai-sdk/openai": "^3.0.18",
+    "@capacitor-community/camera-preview": "^7.0.4",
     "@capacitor/android": "^8.0.1",
     "@capacitor/app": "^8.0.0",
     "@capacitor/cli": "^7.4.5",
@@ -27,6 +28,7 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.1",
     "ai": "^6.0.49",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "idb-keyval": "^6.2.2",
     "lucide-react": "^0.563.0",

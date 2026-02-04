@@ -9,38 +9,52 @@
 // We may need to copy the pkg to public or import it dynamically.
 
 // Placeholder for WASM import
-// import init, { run_nsga2 } from '@/../planner-wasm/pkg/planner_wasm'; 
+// import init, { run_nsga2 } from '@/../planner-wasm/pkg/planner_wasm';
 
-addEventListener('message', async (event) => {
-  const { inputs, constraints } = event.data;
-  
+addEventListener("message", async (event) => {
+  const { pantry_items, user_profile, conditions, constraints } = event.data;
+
   try {
-    // Initialize WASM
-    // await init();
-    
-    // Run Optimization
-    // const result = run_nsga2(JSON.stringify(inputs), JSON.stringify(constraints));
-    
-    // Mock Result for now if WASM not fully built/linked in this environment context
-    // In a real scenario, valid WASM calls go here.
-    
-    // Simulate processing
-    await new Promise(resolve => setTimeout(resolve, 500)); 
-    
-    const mockResult = {
-      solutions: [
-        { 
-          menu: ['Avocado', 'Smoked Salmon', 'Walnuts'], 
-          stats: { calories: 450 } 
-        }
-      ],
-      retries_used: 0
-    };
+    // Simulate complex calculation delay
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
-    postMessage({ type: 'SUCCESS', result: mockResult });
-    
+    // Logic: In a real WASM implementation, 'user_profile' (weight, height, goal) would
+    // define the fitness function (e.g. Higher protein for 'muscle_gain').
+
+    // For now, we simulate this personalization:
+    let targetCalories = 500; // default meal
+    if (user_profile?.metabolic_state_json?.current_goal === "muscle_gain") {
+      targetCalories = 700;
+    } else if (
+      user_profile?.metabolic_state_json?.current_goal === "fat_loss"
+    ) {
+      targetCalories = 400;
+    }
+
+    // Mock Result reflecting the inputs
+    const solutions = [
+      {
+        menu: ["Quinoa Bowl", "Grilled Chicken", "Spinach"],
+        stats: { calories: targetCalories },
+        personalized_note: conditions?.length > 0
+          ? `Adjusted for ${conditions[0].name}`
+          : `Optimized for ${
+            user_profile?.metabolic_state_json?.current_goal || "User"
+          }`,
+      },
+      {
+        menu: ["Salmon Fillet", "Asparagus", "Brown Rice"],
+        stats: { calories: targetCalories + 50 },
+        personalized_note: `High Omega-3 for inflammation control`,
+      },
+    ];
+
+    postMessage({
+      type: "SUCCESS",
+      result: { solutions, retries_used: 0 },
+    });
   } catch (error) {
-    postMessage({ type: 'ERROR', error: String(error) });
+    postMessage({ type: "ERROR", error: String(error) });
   }
 });
 
@@ -49,17 +63,17 @@ export class PlannerWorker {
   private worker: Worker | null = null;
 
   constructor() {
-    if (typeof window !== 'undefined') {
-      this.worker = new Worker(new URL('./worker.ts', import.meta.url));
+    if (typeof window !== "undefined") {
+      this.worker = new Worker(new URL("./worker.ts", import.meta.url));
     }
   }
 
   optimize(inputs: any, constraints: any) {
     if (!this.worker) return Promise.reject("Worker not initialized");
-    
+
     return new Promise((resolve, reject) => {
       this.worker!.onmessage = (e) => {
-        if (e.data.type === 'SUCCESS') resolve(e.data.result);
+        if (e.data.type === "SUCCESS") resolve(e.data.result);
         else reject(e.data.error);
       };
       this.worker!.onerror = (e) => reject(e);

@@ -195,6 +195,9 @@ create policy "Users view own profile" on users for select using (auth.uid() = i
 drop policy if exists "Users update own profile" on users;
 create policy "Users update own profile" on users for update using (auth.uid() = id);
 
+drop policy if exists "Authenticated insert profile" on users;
+create policy "Authenticated insert profile" on users for insert with check (auth.uid() = id);
+
 drop policy if exists "Authenticated view profiles" on users;
 create policy "Authenticated view profiles" on users for select using (auth.role() = 'authenticated');
 
