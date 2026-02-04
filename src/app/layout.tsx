@@ -5,10 +5,7 @@ import dynamic from 'next/dynamic';
 
 const inter = Inter({ subsets: ['latin'] });
 
-// Headless and client-heavy components should be dynamic with SSR disabled
-const SyncManager = dynamic(() => import('@/components/offline/SyncManager').then(m => m.SyncManager), { ssr: false });
-const BottomNav = dynamic(() => import('@/components/layout/BottomNav').then(m => m.BottomNav), { ssr: false });
-const AuthGuard = dynamic(() => import('@/components/AuthGuard'), { ssr: false });
+import { ClientProviders } from '@/components/providers/ClientProviders';
 
 export const metadata: Metadata = {
   title: 'Oteka',
@@ -32,11 +29,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-gray-50`}>
-        <AuthGuard>
-          <SyncManager />
+        <ClientProviders>
           {children}
-          <BottomNav />
-        </AuthGuard>
+        </ClientProviders>
       </body>
     </html>
   );

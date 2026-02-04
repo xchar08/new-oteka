@@ -29,8 +29,12 @@ addEventListener('message', async (event) => {
     
     const mockResult = {
       solutions: [
-        { id: 1, score: 0.95, plan: 'Optimal Keto Plan' }
-      ]
+        { 
+          menu: ['Avocado', 'Smoked Salmon', 'Walnuts'], 
+          stats: { calories: 450 } 
+        }
+      ],
+      retries_used: 0
     };
 
     postMessage({ type: 'SUCCESS', result: mockResult });
@@ -65,5 +69,17 @@ export class PlannerWorker {
 
   terminate() {
     this.worker?.terminate();
+  }
+}
+
+/**
+ * Convenient helper for functional usage in components
+ */
+export async function runOptimization(params: any) {
+  const planner = new PlannerWorker();
+  try {
+    return await planner.optimize(params.pantry_items, params.constraints);
+  } finally {
+    planner.terminate();
   }
 }
