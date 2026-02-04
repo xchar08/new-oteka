@@ -50,6 +50,7 @@ ios/Pods/
 capacitor.config.json
 
 # Android
+android/.idea/
 android/.gradle/
 android/app/build/
 android/build/

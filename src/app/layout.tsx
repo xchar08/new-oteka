@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { BottomNav } from '@/components/layout/BottomNav';
-import { SyncManager } from '@/components/offline/SyncManager';
-import AuthGuard from '@/components/AuthGuard'; // <--- Import the new AuthGuard
+import dynamic from 'next/dynamic';
 
 const inter = Inter({ subsets: ['latin'] });
+
+// Headless and client-heavy components should be dynamic with SSR disabled
+const SyncManager = dynamic(() => import('@/components/offline/SyncManager').then(m => m.SyncManager), { ssr: false });
+const BottomNav = dynamic(() => import('@/components/layout/BottomNav').then(m => m.BottomNav), { ssr: false });
+const AuthGuard = dynamic(() => import('@/components/AuthGuard'), { ssr: false });
 
 export const metadata: Metadata = {
   title: 'Oteka',
@@ -13,12 +16,11 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
 };
 
-// Next.js 14+ Standard: Viewport is a separate export
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Critical for PWA feel
+  userScalable: false,
   themeColor: '#ffffff',
 };
 
@@ -30,13 +32,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-gray-50`}>
-        {/* AuthGuard protects the entire application flow */}
         <AuthGuard>
-          {/* SyncManager handles Service Worker & Offline Queue listeners */}
           <SyncManager />
-          
           {children}
-          
           <BottomNav />
         </AuthGuard>
       </body>

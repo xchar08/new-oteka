@@ -1,7 +1,9 @@
 'use client';
 
-import { OptimisticCapture } from '@/components/vision/OptimisticCapture';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+
+const OptimisticCapture = dynamic(() => import('@/components/vision/OptimisticCapture').then(m => m.OptimisticCapture), { ssr: false });
 
 export default function VisionPage() {
   const router = useRouter();

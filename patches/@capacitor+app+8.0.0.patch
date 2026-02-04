@@ -1,0 +1,117 @@
+diff --git a/node_modules/@capacitor/app/android/.classpath b/node_modules/@capacitor/app/android/.classpath
+new file mode 100644
+index 0000000..0a3280e
+--- /dev/null
++++ b/node_modules/@capacitor/app/android/.classpath
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<classpath>
++	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21/"/>
++	<classpathentry kind="con" path="org.eclipse.buildship.core.gradleclasspathcontainer"/>
++	<classpathentry kind="output" path="bin/default"/>
++</classpath>
+diff --git a/node_modules/@capacitor/app/android/.gradle/8.9/checksums/checksums.lock b/node_modules/@capacitor/app/android/.gradle/8.9/checksums/checksums.lock
+new file mode 100644
+index 0000000..598bb85
+Binary files /dev/null and b/node_modules/@capacitor/app/android/.gradle/8.9/checksums/checksums.lock differ
+diff --git a/node_modules/@capacitor/app/android/.gradle/8.9/dependencies-accessors/gc.properties b/node_modules/@capacitor/app/android/.gradle/8.9/dependencies-accessors/gc.properties
+new file mode 100644
+index 0000000..e69de29
+diff --git a/node_modules/@capacitor/app/android/.gradle/8.9/fileChanges/last-build.bin b/node_modules/@capacitor/app/android/.gradle/8.9/fileChanges/last-build.bin
+new file mode 100644
+index 0000000..f76dd23
+Binary files /dev/null and b/node_modules/@capacitor/app/android/.gradle/8.9/fileChanges/last-build.bin differ
+diff --git a/node_modules/@capacitor/app/android/.gradle/8.9/fileHashes/fileHashes.lock b/node_modules/@capacitor/app/android/.gradle/8.9/fileHashes/fileHashes.lock
+new file mode 100644
+index 0000000..0d8218a
+Binary files /dev/null and b/node_modules/@capacitor/app/android/.gradle/8.9/fileHashes/fileHashes.lock differ
+diff --git a/node_modules/@capacitor/app/android/.gradle/8.9/gc.properties b/node_modules/@capacitor/app/android/.gradle/8.9/gc.properties
+new file mode 100644
+index 0000000..e69de29
+diff --git a/node_modules/@capacitor/app/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock b/node_modules/@capacitor/app/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+new file mode 100644
+index 0000000..1d3ede6
+Binary files /dev/null and b/node_modules/@capacitor/app/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock differ
+diff --git a/node_modules/@capacitor/app/android/.gradle/buildOutputCleanup/cache.properties b/node_modules/@capacitor/app/android/.gradle/buildOutputCleanup/cache.properties
+new file mode 100644
+index 0000000..cb783b2
+--- /dev/null
++++ b/node_modules/@capacitor/app/android/.gradle/buildOutputCleanup/cache.properties
+@@ -0,0 +1,2 @@
++#Tue Feb 03 21:32:32 CST 2026
++gradle.version=8.9
+diff --git a/node_modules/@capacitor/app/android/.gradle/vcs-1/gc.properties b/node_modules/@capacitor/app/android/.gradle/vcs-1/gc.properties
+new file mode 100644
+index 0000000..e69de29
+diff --git a/node_modules/@capacitor/app/android/.project b/node_modules/@capacitor/app/android/.project
+new file mode 100644
+index 0000000..57b3fe4
+--- /dev/null
++++ b/node_modules/@capacitor/app/android/.project
+@@ -0,0 +1,34 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<projectDescription>
++	<name>capacitor-app</name>
++	<comment>Project capacitor-app created by Buildship.</comment>
++	<projects>
++	</projects>
++	<buildSpec>
++		<buildCommand>
++			<name>org.eclipse.jdt.core.javabuilder</name>
++			<arguments>
++			</arguments>
++		</buildCommand>
++		<buildCommand>
++			<name>org.eclipse.buildship.core.gradleprojectbuilder</name>
++			<arguments>
++			</arguments>
++		</buildCommand>
++	</buildSpec>
++	<natures>
++		<nature>org.eclipse.jdt.core.javanature</nature>
++		<nature>org.eclipse.buildship.core.gradleprojectnature</nature>
++	</natures>
++	<filteredResources>
++		<filter>
++			<id>1769434286456</id>
++			<name></name>
++			<type>30</type>
++			<matcher>
++				<id>org.eclipse.core.resources.regexFilterMatcher</id>
++				<arguments>node_modules|\.git|__CREATED_BY_JAVA_LANGUAGE_SERVER__</arguments>
++			</matcher>
++		</filter>
++	</filteredResources>
++</projectDescription>
+diff --git a/node_modules/@capacitor/app/android/.settings/org.eclipse.buildship.core.prefs b/node_modules/@capacitor/app/android/.settings/org.eclipse.buildship.core.prefs
+new file mode 100644
+index 0000000..917c727
+--- /dev/null
++++ b/node_modules/@capacitor/app/android/.settings/org.eclipse.buildship.core.prefs
+@@ -0,0 +1,13 @@
++arguments=--init-script C\:\\Users\\phoen\\AppData\\Roaming\\Antigravity\\User\\globalStorage\\redhat.java\\1.52.0\\config_win\\org.eclipse.osgi\\58\\0\\.cp\\gradle\\init\\init.gradle --init-script C\:\\Users\\phoen\\AppData\\Roaming\\Antigravity\\User\\globalStorage\\redhat.java\\1.52.0\\config_win\\org.eclipse.osgi\\58\\0\\.cp\\gradle\\protobuf\\init.gradle
++auto.sync=true
++build.scans.enabled=false
++connection.gradle.distribution=GRADLE_DISTRIBUTION(VERSION(8.9))
++connection.project.dir=
++eclipse.preferences.version=1
++gradle.user.home=
++java.home=C\:/Program Files/Android/Android Studio/jbr
++jvm.arguments=
++offline.mode=false
++override.workspace.settings=true
++show.console.view=true
++show.executions.view=true
+diff --git a/node_modules/@capacitor/app/android/build.gradle b/node_modules/@capacitor/app/android/build.gradle
+index 5a66576..8e51147 100644
+--- a/node_modules/@capacitor/app/android/build.gradle
++++ b/node_modules/@capacitor/app/android/build.gradle
+@@ -42,7 +42,7 @@ android {
+     buildTypes {
+         release {
+             minifyEnabled false
+-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
++            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+         }
+     }
+     lintOptions {

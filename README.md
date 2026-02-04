@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Oteka
+
+Comprehensive health and metabolic advisor application.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js & npm
+- Android Studio (for Android build)
+- Supabase account (for database/auth)
+
+### Web Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Android Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Build the Web App**:
+   ```bash
+   npm run build
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Sync with Capacitor**:
+   ```bash
+   npx cap sync android
+   ```
 
-## Learn More
+3. **Open in Android Studio**:
+   ```bash
+   npx cap open android
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. **Run**: Use the green Play button in Android Studio.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Build System & Patches
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+We use `patch-package` to fix persistent issues in third-party libraries (e.g., Capacitor's ProGuard settings). These patches are automatically applied after `npm install`.
 
-## Deploy on Vercel
+If you modify a library in `node_modules` and want to save it:
+```bash
+npx patch-package <package-name>
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tech Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework**: Next.js 15+ (App Router)
+- **Native**: Capacitor
+- **Database**: Supabase
+- **AI**: Gemini 3.0 Flash, DeepSeek R1
+- **Optimization**: WASM (Rust)
+
