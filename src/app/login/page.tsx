@@ -62,14 +62,23 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: 'com.oteka.app://login',
-        skipBrowserRedirect: false
+        skipBrowserRedirect: true
       }
     })
-    if (error) alert(error.message)
+    
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    if (data?.url) {
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({ url: data.url })
+    }
   }
 
   return (

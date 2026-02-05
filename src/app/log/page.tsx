@@ -43,6 +43,7 @@ export default function LogPage() {
         toBack: true, 
       });
       document.body.classList.add('camera-active'); 
+      document.documentElement.classList.add('camera-active');
       setCameraActive(true);
     } catch (e) {
       console.error('Failed to start camera', e);
@@ -54,6 +55,7 @@ export default function LogPage() {
       try {
         await CameraPreview.stop();
         document.body.classList.remove('camera-active');
+        document.documentElement.classList.remove('camera-active');
         setCameraActive(false);
       } catch (e) {}
     }

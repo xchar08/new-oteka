@@ -82,8 +82,14 @@ export default function DashboardPage() {
                setAdvice(`Advisor Error: ${data.error}`);
                console.error('Advisor Logic Error:', data.error);
              } else {
-               setAdvice(data.advice || 'Metabolic state nominal.');
-             }
+                // Formatting Fix: Strip markdown styling robustly
+                const cleaning = (data.advice || 'Metabolic state nominal.')
+                   .replace(/[\*\_\#\>]/g, '') 
+                   .replace(/\[.*?\]/g, '') 
+                   .replace(/^\s*[-•]\s*/gm, '• ') 
+                   .trim();
+                setAdvice(cleaning);
+              }
            } else {
              console.error('Advisor Function Error:', error);
              setAdvice(`System Error: ${error?.message || 'Connection failed'}`);

@@ -78,6 +78,7 @@ body {
 }
 
 /* Camera Preview Transparency */
+html.camera-active,
 body.camera-active {
   background: transparent !important;
 }
