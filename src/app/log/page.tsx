@@ -29,24 +29,29 @@ export default function LogPage() {
   const startCamera = async () => {
     try {
       if (Capacitor.isNativePlatform()) {
+        console.log('Requesting camera permissions...');
         const { camera } = await Camera.requestPermissions();
+        console.log('Camera permission status:', camera);
         if (camera !== 'granted') {
-          alert("Camera permission required for scanner");
+          alert("Camera permission denied! Please enable in App Settings.");
           return;
         }
       }
       
+      console.log('Starting CameraPreview...');
       await CameraPreview.start({
         position: 'rear',
         parent: 'cameraPreview',
         className: 'cameraPreview',
         toBack: true, 
       });
+      console.log('CameraPreview started successfully');
       document.body.classList.add('camera-active'); 
       document.documentElement.classList.add('camera-active');
       setCameraActive(true);
     } catch (e) {
       console.error('Failed to start camera', e);
+      alert(`Camera Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
   };
 
