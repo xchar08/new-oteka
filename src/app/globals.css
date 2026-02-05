@@ -83,7 +83,9 @@ body.camera-active {
 }
 
 body.camera-active #__next,
+body.camera-active next-route-announcer,
 body.camera-active main,
+body.camera-active div[id*="next"],
 body.camera-active div[class*="min-h-screen"] {
   background: transparent !important;
 }

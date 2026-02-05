@@ -6,8 +6,9 @@ import { Capacitor } from '@capacitor/core';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { HandOverlay } from '@/components/vision/HandOverlay';
-import { Loader2, Camera, RefreshCw } from 'lucide-react';
+import { Loader2, Camera as LucideCamera, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Camera } from '@capacitor/camera';
 
 export default function LogPage() {
   const [analyzing, setAnalyzing] = useState(false);
@@ -28,18 +29,20 @@ export default function LogPage() {
   const startCamera = async () => {
     try {
       if (Capacitor.isNativePlatform()) {
-        // CameraPreview doesn't always have requestCameraPermissions on the plugin itself 
-        // in some versions of @capacitor-community/camera-preview. 
-        // We'll proceed with start which prompts automatically, or use a check if available.
+        const { camera } = await Camera.requestPermissions();
+        if (camera !== 'granted') {
+          alert("Camera permission required for scanner");
+          return;
+        }
       }
       
       await CameraPreview.start({
         position: 'rear',
         parent: 'cameraPreview',
         className: 'cameraPreview',
-        toBack: true, // Camera is behind WebView
+        toBack: true, 
       });
-      document.body.classList.add('camera-active'); // Helper for transparency
+      document.body.classList.add('camera-active'); 
       setCameraActive(true);
     } catch (e) {
       console.error('Failed to start camera', e);

@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Camera, AlertCircle, RefreshCw } from 'lucide-react';
+import { Camera as LucideCamera, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
+import { Camera, CameraResultType } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 
 export default function MenuScannerPage() {
   const [analyzing, setAnalyzing] = useState(false);
@@ -93,23 +95,52 @@ export default function MenuScannerPage() {
       )}
 
       {!result && !analyzing && (
-        <div className="border-2 border-dashed border-white/10 h-64 flex items-center justify-center rounded-xl bg-palenight-surface/50 hover:bg-palenight-surface transition-colors cursor-pointer group">
-          <label className="flex flex-col items-center justify-center w-full h-full">
+        <div 
+          onClick={async () => {
+             if (Capacitor.isNativePlatform()) {
+                try {
+                  const image = await Camera.getPhoto({
+                    quality: 90,
+                    allowEditing: false,
+                    resultType: CameraResultType.Base64
+                  });
+                  if (image.base64String) {
+                     setAnalyzing(true);
+                     // Direct send without resize (native handles it mostly, or we can improve later)
+                     const { data, error } = await supabase.functions.invoke('vision-menu', {
+                        body: { image: image.base64String, goal: 'travel' }, 
+                     });
+                      if (error) throw new Error(error.message);
+                      setResult(data);
+                      setAnalyzing(false);
+                  }
+                } catch (e) {
+                   console.error("Camera cancelled or failed", e);
+                }
+             }
+          }}
+          className="border-2 border-dashed border-white/10 h-64 flex items-center justify-center rounded-xl bg-palenight-surface/50 hover:bg-palenight-surface transition-colors cursor-pointer group"
+        >
+          <div className="flex flex-col items-center justify-center w-full h-full">
             <div className="text-center space-y-2">
               <div className="w-12 h-12 bg-palenight-bg rounded-full flex items-center justify-center mx-auto text-palenight-accent group-hover:scale-110 transition-transform">
-                <Camera size={32} />
+                <LucideCamera size={32} />
               </div>
               <span className="text-blue-600 font-semibold text-lg">Scan Menu</span>
-              <span className="text-gray-400 text-sm mt-1">Tap to open camera</span>
+              <span className="text-gray-400 text-sm mt-1">
+                {Capacitor.isNativePlatform() ? "Tap to open Scanner" : "Native Only (Web: Use File)"}
+              </span>
             </div>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleCapture}
-              className="hidden"
-            />
-          </label>
+            
+            {!Capacitor.isNativePlatform() && (
+               <input
+                type="file"
+                accept="image/*"
+                onChange={handleCapture}
+                className="opacity-0 absolute inset-0 cursor-pointer"
+               />
+            )}
+          </div>
         </div>
       )}
 

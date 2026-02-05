@@ -25,6 +25,19 @@ export default function CoachPage() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
+  // Initial Welcome
+  useEffect(() => {
+    if (messages.length === 0) {
+      setTimeout(() => {
+        setMessages([{
+          role: 'assistant',
+          content: "Hello! I'm your Metabolic Coach. How are you feeling today?",
+          ts: Date.now()
+        }]);
+      }, 500);
+    }
+  }, []);
+
   const sendMessage = async () => {
     if (!input.trim() || busy) return;
 

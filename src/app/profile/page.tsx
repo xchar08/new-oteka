@@ -177,22 +177,55 @@ export default function ProfilePage() {
             <CardTitle className="text-lg">Biometrics & Goals</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex justify-end mb-2">
+               <div className="flex items-center bg-[var(--bg-app)] rounded-lg p-1 border border-[var(--border)]">
+                 <button 
+                   onClick={() => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, units: 'metric'}})}
+                   className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${user?.metabolic_state_json?.units !== 'imperial' ? 'bg-[var(--bg-surface)] shadow text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                 >
+                   Metric
+                 </button>
+                 <button 
+                   onClick={() => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, units: 'imperial'}})}
+                   className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${user?.metabolic_state_json?.units === 'imperial' ? 'bg-[var(--bg-surface)] shadow text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                 >
+                   Imperial
+                 </button>
+               </div>
+            </div>
+
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[var(--text-secondary)]">Weight (kg)</Label>
+                  <Label className="text-[var(--text-secondary)]">Weight ({user?.metabolic_state_json?.units === 'imperial' ? 'lbs' : 'kg'})</Label>
                   <Input 
                     type="number"
-                    value={user?.metabolic_state_json?.weight || ''}
-                    onChange={(e) => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, weight: Number(e.target.value)}})}
+                    value={
+                      user?.metabolic_state_json?.units === 'imperial' 
+                        ? Math.round((user?.metabolic_state_json?.weight || 0) * 2.20462) 
+                        : (user?.metabolic_state_json?.weight || '')
+                    }
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      const weightKg = user?.metabolic_state_json?.units === 'imperial' ? val / 2.20462 : val;
+                      setUser({...user, metabolic_state_json: {...user.metabolic_state_json, weight: weightKg}});
+                    }}
                     className="bg-[var(--bg-app)] border-[var(--border)] text-[var(--text-primary)]"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[var(--text-secondary)]">Height (cm)</Label>
+                  <Label className="text-[var(--text-secondary)]">Height ({user?.metabolic_state_json?.units === 'imperial' ? 'in' : 'cm'})</Label>
                   <Input 
                     type="number"
-                    value={user?.metabolic_state_json?.height || ''}
-                    onChange={(e) => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, height: Number(e.target.value)}})}
+                    value={
+                      user?.metabolic_state_json?.units === 'imperial'
+                        ? Math.round((user?.metabolic_state_json?.height || 0) / 2.54)
+                        : (user?.metabolic_state_json?.height || '')
+                    }
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      const heightCm = user?.metabolic_state_json?.units === 'imperial' ? val * 2.54 : val;
+                      setUser({...user, metabolic_state_json: {...user.metabolic_state_json, height: heightCm}});
+                    }}
                     className="bg-[var(--bg-app)] border-[var(--border)] text-[var(--text-primary)]"
                   />
                 </div>
