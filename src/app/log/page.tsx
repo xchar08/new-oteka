@@ -27,6 +27,12 @@ export default function LogPage() {
 
   const startCamera = async () => {
     try {
+      if (Capacitor.isNativePlatform()) {
+        // CameraPreview doesn't always have requestCameraPermissions on the plugin itself 
+        // in some versions of @capacitor-community/camera-preview. 
+        // We'll proceed with start which prompts automatically, or use a check if available.
+      }
+      
       await CameraPreview.start({
         position: 'rear',
         parent: 'cameraPreview',
@@ -159,7 +165,7 @@ export default function LogPage() {
   }
 
   return (
-    <div className="relative h-screen w-screen bg-black overflow-hidden">
+    <div className={`relative h-screen w-screen ${cameraActive ? 'bg-transparent' : 'bg-black'} overflow-hidden`}>
         {/* WEBCAM CONTAINER FOR NATIVE PLUGIN */}
         <div id="cameraPreview" className="absolute inset-0 bg-transparent" />
 

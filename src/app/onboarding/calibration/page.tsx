@@ -68,9 +68,20 @@ export default function CalibrationPage() {
          <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
          
          {/* AR Overlay Guide */}
-         <div className="absolute border-2 border-palenight-secondary w-32 h-20 rounded-lg opacity-50 flex items-center justify-center">
+         <div className="absolute border-2 border-palenight-secondary w-32 h-20 rounded-lg opacity-50 flex items-center justify-center pointer-events-none">
             <span className="text-palenight-secondary text-xs bg-black/50 px-2 py-0.5 rounded">Credit Card</span>
          </div>
+
+         {/* Side Calibrate Action */}
+         <button 
+           onClick={() => alert('AR Auto-Calibration feature coming in v1.1')}
+           className="absolute right-2 bottom-2 bg-palenight-surface/80 backdrop-blur text-white p-2 rounded-full border border-white/10 shadow-lg active:scale-95"
+           title="Auto-Calibrate"
+         >
+            <div className="w-6 h-6 border-2 border-palenight-success rounded-full flex items-center justify-center">
+              <div className="w-1 h-1 bg-palenight-success rounded-full" />
+            </div>
+         </button>
       </div>
 
       <div className="mb-6">

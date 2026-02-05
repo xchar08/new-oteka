@@ -3,14 +3,15 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { createCheckoutSession } from '@/app/actions/stripe';
+// import { createCheckoutSession } from '@/app/actions/stripe';
 
 export default function PricingPage() {
   const handleSubscribe = async () => {
     // Hardcoded Price ID for "Pro" tier - In production, use env or DB
     const PRICE_ID = 'price_1Qj...'; // Placeholder, user needs to set this
     try {
-        await createCheckoutSession(PRICE_ID);
+        // await createCheckoutSession(PRICE_ID);
+        alert("This feature requires a backend. (Static Build Demo)");
     } catch (err) {
         alert('Failed to start checkout. Check console.');
         console.error(err);

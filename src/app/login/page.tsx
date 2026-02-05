@@ -73,31 +73,33 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-palenight-bg">
-      <Card className="w-full max-w-md bg-palenight-surface border-white/10 text-zinc-100 shadow-2xl">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-background transition-colors duration-300">
+      <Card className="w-full max-w-md bg-surface border-border text-foreground shadow-2xl">
         <CardHeader>
-          <h1 className="text-2xl font-bold text-center text-white">Welcome to Oteka</h1>
-          <p className="text-center text-zinc-400">Metabolic Intelligence</p>
+          <h1 className="text-2xl font-bold text-center text-foreground">Welcome to Oteka</h1>
+          <p className="text-center text-muted-foreground">Metabolic Intelligence</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
+              <label className="text-sm font-medium text-foreground">Email</label>
               <Input 
                 type="email" 
                 placeholder="you@example.com" 
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
+                className="bg-background border-input text-foreground"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Password</label>
+              <label className="text-sm font-medium text-foreground">Password</label>
               <Input 
                 type="password" 
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
+                className="bg-background border-input text-foreground"
               />
             </div>
             <div className="flex flex-col gap-2 pt-2">
@@ -116,14 +118,14 @@ export default function LoginPage() {
               </Button>
 
               <div className="relative my-2">
-                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5" /></div>
-                <div className="relative flex justify-center text-xs uppercase"><span className="bg-palenight-surface px-2 text-zinc-500">Or continue with</span></div>
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-surface px-2 text-muted-foreground">Or continue with</span></div>
               </div>
 
               <Button 
                 type="button" 
                 variant="outline" 
-                className="w-full flex items-center justify-center gap-2 border-white/10 text-zinc-300 hover:bg-palenight-bg"
+                className="w-full flex items-center justify-center gap-2 border-border text-foreground hover:bg-muted"
                 onClick={handleGoogleLogin}
                 disabled={loading}
               >
@@ -139,7 +141,7 @@ export default function LoginPage() {
               <Button 
                 type="button" 
                 variant="ghost"
-                className="w-full text-xs text-gray-500 mt-2"
+                className="w-full text-xs text-muted-foreground mt-2 hover:text-foreground"
                 onClick={handleSignUp}
                 disabled={loading}
               >

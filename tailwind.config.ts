@@ -9,14 +9,29 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        background: "var(--bg-app)",
+        foreground: "var(--text-primary)",
+        "foreground-muted": "var(--text-secondary)",
+        surface: "var(--bg-surface)",
+        "surface-2": "var(--bg-surface-2)",
+        primary: {
+          DEFAULT: "var(--primary)",
+          fg: "var(--primary-fg)",
+        },
+        secondary: "var(--secondary)",
+        accent: "var(--accent)",
+        success: "var(--success)",
+        warning: "var(--warning)",
+        error: "var(--error)",
+        border: "var(--border)",
+        // Legacy Palenight Mappings (for ease of migration)
         palenight: {
-          bg: "#292D3E",
-          surface: "#444267",
-          accent: "#c792ea",
-          secondary: "#89ddff",
-          success: "#c3e88d",
-          warning: "#ffcb6b",
-          error: "#ff5370",
+          bg: "var(--bg-app)",
+          surface: "var(--bg-surface)",
+          accent: "var(--primary)",
+          secondary: "var(--secondary)",
+          success: "var(--success)",
+          warning: "var(--warning)",
         },
       },
       backgroundImage: {

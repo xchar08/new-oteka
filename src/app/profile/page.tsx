@@ -117,8 +117,8 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[var(--palenight-bg)] p-6 pb-24 text-zinc-100">
       <header className="mb-8 mt-2">
-        <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <p className="text-zinc-400">Manage your metrics & settings</p>
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">Profile</h1>
+        <p className="text-[var(--text-secondary)]">Manage your metrics & settings</p>
       </header>
 
       {error && (
@@ -131,42 +131,42 @@ export default function ProfilePage() {
 
       <div className="space-y-6">
         {/* IDENTITY */}
-        <Card className="border-white/5 bg-[var(--palenight-surface)] text-zinc-100 shadow-lg">
+        <Card className="border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg">Identity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-zinc-400">User ID</Label>
-              <div className="rounded bg-[var(--palenight-bg)]/50 p-3 font-mono text-xs text-zinc-500 break-all border border-white/5">
+              <Label className="text-[var(--text-secondary)]">User ID</Label>
+              <div className="rounded bg-[var(--bg-app)]/50 p-3 font-mono text-xs text-[var(--text-secondary)] break-all border border-[var(--border)]">
                 {user?.id}
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-zinc-400">Display Name</Label>
-              <Input disabled value={user?.display_name || ''} className="bg-[var(--palenight-bg)] border-white/10" />
+              <Label className="text-[var(--text-secondary)]">Display Name</Label>
+              <Input disabled value={user?.display_name || ''} className="bg-[var(--bg-app)] border-[var(--border)] text-[var(--text-primary)]" />
             </div>
           </CardContent>
         </Card>
 
         {/* PHYSICS METRICS */}
-        <Card className="border-white/5 bg-[var(--palenight-surface)] text-zinc-100 shadow-lg">
+        <Card className="border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg flex justify-between items-center">
               Physics Calibration
-              <span className="text-xs font-normal text-[var(--palenight-warning)] bg-[var(--palenight-warning)]/10 px-2 py-1 rounded">Critical for Vision</span>
+              <span className="text-xs font-normal text-[var(--warning)] bg-[var(--warning)]/10 px-2 py-1 rounded">Critical for Vision</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-zinc-400">Hand Width (mm)</Label>
+              <Label className="text-[var(--text-secondary)]">Hand Width (mm)</Label>
               <Input 
                 type="number" 
                 value={handWidth} 
                 onChange={(e) => setHandWidth(e.target.value)} 
-                className="bg-[var(--palenight-bg)] border-white/10 text-white" 
+                className="bg-[var(--bg-app)] border-[var(--border)] text-[var(--text-primary)]" 
               />
-              <p className="text-xs text-zinc-500">Measure the width of your palm (excluding thumb) for accurate volumetric analysis.</p>
+              <p className="text-xs text-[var(--text-secondary)]">Measure the width of your palm (excluding thumb) for accurate volumetric analysis.</p>
             </div>
           </CardContent>
         </Card>
@@ -179,38 +179,38 @@ export default function ProfilePage() {
           <CardContent className="space-y-4">
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-zinc-400">Weight (kg)</Label>
+                  <Label className="text-[var(--text-secondary)]">Weight (kg)</Label>
                   <Input 
                     type="number"
                     value={user?.metabolic_state_json?.weight || ''}
                     onChange={(e) => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, weight: Number(e.target.value)}})}
-                    className="bg-[var(--palenight-bg)] border-white/10"
+                    className="bg-[var(--bg-app)] border-[var(--border)] text-[var(--text-primary)]"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-zinc-400">Height (cm)</Label>
+                  <Label className="text-[var(--text-secondary)]">Height (cm)</Label>
                   <Input 
                     type="number"
                     value={user?.metabolic_state_json?.height || ''}
                     onChange={(e) => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, height: Number(e.target.value)}})}
-                    className="bg-[var(--palenight-bg)] border-white/10"
+                    className="bg-[var(--bg-app)] border-[var(--border)] text-[var(--text-primary)]"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-zinc-400">Age</Label>
+                  <Label className="text-[var(--text-secondary)]">Age</Label>
                   <Input 
                     type="number"
                     value={user?.metabolic_state_json?.age || ''}
                     onChange={(e) => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, age: Number(e.target.value)}})}
-                    className="bg-[var(--palenight-bg)] border-white/10"
+                    className="bg-[var(--bg-app)] border-[var(--border)] text-[var(--text-primary)]"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-zinc-400">Gender</Label>
+                  <Label className="text-[var(--text-secondary)]">Gender</Label>
                   <select 
                     value={user?.metabolic_state_json?.gender || 'male'}
                     onChange={(e) => setUser({...user, metabolic_state_json: {...user.metabolic_state_json, gender: e.target.value}})}
-                    className="w-full rounded-md border border-white/10 bg-[var(--palenight-bg)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="male">Male</option>
                     <option value="female">Female</option>
@@ -219,12 +219,12 @@ export default function ProfilePage() {
                 </div>
              </div>
 
-            <div className="space-y-2 pt-4 border-t border-white/5">
-              <Label className="text-zinc-400">Current Goal</Label>
+            <div className="space-y-2 pt-4 border-t border-[var(--border)]">
+              <Label className="text-[var(--text-secondary)]">Current Goal</Label>
               <select 
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
-                className="w-full rounded-md border border-white/10 bg-[var(--palenight-bg)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="maintenance">Maintenance</option>
                 <option value="fat_loss">Fat Loss</option>

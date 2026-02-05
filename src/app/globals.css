@@ -10,22 +10,69 @@
 }
 
 :root {
-  /* Material Palenight Palette */
-  --palenight-bg: #292D3E;
-  --palenight-surface: #444267;
-  --palenight-accent: #c792ea;
-  --palenight-secondary: #89ddff;
-  --palenight-success: #c3e88d;
-  --palenight-warning: #ffcb6b;
-  --palenight-error: #ff5370;
+  /* LIGHT SYSTEM (Clinical) */
+  --bg-app: #F8FAFC;       /* Slate 50 */
+  --bg-surface: #FFFFFF;   /* White */
+  --bg-surface-2: #F1F5F9; /* Slate 100 */
   
-  --foreground-rgb: 255, 255, 255;
-  --background-rgb: 41, 45, 62; /* 292D3E in rgb */
+  --text-primary: #0F172A; /* Slate 900 */
+  --text-secondary: #64748B; /* Slate 500 */
+  --text-inverse: #FFFFFF;
+  
+  --primary: #0284C7;      /* Sky 600 */
+  --primary-fg: #FFFFFF;
+  
+  --secondary: #6366F1;    /* Indigo 500 */
+  --accent: #8B5CF6;       /* Violet 500 */
+  
+  --success: #10B981;      /* Emerald 500 */
+  --warning: #F59E0B;      /* Amber 500 */
+  --error: #EF4444;        /* Red 500 */
+
+  --border: #E2E8F0;       /* Slate 200 */
+  --ring: 2, 132, 199;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* DARK SYSTEM (Cosmic) */
+    --bg-app: #0F172A;       /* Slate 900 */
+    --bg-surface: #1E293B;   /* Slate 800 */
+    --bg-surface-2: #334155; /* Slate 700 */
+    
+    --text-primary: #F8FAFC; /* Slate 50 */
+    --text-secondary: #94A3B8; /* Slate 400 */
+    --text-inverse: #000000;
+    
+    --primary: #38BDF8;      /* Sky 400 */
+    --primary-fg: #000000;
+    
+    --secondary: #818CF8;    /* Indigo 400 */
+    --accent: #A78BFA;       /* Violet 400 */
+    
+    --success: #34D399;      /* Emerald 400 */
+    --warning: #FBBF24;      /* Amber 400 */
+    --error: #F87171;        /* Red 400 */
+    
+    --border: #334155;       /* Slate 700 */
+    --ring: 56, 189, 248;
+  }
+}
+
+/* Backward Compatibility Maps (Temporary) */
+:root {
+  --palenight-bg: var(--bg-app);
+  --palenight-surface: var(--bg-surface);
+  --palenight-accent: var(--primary);
+  --palenight-secondary: var(--secondary);
+  --palenight-success: var(--success);
+  --palenight-warning: var(--warning);
+  --palenight-error: var(--error);
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background-color: var(--palenight-bg);
+  color: var(--text-primary);
+  background-color: var(--bg-app);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

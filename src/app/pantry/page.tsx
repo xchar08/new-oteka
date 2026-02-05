@@ -100,6 +100,7 @@ export default function PantryPage() {
         </div>
         <Button 
           className="rounded-full bg-blue-600 hover:bg-blue-500 shadow-lg h-10 w-10 p-2"
+          onClick={() => setIsAdding(true)}
         >
           <Plus className="h-6 w-6" />
         </Button>

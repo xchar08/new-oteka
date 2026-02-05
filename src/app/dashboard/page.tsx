@@ -78,10 +78,15 @@ export default function DashboardPage() {
            });
 
            if (!error && data) {
-             setAdvice(data.advice || 'Metabolic state nominal.');
+             if (data.error) {
+               setAdvice(`Advisor Error: ${data.error}`);
+               console.error('Advisor Logic Error:', data.error);
+             } else {
+               setAdvice(data.advice || 'Metabolic state nominal.');
+             }
            } else {
              console.error('Advisor Function Error:', error);
-             setAdvice('Advisor unavailable (Function Error)');
+             setAdvice(`System Error: ${error?.message || 'Connection failed'}`);
            }
         } else {
           setAdvice('Offline Mode: Using cached protocols.');
@@ -100,15 +105,15 @@ export default function DashboardPage() {
     return <div className="p-6 text-gray-500">Syncing Metabolic State...</div>;
 
   return (
-    <div className="min-h-screen bg-[var(--palenight-bg)] pb-24 text-zinc-100">
+    <div className="min-h-screen bg-background pb-24 text-foreground">
       {/* Header */}
-      <header className="bg-[var(--palenight-surface)] p-6 pb-8 rounded-b-3xl shadow-sm space-y-4 border-b border-white/5">
+      <header className="bg-surface p-6 pb-8 rounded-b-3xl shadow-sm space-y-4 border-b border-white/5">
          {/* ... (keep existing header content) ... */}
          <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-white">Good Morning</h1>
+            <h1 className="text-2xl font-bold text-foreground">Good Morning</h1>
             <div className="flex items-center gap-2 mt-1">
-              <p className="text-zinc-400 text-sm">
+              <p className="text-foreground-muted text-sm">
                 Streak: {user?.streak_count || 0} Days
               </p>
               {!isOnline && (
@@ -118,7 +123,7 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-          <div className="bg-[var(--palenight-accent)]/20 text-[var(--palenight-accent)] border border-[var(--palenight-accent)]/50 px-3 py-1 rounded-full text-xs font-bold capitalize">
+          <div className="bg-primary/20 text-primary border border-primary/50 px-3 py-1 rounded-full text-xs font-bold capitalize">
             {user?.metabolic_state_json?.current_goal || 'Maintenance'}
           </div>
         </div>
@@ -127,16 +132,21 @@ export default function DashboardPage() {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-[var(--palenight-bg)] border border-[var(--palenight-secondary)]/30 p-4 rounded-xl relative overflow-hidden shadow-md"
+          className="bg-gradient-to-br from-background to-surface border border-secondary/30 p-5 rounded-2xl relative overflow-hidden shadow-xl"
         >
-          <div className="text-xs font-bold text-[var(--palenight-secondary)] mb-1 uppercase tracking-wide">
-            Metabolic Advisor
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+            <div className="text-xs font-bold text-secondary uppercase tracking-wide">
+              Metabolic Advisor
+            </div>
           </div>
-          <p className="text-zinc-300 text-sm font-medium leading-relaxed relative z-10">
-            {advice}
-          </p>
-          <div className="absolute right-0 bottom-0 opacity-10">
-            <BookOpen size={64} className="text-[var(--palenight-secondary)]" />
+          <div className="relative z-10 pr-8">
+            <p className="text-foreground-muted text-sm font-medium leading-relaxed mb-2">
+              {advice}
+            </p>
+          </div>
+          <div className="absolute -right-4 -bottom-4 opacity-10 rotate-12">
+            <BookOpen size={96} className="text-secondary" />
           </div>
         </motion.div>
 
@@ -162,7 +172,7 @@ export default function DashboardPage() {
         className="p-6 space-y-6"
       >
         {/* Viz */}
-        <motion.div variants={item} className="bg-[var(--palenight-surface)] p-4 rounded-xl shadow-lg border border-white/5">
+        <motion.div variants={item} className="bg-surface p-4 rounded-xl shadow-lg border border-border">
           <h3 className="text-sm font-semibold text-zinc-400 mb-4">
             Nutrient Targeting
           </h3>
@@ -174,120 +184,120 @@ export default function DashboardPage() {
                   label: 'Protein',
                   current: 120,
                   target: 180,
-                  color: 'bg-[var(--palenight-secondary)]',
+                  color: 'bg-secondary',
                 },
                 {
                   label: 'Carbs',
                   current: 150,
                   target: 250,
-                  color: 'bg-[var(--palenight-success)]',
+                  color: 'bg-success',
                 },
                 {
                   label: 'Fats',
                   current: 45,
                   target: 70,
-                  color: 'bg-[var(--palenight-warning)]',
+                  color: 'bg-warning',
                 },
               ]}
             />
           ) : (
-            <div className="h-40 bg-[var(--palenight-bg)] rounded flex items-center justify-center text-zinc-600 text-xs">
+            <div className="h-40 bg-background rounded flex items-center justify-center text-foreground-muted text-xs">
               Radar Placeholder
             </div>
           )}
         </motion.div>
 
         {/* Quick Actions Grid */}
-        <motion.h3 variants={item} className="font-semibold text-zinc-400">Actions</motion.h3>
+        <motion.h3 variants={item} className="font-semibold text-foreground-muted">Actions</motion.h3>
         <motion.div variants={item} className="grid grid-cols-2 gap-4">
           <Link
             href="/log"
-            className="bg-[var(--palenight-surface)] p-4 rounded-xl shadow-lg border border-white/5 flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
+            className="bg-surface p-4 rounded-xl shadow-lg border border-border flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
           >
-            <div className="w-10 h-10 bg-[var(--palenight-secondary)]/20 rounded-full flex items-center justify-center text-[var(--palenight-secondary)]">
+            <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center text-secondary">
               <Camera size={20} />
             </div>
-            <span className="font-medium text-sm text-zinc-200">Vision Log</span>
+            <span className="font-medium text-sm text-foreground">Vision Log</span>
           </Link>
 
           <Link
             href="/pantry"
-            className="bg-[var(--palenight-surface)] p-4 rounded-xl shadow-lg border border-white/5 flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
+            className="bg-surface p-4 rounded-xl shadow-lg border border-border flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
           >
-            <div className="w-10 h-10 bg-[var(--palenight-success)]/20 rounded-full flex items-center justify-center text-[var(--palenight-success)]">
+            <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center text-success">
               <BookOpen size={20} />
             </div>
-            <span className="font-medium text-sm text-zinc-200">Pantry</span>
+            <span className="font-medium text-sm text-foreground">Pantry</span>
           </Link>
 
           <Link
             href="/shopping"
-            className="bg-[var(--palenight-surface)] p-4 rounded-xl shadow-lg border border-white/5 flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
+            className="bg-surface p-4 rounded-xl shadow-lg border border-border flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
           >
-            <div className="w-10 h-10 bg-[var(--palenight-accent)]/20 rounded-full flex items-center justify-center text-[var(--palenight-accent)]">
+            <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary">
               <ShoppingCart size={20} />
             </div>
-            <span className="font-medium text-sm text-zinc-200">Shopping</span>
+            <span className="font-medium text-sm text-foreground">Shopping</span>
           </Link>
 
           <Link
             href="/travel/menu"
-            className="bg-[var(--palenight-surface)] p-4 rounded-xl shadow-lg border border-white/5 flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
+            className="bg-surface p-4 rounded-xl shadow-lg border border-border flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
           >
-            <div className="w-10 h-10 bg-[var(--palenight-warning)]/20 rounded-full flex items-center justify-center text-[var(--palenight-warning)]">
+            <div className="w-10 h-10 bg-warning/20 rounded-full flex items-center justify-center text-warning">
               <Plane size={20} />
             </div>
-            <span className="font-medium text-sm text-zinc-200">Travel Mode</span>
+            <span className="font-medium text-sm text-foreground">Travel Mode</span>
           </Link>
 
           <Link
             href="/coach"
-            className="bg-[var(--palenight-surface)] p-4 rounded-xl shadow-lg border border-white/5 flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
+            className="bg-surface p-4 rounded-xl shadow-lg border border-border flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
           >
-            <div className="w-10 h-10 bg-[var(--palenight-accent)]/20 rounded-full flex items-center justify-center text-[var(--palenight-accent)]">
+            <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary">
               <MessageSquare size={20} />
             </div>
-            <span className="font-medium text-sm text-zinc-200">Coach Chat</span>
+            <span className="font-medium text-sm text-foreground">Coach Chat</span>
           </Link>
 
           <Link
             href="/analytics"
-            className="bg-[var(--palenight-surface)] p-4 rounded-xl shadow-lg border border-white/5 flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
+            className="bg-surface p-4 rounded-xl shadow-lg border border-border flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
           >
-            <div className="w-10 h-10 bg-[var(--palenight-secondary)]/20 rounded-full flex items-center justify-center text-[var(--palenight-secondary)]">
+            <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center text-secondary">
               <BarChart2 size={20} />
             </div>
-            <span className="font-medium text-sm text-zinc-200">Trends</span>
+            <span className="font-medium text-sm text-foreground">Trends</span>
           </Link>
 
           <Link
             href="/history"
-            className="bg-[var(--palenight-surface)] p-4 rounded-xl shadow-lg border border-white/5 flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
+            className="bg-surface p-4 rounded-xl shadow-lg border border-border flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
           >
             <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-400">
               <History size={20} />
             </div>
-            <span className="font-medium text-sm text-zinc-200">Audit Log</span>
+            <span className="font-medium text-sm text-foreground">Audit Log</span>
           </Link>
 
           <Link
             href="/social"
-            className="bg-[var(--palenight-surface)] p-4 rounded-xl shadow-lg border border-white/5 flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
+            className="bg-surface p-4 rounded-xl shadow-lg border border-border flex flex-col items-center justify-center gap-2 hover:brightness-110 transition active:scale-95"
           >
             <div className="w-10 h-10 bg-yellow-900/20 rounded-full flex items-center justify-center text-yellow-500">
               <Globe size={20} />
             </div>
-            <span className="font-medium text-sm text-zinc-200">Rankings</span>
+            <span className="font-medium text-sm text-foreground">Rankings</span>
           </Link>
 
           <Link
             href="/planner"
-            className="col-span-2 bg-[var(--palenight-accent)]/10 p-4 rounded-xl shadow-lg border border-[var(--palenight-accent)]/20 flex items-center justify-center gap-3 hover:bg-[var(--palenight-accent)]/20 transition active:scale-95"
+            className="col-span-2 bg-primary/10 p-4 rounded-xl shadow-lg border border-primary/20 flex items-center justify-center gap-3 hover:bg-primary/20 transition active:scale-95"
           >
-            <div className="w-10 h-10 bg-[var(--palenight-accent)]/30 rounded-full flex items-center justify-center text-[var(--palenight-accent)]">
+            <div className="w-10 h-10 bg-primary/30 rounded-full flex items-center justify-center text-primary">
               <BookOpen size={20} />
             </div>
-            <span className="font-semibold text-[var(--palenight-accent)]">Metabolic Planner (AI)</span>
+            <span className="font-semibold text-primary">Metabolic Planner (AI)</span>
           </Link>
         </motion.div>
       </motion.main>
