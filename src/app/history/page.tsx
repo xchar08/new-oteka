@@ -102,6 +102,28 @@ function LogItem({ log }: { log: any }) {
                             </div>
                         )}
                     </div>
+
+                    {/* Micronutrients View */}
+                    <div className="p-4 pt-2 border-t border-border/10">
+                        <h4 className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2">Micros & Vitamins</h4>
+                        {(meta.micros && meta.micros.length > 0) ? (
+                            <div className="grid grid-cols-2 gap-2">
+                                {meta.micros.map((micro: any, i: number) => (
+                                    <div key={i} className="flex justify-between items-center text-sm bg-background/50 p-2 rounded border border-border/50">
+                                        <span className="text-foreground/80 capitalize text-xs">{micro.name}</span>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-xs font-mono font-medium">{micro.amount}</span>
+                                            {micro.daily_value_pct && <span className="text-[9px] text-muted-foreground">{micro.daily_value_pct}% DV</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-xs text-muted-foreground italic">
+                                No micronutrient data available.
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

@@ -105,114 +105,156 @@ serve(async (req) => {
     const userGoal = profile?.metabolic_state_json?.current_goal ||
       "maintenance";
 
-    // 4. Call Google Gemini (w/ Retry & Fallback)
-    let promptText =
-      `Identify the food in this image. The user's hand (palm width: ${userHandMm}mm) may be visible for scale. 
-      Use this scale to estimate absolute volume in cm3 and mass in grams with high precision.
-      User Goal: ${userGoal}.
-      Break it down into base ingredients (scaffolding) with ratios. 
-      Return ONLY JSON format: { "items": ["name"], "ingredients": [{"name": "string", "ratio": 0.0}], "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }, "volume_cm3": 0, "bounding_box": [ymin, xmin, ymax, xmax] } (bounding_box 0-1000 scale)`;
+    // 4. Node B: Identification (Gemini 2.0 Flash)
+    // We use Gemini to "See" the image and extract tags/text.
+    const descriptionPrompt = `Analyze this food image. 
+       1. List all visible food items.
+       2. Describe the container/portion size relative to the hand (if visible).
+       3. Transcribe any visible nutrition labels or text.
+       4. Return a concise, factual scene description. Do not estimate calories yet.`;
 
-    if (mode === "pantry") {
-      promptText =
-        'Identify all distinct food items in this image for pantry inventory. Return ONLY JSON format: { "pantry_items": [{ "name": "Item Name", "category": "dairy|meat|produce|grain|other", "expiry_estimate": "7 days" }] }';
-    }
-
-    const payload = {
+    const descriptionPayload = {
       contents: [{
         parts: [
-          { text: promptText },
+          { text: descriptionPrompt },
           { inline_data: { mime_type: "image/jpeg", data: image } },
         ],
       }],
     };
 
-    const models = [
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GOOGLE_API_KEY}`,
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_API_KEY}`, // Fallback 1
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`, // Fallback 2
-    ];
+    // Call Gemini (Vision)
+    const geminiUrl =
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
+    const geminiResponse = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(descriptionPayload),
+    });
 
-    let geminiRes;
-    let txt;
-
-    // Try up to 3 times with the primary model, then failover
-    for (const modelUrl of models) {
-      let attempts = 0;
-      let success = false;
-
-      while (attempts < 2 && !success) {
-        try {
-          geminiRes = await fetch(modelUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-
-          if (geminiRes.status === 503) {
-            console.warn(`Model Overloaded (${modelUrl}). Retrying...`);
-            attempts++;
-            await new Promise((r) => setTimeout(r, 1000 * attempts)); // Backoff
-            continue;
-          }
-
-          if (!geminiRes.ok) {
-            txt = await geminiRes.text();
-            // If it's not 503 but still error, break to try next model or fail
-            break;
-          }
-
-          success = true;
-        } catch (e) {
-          console.error("Fetch Error:", e);
-          attempts++;
-          await new Promise((r) => setTimeout(r, 1000));
-        }
-      }
-
-      if (success) break;
-      console.warn(`Failed with model ${modelUrl}, failing over...`);
+    if (!geminiResponse.ok) {
+      throw new Error(`Gemini Vision Failed: ${await geminiResponse.text()}`);
     }
 
-    if (!geminiRes || !geminiRes.ok) {
-      txt = txt || await geminiRes?.text() || "Unknown Error";
-      console.error("Gemini Final Error:", txt);
-      throw new Error(
-        `Gemini API Failed: ${geminiRes?.status || "Net"} - ${txt}`,
-      );
-    }
+    const geminiData = await geminiResponse.json();
+    const sceneDescription =
+      geminiData.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No description generated.";
 
-    const geminiData = await geminiRes.json();
+    // 5. Node C: Physics Core (DeepSeek R1 via Nebius/OpenAI Interface)
+    // We use DeepSeek's reasoning to calculate physics/math.
+    // Note: Using OpenAI-compatible endpoint for DeepSeek if NEBIUS_API_KEY is present,
+    // otherwise falling back to Gemini for the physics step (Graceful Degradation).
 
-    // 4. Parse Gemini Response
-    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "{}";
-    const jsonStr = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-    const parsedAI = JSON.parse(jsonStr);
+    const NEBIUS_API_KEY = Deno.env.get("NEBIUS_API_KEY") || "";
+    const DEEPSEEK_BASE_URL =
+      "https://api.studio.nebius.ai/v1/chat/completions"; // Check your specific endpoint
 
-    // 5. Log to Database (Audit)
-    // Only log singles for now, or adapt logging for pantry later
-    if (mode !== "pantry") {
-      await supabase.from("logs").insert({
-        user_id: user.id,
-        grams: parsedAI.macros?.grams || 0,
-        metabolic_tags_json: {
-          food_name: parsedAI.items?.[0] || "Unknown",
-          macros: parsedAI.macros,
-          source: "vision-pipeline",
+    let finalResult;
+
+    if (NEBIUS_API_KEY) {
+      // DeepSeek R1 Pipeline
+      const physicsPrompt = `
+          You are a Physics Core for a metabolic tracker.
+          
+          Input Data:
+          - Scene Description: "${sceneDescription}"
+          - Reference Hand Width: ${userHandMm}mm
+          - User Goal: ${userGoal}
+          
+          Task:
+          1. Estimate the volume of the food in cubic centimeters (cm³).
+          2. Suggest a density for the food based on its type (e.g., Rice=1.3g/cm³).
+          3. Calculate the mass in grams via Density * Volume.
+          4. Calculate total calories, macros (protein, carbs, fat), and MICROS (vitamins/minerals).
+          5. Break down the food into "Molecular Scaffolding" (base ingredients).
+          
+          Return ONLY JSON in this format:
+          { 
+            "items": ["string"], 
+            "ingredients": [{"name": "string", "ratio": 0.0}], 
+            "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }, 
+            "micros": [{"name": "string", "amount": "string", "daily_value_pct": 0}], 
+            "volume_cm3": 0, 
+            "bounding_box": [0,0,0,0],
+            "reasoning_trace": "Brief explanation of the calculation"
+          }
+        `;
+
+      const deepSeekPayload = {
+        model: "deepseek-ai/DeepSeek-R1", // Validate exact model name
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a precise nutritional physics engine. Output JSON only.",
+          },
+          { role: "user", content: physicsPrompt },
+        ],
+        temperature: 0.1,
+      };
+
+      const deepSeekResponse = await fetch(DEEPSEEK_BASE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${NEBIUS_API_KEY}`,
         },
+        body: JSON.stringify(deepSeekPayload),
       });
+
+      if (deepSeekResponse.ok) {
+        const dsData = await deepSeekResponse.json();
+        const rawContent = dsData.choices?.[0]?.message?.content || "{}";
+        // Clean markdown
+        const jsonStr = rawContent.replace(/```json/g, "").replace(/```/g, "")
+          .trim();
+        finalResult = JSON.parse(jsonStr);
+      } else {
+        console.warn(
+          "DeepSeek Failed, falling back to Gemini Logic:",
+          await deepSeekResponse.text(),
+        );
+        // Fallback to Gemini Logic if DeepSeek fails
+      }
+    }
+
+    // Fallback: If DeepSeek failed or Key missing, ask Gemini to do the math too
+    if (!finalResult) {
+      const fallbackPrompt =
+        `Identify food in this image. Hand Width: ${userHandMm}mm.
+            Estimate Volume (cm3), Mass (g), Calories, Macros, Micros, and Ingredients.
+            Return ONLY JSON: { "items": ["name"], "ingredients": [{"name": "string", "ratio": 0.0}], "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }, "micros": [{"name": "string", "amount": "string", "daily_value_pct": 0}], "volume_cm3": 0, "bounding_box": [0,0,0,0] }`;
+
+      const fbPayload = {
+        contents: [{
+          parts: [
+            { text: fallbackPrompt },
+            { inline_data: { mime_type: "image/jpeg", data: image } },
+          ],
+        }],
+      };
+
+      const fbRes = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fbPayload),
+      });
+
+      const fbData = await fbRes.json();
+      const rawText = fbData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+      const jsonStr = rawText.replace(/```json/g, "").replace(/```/g, "")
+        .trim();
+      finalResult = JSON.parse(jsonStr);
     }
 
     // 6. Return Result
     return new Response(
-      JSON.stringify({
-        ...parsedAI,
-      }),
+      JSON.stringify(finalResult),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("Pipeline Error:", errorMessage);
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

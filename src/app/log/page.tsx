@@ -72,6 +72,7 @@ export default function LogPage() {
             protein: result.macros?.protein || 0,
             carbs: result.macros?.carbs || 0,
             fats: result.macros?.fat || 0,
+            micros: result.micros || [],
             ingredients: result.ingredients || [],
             timestamp: new Date().toISOString(),
             edge_data: result.edge_intelligence || null
@@ -208,6 +209,52 @@ export default function LogPage() {
         }
       };
 
+      // 0. Check Network Status
+      const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+      if (isOffline) {
+          if (isMounted.current) {
+             setDebugLog({ status: "Offline Mode Detected", action: "Running Local ONNX Inference..." });
+          }
+
+          // Force enable 3D for offline mode
+          try {
+              const img = await loadImage(base64);
+              const edgeResult = await runClientInference(img);
+              
+              // Construct Offline Result
+              const offlineData = {
+                  items: ['Offline Scan (Pending Sync)'],
+                  macros: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                  summary: { name: 'Pending Cloud Analysis', calories: 0 },
+                  ingredients: [],
+                  micros: [],
+                  bounding_box: undefined,
+                  edge_intelligence: edgeResult,
+                  is_offline_capture: true
+              };
+
+              if (isMounted.current) {
+                  setResult(offlineData);
+                  setDebugLog((prev:any) => ({ ...prev, status: "Local Inference Complete", result: "Ready to Queue" }));
+              }
+          } catch (offlineErr) {
+              console.error("Local Inference Failed:", offlineErr);
+              // Fallback to minimal data
+               if (isMounted.current) {
+                  setResult({
+                      items: ['Offline Scan'],
+                      macros: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                      summary: { name: 'Pending Cloud Analysis', calories: 0 },
+                      is_offline_capture: true
+                  });
+              }
+          }
+          if (isMounted.current) setAnalyzing(false);
+          isProcessing.current = false;
+          return; // STOP HERE
+      }
+
       // 1. First Attempt + Edge Inference in Parallel
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -299,6 +346,8 @@ export default function LogPage() {
               carbs: Number(data.macros?.carbs) || 0,
               fat: Number(data.macros?.fat) || 0,
           },
+          micros: data.micros || [],
+          ingredients: data.ingredients || [],
           bounding_box: Array.isArray(data.bounding_box) && data.bounding_box.length === 4 
               ? data.bounding_box 
               : undefined,
