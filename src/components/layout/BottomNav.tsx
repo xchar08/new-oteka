@@ -30,7 +30,7 @@ export function BottomNav() {
                 <Link 
                   key={n.label} 
                   href={n.href}
-                  className="relative -top-6 flex flex-col items-center justify-center group"
+                  className="relative -top-8 flex flex-col items-center justify-center group"
                 >
                   <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center shadow-lg shadow-primary/30 border-4 border-background group-active:scale-95 transition-all duration-200">
                     <PlusCircle size={32} className="text-primary-fg" />

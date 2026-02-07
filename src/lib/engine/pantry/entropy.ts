@@ -5,6 +5,7 @@ export interface PantryItem {
   category: "dairy" | "rice" | "produce" | "meat" | "other";
   probability_score: number;
   last_verified_at: string; // ISO date
+  expires_at?: string; // ISO date
 }
 
 const DECAY_RATES: Record<string, number> = {
