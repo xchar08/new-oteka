@@ -10,6 +10,7 @@ import { Loader2, RefreshCw, ChevronLeft, Check, Camera } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Camera as CapacitorCamera } from '@capacitor/camera';
 import { runClientInference } from '@/lib/vision/client-inference';
+import { ScanningGrid } from '@/components/vision/ScanningGrid';
 
 const loadImage = (base64: string): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
@@ -32,6 +33,40 @@ export default function LogPage() {
   const router = useRouter();
   const isMounted = useRef(true);
   const isProcessing = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleConfirm = async () => {
+    if (!result || isSaving) return;
+    setIsSaving(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const { error } = await supabase.from('logs').insert({
+        user_id: user.id,
+        grams: 0, // Default/Estimated
+        metabolic_tags_json: {
+           item: result.items?.[0] || 'Unknown',
+           calories: result.macros?.calories || 0,
+           protein: result.macros?.protein || 0,
+           carbs: result.macros?.carbs || 0,
+           fats: result.macros?.fat || 0,
+           timestamp: new Date().toISOString(),
+           edge_data: result.edge_intelligence || null
+        }
+      });
+
+      if (error) throw error;
+
+      stopCamera();
+      router.push('/dashboard');
+    } catch (err) {
+      console.error("Save failed:", err);
+      setErrorMsg("Failed to save log. Please try again.");
+      setIsSaving(false);
+    }
+  };
 
   useEffect(() => {
     isMounted.current = true;
@@ -341,12 +376,10 @@ export default function LogPage() {
             </Button>
             <Button 
                 className="flex-1 h-16 rounded-2xl bg-white text-black hover:bg-zinc-200 font-semibold shadow-lg shadow-white/10 transition-all text-lg"
-                onClick={() => {
-                    stopCamera(); // Ensure stopped before nav
-                    router.push('/dashboard');
-                }}
+                onClick={handleConfirm}
+                disabled={isSaving}
             >
-                Confirm Log
+                {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Confirm Log"}
             </Button>
         </div>
       </div>
@@ -375,6 +408,9 @@ export default function LogPage() {
             status={analyzing ? 'scanning' : (result ? 'locked' : 'idle')} 
             boundingBox={result?.bounding_box}
         />
+
+        {/* MESHING EFFECT */}
+        {analyzing && <ScanningGrid />}
 
         {/* DEBUG OVERLAY (Moved to top-level, below header area) */}
         {showDebug && (

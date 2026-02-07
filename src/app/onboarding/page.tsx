@@ -24,7 +24,7 @@ export default function OnboardingIndex() {
         </p>
       </div>
 
-      <Link href="/onboarding/calibration" className="w-full max-w-xs">
+      <Link href="/onboarding/metrics" className="w-full max-w-xs">
         <Button className="w-full h-12 text-lg gap-2">
           Start Calibration <ArrowRight size={18} />
         </Button>

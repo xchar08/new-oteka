@@ -1,17 +1,21 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/utils';
+import { Loader2, Calendar, ChevronRight } from 'lucide-react';
 
 export default function HistoryPage() {
   const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
     async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data } = await supabase
-        .from('workflows')
+        .from('logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(20);
