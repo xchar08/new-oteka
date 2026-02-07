@@ -43,6 +43,7 @@ export default function LogPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
+      /*
       const { error } = await supabase.from('logs').insert({
         user_id: user.id,
         grams: 0, // Default/Estimated
@@ -58,6 +59,26 @@ export default function LogPage() {
       });
 
       if (error) throw error;
+      */
+     
+      // OFFLINE-AWARE MUTATION
+      const { mutateLog } = await import('@/lib/offline/mutations');
+      const mutationResult = await mutateLog({
+          user_id: user.id,
+          grams: 0,
+          metabolic_tags_json: {
+            item: result.items?.[0] || 'Unknown',
+            calories: result.macros?.calories || 0,
+            protein: result.macros?.protein || 0,
+            carbs: result.macros?.carbs || 0,
+            fats: result.macros?.fat || 0,
+            ingredients: result.ingredients || [],
+            timestamp: new Date().toISOString(),
+            edge_data: result.edge_intelligence || null
+         }
+      });
+      
+      console.log('Log saved via:', mutationResult.source);
 
       stopCamera();
       router.push('/dashboard');

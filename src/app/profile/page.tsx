@@ -103,16 +103,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 pb-32 text-zinc-100 flex flex-col gap-8 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-background p-6 pb-32 text-foreground flex flex-col gap-8 animate-in fade-in duration-500">
       
       {/* Header */}
       <header className="flex justify-between items-end pt-safe">
         <div>
-           <h1 className="text-3xl font-light tracking-tight text-white mb-1">Profile</h1>
-           <p className="text-zinc-500 text-sm">Manage your metabolic identity.</p>
+           <h1 className="text-3xl font-light tracking-tight mb-1">Profile</h1>
+           <p className="text-muted-foreground text-sm">Manage your metabolic identity.</p>
         </div>
-        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <span className="font-bold text-white text-lg">{user?.display_name?.[0].toUpperCase()}</span>
+        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
+            <span className="font-bold text-primary-fg text-lg">{user?.display_name?.[0].toUpperCase()}</span>
         </div>
       </header>
 

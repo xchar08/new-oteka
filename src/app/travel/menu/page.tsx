@@ -81,15 +81,15 @@ export default function MenuScannerPage() {
   };
 
   return (
-    <div className="p-4 space-y-6 pb-24">
-      <header>
-        <h1 className="text-2xl font-bold">Menu Parser</h1>
-        <p className="text-gray-500 text-sm">AI Analysis • Travel Mode</p>
+    <div className="min-h-screen bg-zinc-950 p-6 pb-32 text-zinc-100 space-y-6 animate-in fade-in duration-500">
+      <header className="pt-safe">
+        <h1 className="text-3xl font-light tracking-tight text-white mb-1">Menu Parser</h1>
+        <p className="text-zinc-500 text-sm">AI Analysis • Travel Mode</p>
       </header>
 
       {error && (
-        <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-center gap-3">
-          <AlertCircle size={20} />
+        <div className="bg-red-500/10 text-red-200 border border-red-500/20 p-4 rounded-xl flex items-center gap-3">
+          <AlertCircle size={20} className="text-red-400" />
           <p className="text-sm">{error}</p>
         </div>
       )}
@@ -97,6 +97,7 @@ export default function MenuScannerPage() {
       {!result && !analyzing && (
         <div 
           onClick={async () => {
+             // ... existing camera logic ... (lines 100-121)
              if (Capacitor.isNativePlatform()) {
                 try {
                   const image = await Camera.getPhoto({
@@ -106,7 +107,6 @@ export default function MenuScannerPage() {
                   });
                   if (image.base64String) {
                      setAnalyzing(true);
-                     // Direct send without resize (native handles it mostly, or we can improve later)
                      const { data, error } = await supabase.functions.invoke('vision-menu', {
                         body: { image: image.base64String, goal: 'travel' }, 
                      });
@@ -119,16 +119,16 @@ export default function MenuScannerPage() {
                 }
              }
           }}
-          className="border-2 border-dashed border-white/10 h-64 flex items-center justify-center rounded-xl bg-palenight-surface/50 hover:bg-palenight-surface transition-colors cursor-pointer group"
+          className="relative border border-dashed border-white/10 h-64 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer group active:scale-[0.98]"
         >
-          <div className="flex flex-col items-center justify-center w-full h-full">
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 bg-palenight-bg rounded-full flex items-center justify-center mx-auto text-palenight-accent group-hover:scale-110 transition-transform">
+          <div className="flex flex-col items-center justify-center w-full h-full z-10">
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto text-blue-400 group-hover:scale-110 group-hover:bg-blue-500/20 transition-all shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)]">
                 <LucideCamera size={32} />
               </div>
-              <span className="text-blue-600 font-semibold text-lg">Scan Menu</span>
-              <span className="text-gray-400 text-sm mt-1">
-                {Capacitor.isNativePlatform() ? "Tap to open Scanner" : "Native Only (Web: Use File)"}
+              <span className="block text-white font-medium text-lg tracking-tight">Scan Menu</span>
+              <span className="text-zinc-500 text-xs font-mono uppercase tracking-widest">
+                {Capacitor.isNativePlatform() ? "Tap to Camera" : "Upload Image"}
               </span>
             </div>
             
@@ -146,10 +146,10 @@ export default function MenuScannerPage() {
 
       {analyzing && (
         <div className="text-center p-12 space-y-4">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
+          <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto" />
           <div>
-            <h3 className="font-bold text-gray-900">Analyzing Menu...</h3>
-            <p className="text-gray-500 text-sm">Identifying high-protein options</p>
+            <h3 className="font-bold text-white tracking-tight">Analyzing Menu...</h3>
+            <p className="text-zinc-500 text-sm">Identifying high-protein options</p>
           </div>
         </div>
       )}
@@ -157,14 +157,15 @@ export default function MenuScannerPage() {
       {result && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-xl font-light text-white tracking-tight">
               {result.restaurant_name || 'Menu Results'}
             </h2>
             <Button
+              variant="ghost"
               onClick={() => setResult(null)}
-              className="text-gray-500 px-2 py-1 text-sm"
+              className="text-zinc-400 hover:text-white px-2 py-1 text-sm h-auto"
             >
-              <RefreshCw size={16} className="mr-2" /> Scan Again
+              <RefreshCw size={14} className="mr-2" /> Scan Again
             </Button>
           </div>
 
@@ -172,17 +173,17 @@ export default function MenuScannerPage() {
             {result.items?.map((item: any, idx: number) => (
               <div
                 key={idx}
-                className="border border-white/5 p-4 rounded-xl shadow-lg bg-palenight-surface text-zinc-100"
+                className="border border-white/5 p-5 rounded-2xl shadow-sm bg-white/5 text-zinc-100 backdrop-blur-md"
               >
-                <div className="flex justify-between items-start mb-1">
-                  <span className="font-bold text-gray-900 text-lg">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="font-bold text-white text-lg leading-tight w-[70%]">
                     {item.name}
                   </span>
                   <span
-                    className={`font-mono font-bold ${
+                    className={`font-mono text-sm px-2 py-0.5 rounded ${
                       item.health_score >= 8
-                        ? 'text-green-600'
-                        : 'text-gray-600'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-zinc-800 text-zinc-400'
                     }`}
                   >
                     {item.estimated_calories} kcal

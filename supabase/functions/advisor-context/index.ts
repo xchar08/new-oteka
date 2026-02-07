@@ -35,31 +35,41 @@ serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (!user || userError) {
-      const debugMsg = userError?.message || "User object is null";
-      const tokenSnippet = authHeader.replace("Bearer ", "").substring(0, 10) +
-        "...";
       return new Response(
         JSON.stringify({
-          error: `Auth Failed: ${debugMsg} | Token: ${tokenSnippet}`,
+          error: `Auth Failed: ${userError?.message || "User not found"}`,
         }),
         {
-          status: 200,
+          status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
     }
 
     // 0. Parse Request
-    const url = new URL(req.url);
-    const context = url.searchParams.get("context") || "general";
+    const { body } = await req.json();
+    const query = body?.query || "";
+    const context = body?.context || "chat";
     const baseUrl = NEBIUS_BASE_URL.replace(/\/$/, "");
 
-    // 1. Fetch User Profile
+    // 1. Fetch User Profile & Conditions
     const { data: profile } = await supabase
       .from("users")
       .select("metabolic_state_json, display_name, streak_count")
       .eq("id", user.id)
       .single();
+
+    const { data: medicalContext } = await supabase
+      .from("user_conditions")
+      .select(`
+        condition_id,
+        conditions (
+          name,
+          rules_json,
+          never_recommend_json
+        )
+      `)
+      .eq("user_id", user.id);
 
     // 2. Fetch Recent Logs (Last 24h)
     const yesterday = new Date();
@@ -73,23 +83,45 @@ serve(async (req) => {
       .order("captured_at", { ascending: false })
       .limit(10);
 
-    // 3. Construct Context
+    // 3. Construct Context strings
     const goal = profile?.metabolic_state_json?.current_goal || "maintenance";
+
+    // Format Conditions
+    let safetyProtocols = "None (Standard Metabolic logic applies).";
+    if (medicalContext && medicalContext.length > 0) {
+      safetyProtocols = medicalContext.map((c: any) => {
+        const cond = c.conditions;
+        const avoid = Array.isArray(cond.never_recommend_json)
+          ? cond.never_recommend_json.join(", ")
+          : "";
+        return `- **${cond.name}**: ${
+          JSON.stringify(cond.rules_json)
+        }. STRICTLY AVOID: ${avoid}`;
+      }).join("\n");
+    }
+
     const recentMeals = logs?.map((l: any) =>
-      `- ${l.metabolic_tags_json?.item} (${l.metabolic_tags_json?.calories}kcal)`
+      `- ${l.metabolic_tags_json?.item} (${l.metabolic_tags_json?.calories}kcal, ${l.metabolic_tags_json?.protein}g P)`
     ).join("\n") || "No recent meals recorded.";
 
     const systemPrompt = `
-      You are an elite Metabolic Advisor for Oteka.
-      User Goal: ${goal.toUpperCase()}.
-      Recent Activity:
+      You are Oteka, an elite Metabolic Advisor.
+      
+      ## USER PROFILE
+      - Goal: ${goal.toUpperCase()}
+      
+      ## SAFETY PROTOCOLS (CRITICAL)
+      The user has the following medical constraints. You MUST adhere to these at all times.
+      ${safetyProtocols}
+      
+      ## RECENT INTAKE (Last 24h)
       ${recentMeals}
 
-      Current Context: ${context}
-
-      Task: Provide ONE high-impact, actionable sentence of advice based on their recent intake and goal. 
-      Do not be generic. Be specific, slightly scientific but accessible. 
-      If they haven't eaten, tell them what to eat next for their goal.
+      ## INSTRUCTION
+      Provide concise, actionable advice based on the user's query: "${query}".
+      If they ask about food, filter your recommendations through the Safety Protocols.
+      Do not mention the protocols explicitly unless they prevent a specific action.
+      Keep it under 3 sentences unless asked for a plan.
     `;
 
     const aiRes = await fetch(`${baseUrl}/chat/completions`, {
@@ -99,35 +131,46 @@ serve(async (req) => {
         "Authorization": `Bearer ${NEBIUS_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "deepseek-ai/DeepSeek-R1-0528-fast",
+        model: "deepseek-ai/DeepSeek-R1", // Using standard R1 or fallback
         messages: [
           {
             role: "system",
             content: systemPrompt,
           },
-          { role: "user", content: "Generate advice." },
+          { role: "user", content: query || "What should I eat next?" },
         ],
         temperature: 0.6,
+        max_tokens: 500,
       }),
     });
 
     if (!aiRes.ok) {
       const errorText = await aiRes.text();
-      throw new Error(`Nebius Error (${aiRes.status}): ${errorText}`);
+      // Fallback response if AI fails
+      return new Response(
+        JSON.stringify({
+          advice:
+            "I'm having trouble accessing my neural core. Please check your network.",
+          error: errorText,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const aiData = await aiRes.json();
     let advice = aiData.choices?.[0]?.message?.content ||
-      "Focus on your macros today.";
+      "Focus on your macros.";
 
     // Remove DeepSeek reasoning blocks <think>...</think>
     advice = advice.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-
     // Cleanup quotes if any
-    advice = advice.replace(/^["']|["']$/g, "");
+    advice = advice.replace(/^["']|["']$/g, "").trim();
 
     return new Response(
-      JSON.stringify({ advice, version: "v7-context-aware" }),
+      JSON.stringify({ advice, version: "v8-medical-safety" }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },

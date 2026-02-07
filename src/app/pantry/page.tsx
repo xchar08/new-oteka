@@ -165,11 +165,24 @@ export default function PantryPage() {
   };
 
   // --- DELETE / VERIFY ---
+  // --- DELETE / VERIFY ---
   async function verifyItem(id: string) {
+    /*
     await supabase.from('pantry').update({
       probability_score: 1.0,
       last_verified_at: new Date().toISOString()
     }).eq('id', id);
+    */
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { mutatePantryVerify } = await import('@/lib/offline/mutations');
+    await mutatePantryVerify({
+        pantry_id: Number(id),
+        status: 'active',
+        user_id: user.id
+    });
+
     fetchPantry();
   }
 
@@ -182,14 +195,14 @@ export default function PantryPage() {
   const goodItems = items.filter(i => !isGhost(i.probability_score));
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 text-zinc-100 pb-32">
+    <div className="min-h-screen bg-background p-6 text-foreground pb-32">
        {/* Background Glow */}
-       <div className="fixed top-0 left-0 w-full h-[50vh] bg-emerald-900/10 blur-[100px] pointer-events-none" />
+       <div className="fixed top-0 left-0 w-full h-[50vh] bg-primary/5 blur-[100px] pointer-events-none" />
 
       <header className="mb-8 mt-4 flex justify-between items-end relative z-10">
         <div>
-          <h1 className="text-3xl font-light tracking-tight text-white">Pantry</h1>
-          <div className="flex items-center gap-2 text-zinc-500 text-sm mt-1">
+          <h1 className="text-3xl font-light tracking-tight">Pantry</h1>
+          <div className="flex items-center gap-2 text-muted-foreground text-sm mt-1">
              <Users className="h-4 w-4" />
              <span>Household Sync Active</span>
           </div>

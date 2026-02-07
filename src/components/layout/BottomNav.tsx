@@ -25,31 +25,17 @@ export function BottomNav() {
           const isMainAction = n.active; // The Log button
           const Icon = n.icon;
           
-          if (isMainAction) {
-             return (
-                <Link 
-                  key={n.label} 
-                  href={n.href}
-                  className="relative -top-8 flex flex-col items-center justify-center group"
-                >
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center shadow-lg shadow-primary/30 border-4 border-background group-active:scale-95 transition-all duration-200">
-                    <PlusCircle size={32} className="text-primary-fg" />
-                  </div>
-                  <span className="text-[10px] font-bold text-primary mt-1 opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-4">LOG</span>
-                </Link>
-             )
-          }
-
+          // Standard inline rendering for all items
           return (
             <Link 
               key={n.label} 
               href={n.href} 
-              className={`flex flex-col items-center gap-1 transition-all duration-300 ${isActive ? 'text-primary scale-110' : 'text-foreground-muted hover:text-foreground'}`}
+              className={`flex flex-col items-center gap-1 transition-all duration-300 ${isActive ? 'text-primary scale-110' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <div className={`p-1 rounded-xl transition-colors ${isActive ? 'bg-primary/10' : 'bg-transparent'}`}>
                 <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
               </div>
-              <span className={`text-[10px] font-medium transition-colors ${isActive ? 'text-primary' : 'text-foreground-muted'}`}>{n.label}</span>
+              <span className={`text-[10px] font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>{n.label}</span>
             </Link>
           );
         })}

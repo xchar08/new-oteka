@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { ThemeProvider } from 'next-themes';
 
 // These components MUST be loaded only on the client because they use browser APIs
 // (navigator, localStorage, etc.) which are not available during static export/SSR.
@@ -11,12 +12,14 @@ const AuthLinkHandler = dynamic(() => import('@/components/providers/AuthLinkHan
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
-        <AuthLinkHandler>
-            <AuthGuard>
-                <SyncManager />
-                {children}
-                <BottomNav />
-            </AuthGuard>
-        </AuthLinkHandler>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+            <AuthLinkHandler>
+                <AuthGuard>
+                    <SyncManager />
+                    {children}
+                    <BottomNav />
+                </AuthGuard>
+            </AuthLinkHandler>
+        </ThemeProvider>
     );
 }

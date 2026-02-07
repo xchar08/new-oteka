@@ -94,9 +94,24 @@ serve(async (req) => {
       });
     }
 
-    // 3. Call Google Gemini (w/ Retry & Fallback)
+    // 3. Fetch User Profile for Calibration
+    const { data: profile } = await supabase
+      .from("users")
+      .select("hand_width_mm, metabolic_state_json")
+      .eq("id", user.id)
+      .single();
+
+    const userHandMm = profile?.hand_width_mm || 85; // Default 85mm
+    const userGoal = profile?.metabolic_state_json?.current_goal ||
+      "maintenance";
+
+    // 4. Call Google Gemini (w/ Retry & Fallback)
     let promptText =
-      'Identify the food in this image. Estimate mass in grams and macronutrients (calories, protein, carbs, fat). Return ONLY JSON format: { "items": ["name"], "bounding_box": [ymin, xmin, ymax, xmax], "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 } } (bounding_box should be 0-1000 scale for the main food item)';
+      `Identify the food in this image. The user's hand (palm width: ${userHandMm}mm) may be visible for scale. 
+      Use this scale to estimate absolute volume in cm3 and mass in grams with high precision.
+      User Goal: ${userGoal}.
+      Break it down into base ingredients (scaffolding) with ratios. 
+      Return ONLY JSON format: { "items": ["name"], "ingredients": [{"name": "string", "ratio": 0.0}], "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }, "volume_cm3": 0, "bounding_box": [ymin, xmin, ymax, xmax] } (bounding_box 0-1000 scale)`;
 
     if (mode === "pantry") {
       promptText =

@@ -1,10 +1,15 @@
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-palenight-bg p-8 max-w-2xl mx-auto text-zinc-100 space-y-6">
-      <h1 className="text-3xl font-bold text-white">Terms of Service</h1>
-      <p className="text-zinc-500 text-sm">Last updated: January 2026</p>
-      <p className="text-zinc-300 leading-relaxed">By using Oteka, you agree to the following terms...</p>
-      {/* Add standard legals here */}
+    <div className="min-h-screen bg-background p-8 max-w-2xl mx-auto text-foreground space-y-6">
+      <h1 className="text-3xl font-bold">Terms of Service</h1>
+      <p className="text-muted-foreground text-sm">Last updated: January 2026</p>
+      <div className="prose dark:prose-invert">
+        <p>By using Oteka, you agree to the following terms regarding metabolic data processing, volumetric estimation accuracy, and AI-driven advice.</p>
+        <h3>1. Metabolic Data</h3>
+        <p>Your inputs (weight, height, metabolic logs) are encrypted and used solely for the purpose of generating personalized insights.</p>
+        <h3>2. AI Advice</h3>
+        <p>The "Metabolic Advisor" is an AI system (Gemini/DeepSeek) and does not constitute professional medical advice.</p>
+      </div>
     </div>
   );
 }

@@ -17,30 +17,29 @@ export function PlannerControls({ onRun }: { onRun: (c: PlannerConstraints) => v
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow-sm space-y-4">
-      <div className="p-3 bg-blue-900/20 text-blue-200 text-sm rounded border border-blue-900/50">
-        <strong>Auto-Optimized:</strong> Macros are now calculated based on your 
-        biological profile (Hand Width & Goal).
+    <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 backdrop-blur-md p-5 rounded-2xl shadow-sm space-y-5">
+      <div className="p-3 bg-blue-500/10 text-blue-200 text-sm rounded-lg border border-blue-500/20 leading-relaxed">
+        <strong className="text-blue-400">Auto-Optimized:</strong> Macros are calculated based on your biological profile.
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" onClick={() => (document.getElementById('strict') as HTMLInputElement)?.click()}>
         <input 
           name="strict" 
           type="checkbox" 
           id="strict" 
           defaultChecked 
-          className="rounded border-zinc-700 bg-zinc-800 text-blue-600 focus:ring-blue-500"
+          className="rounded border-white/20 bg-black/40 text-blue-500 focus:ring-blue-500/50 h-5 w-5"
         />
-        <label htmlFor="strict" className="text-sm text-zinc-300">
-          Strict Pantry Only (No Shopping)
+        <label htmlFor="strict" className="text-sm text-zinc-300 font-medium cursor-pointer">
+          Strict Pantry Only <span className="text-zinc-500 font-normal">(No Shopping)</span>
         </label>
       </div>
 
       <button 
         type="submit" 
-        className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-500 transition-colors"
+        className="w-full bg-white text-black py-4 rounded-xl font-bold hover:bg-zinc-200 transition-all shadow-lg shadow-white/5 active:scale-95"
       >
-        Rank Meal Compositions
+        Generative Meal Plan
       </button>
     </form>
   );
