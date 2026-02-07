@@ -146,6 +146,7 @@ create or replace function run_entropy_cycle()
 returns void
 language plpgsql
 security definer
+set search_path = public
 as $$
 begin
   -- Update probability scores
@@ -202,52 +203,58 @@ alter table cache_entries enable row level security;
 
 -- HELPER FUNCTIONS FOR RLS
 create or replace function get_my_household_id()
-returns uuid language sql stable as $$
-  select household_id from users where id = auth.uid();
+returns uuid language sql stable security definer set search_path = public as $$
+  select household_id from users where id = (select auth.uid());
 $$;
 
 -- USERS
 drop policy if exists "Users view own profile" on users;
-create policy "Users view own profile" on users for select using (auth.uid() = id);
+create policy "Users view own profile" on users for select using ((select auth.uid()) = id);
 
 drop policy if exists "Users update own profile" on users;
-create policy "Users update own profile" on users for update using (auth.uid() = id);
+create policy "Users update own profile" on users for update using ((select auth.uid()) = id);
 
 drop policy if exists "Authenticated insert profile" on users;
-create policy "Authenticated insert profile" on users for insert with check (auth.uid() = id);
+create policy "Authenticated insert profile" on users for insert with check ((select auth.uid()) = id);
 
 drop policy if exists "Authenticated view profiles" on users;
-create policy "Authenticated view profiles" on users for select using (auth.role() = 'authenticated');
+create policy "Authenticated view profiles" on users for select using ((select auth.role()) = 'authenticated');
 
 -- FOODS
 drop policy if exists "Foods read (auth)" on foods;
-create policy "Foods read (auth)" on foods for select using (auth.role() = 'authenticated');
+create policy "Foods read (auth)" on foods for select using ((select auth.role()) = 'authenticated');
 
 drop policy if exists "Foods insert (auth)" on foods;
-create policy "Foods insert (auth)" on foods for insert with check (auth.role() = 'authenticated');
+create policy "Foods insert (auth)" on foods for insert with check ((select auth.role()) = 'authenticated');
 
 -- PANTRY (Household Shared)
+-- Cleanup old policies
+drop policy if exists "Pantry read own" on pantry;
+drop policy if exists "Pantry write own" on pantry;
+drop policy if exists "Pantry update own" on pantry;
+drop policy if exists "Pantry delete own" on pantry;
+
 drop policy if exists "Pantry read household" on pantry;
 create policy "Pantry read household" on pantry for select using (
-  auth.uid() = user_id or 
+  (select auth.uid()) = user_id or 
   household_id = get_my_household_id()
 );
 
 drop policy if exists "Pantry write household" on pantry;
 create policy "Pantry write household" on pantry for insert with check (
-  auth.uid() = user_id or 
+  (select auth.uid()) = user_id or 
   household_id = get_my_household_id()
 );
 
 drop policy if exists "Pantry update household" on pantry;
 create policy "Pantry update household" on pantry for update using (
-  auth.uid() = user_id or 
+  (select auth.uid()) = user_id or 
   household_id = get_my_household_id()
 );
 
 drop policy if exists "Pantry delete household" on pantry;
 create policy "Pantry delete household" on pantry for delete using (
-  auth.uid() = user_id or 
+  (select auth.uid()) = user_id or 
   household_id = get_my_household_id()
 );
 
@@ -264,10 +271,10 @@ create policy "Shopping write household" on shopping_list for all using (
 
 -- LOGS / WORKFLOWS
 drop policy if exists "Logs access own" on logs;
-create policy "Logs access own" on logs for all using (auth.uid() = user_id);
+create policy "Logs access own" on logs for all using ((select auth.uid()) = user_id);
 
 drop policy if exists "Workflows access own" on workflows;
-create policy "Workflows access own" on workflows for all using (auth.uid() = user_id);
+create policy "Workflows access own" on workflows for all using ((select auth.uid()) = user_id);
 
 -- HOUSEHOLDS
 drop policy if exists "Households read member" on households;
@@ -281,7 +288,11 @@ create policy "Households read member" on households for select using (
 
 -- Automatically create public.users row on signup
 create or replace function public.handle_new_user()
-returns trigger as $$
+returns trigger 
+language plpgsql 
+security definer
+set search_path = public
+as $$
 declare
   new_household_id uuid;
 begin
@@ -301,7 +312,7 @@ begin
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$;
 
 -- Re-create trigger
 drop trigger if exists on_auth_user_created on auth.users;
@@ -324,5 +335,5 @@ create table if not exists subscriptions (
 alter table subscriptions enable row level security;
 
 drop policy if exists "Users view own subscription" on subscriptions;
-create policy "Users view own subscription" on subscriptions for select using (auth.uid() = user_id);
+create policy "Users view own subscription" on subscriptions for select using ((select auth.uid()) = user_id);
 
