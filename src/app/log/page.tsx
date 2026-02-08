@@ -183,7 +183,7 @@ export default function LogPage() {
       // Helper to perform the actual fetch
       const performRequest = async (activeToken: string) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const timeoutId = setTimeout(() => controller.abort(), 180000); // Increased to 180s (3m) for DeepSeek
         
         try {
            return await fetch(
@@ -551,6 +551,45 @@ export default function LogPage() {
                          <span>v0.1.0-beta</span>
                          <span>{process.env.NEXT_PUBLIC_SUPABASE_URL?.split('://')[1]?.split('.')[0]}</span>
                      </div>
+                </div>
+            </div>
+        )}
+
+        {/* ERROR NOTIFICATION (Always Visible) */}
+        {errorMsg && (
+            <div className="absolute top-24 left-4 right-4 z-[70] animate-in slide-in-from-top-5 fade-in duration-300">
+                <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 text-red-200 backdrop-blur-xl shadow-2xl flex flex-col gap-3">
+                    <div className="flex items-start gap-3">
+                        <div className="mt-0.5 p-1 bg-red-500/20 rounded-full">
+                            <span className="text-red-500 font-bold block w-4 h-4 text-center leading-none">!</span>
+                        </div>
+                        <div className="flex flex-col gap-1 flex-1">
+                            <span className="font-bold text-red-400 text-sm">Scan Failed</span>
+                            <p className="text-xs leading-relaxed opacity-90">{errorMsg}</p>
+                            {errorMsg.includes("Failed to fetch") && (
+                                <p className="text-[10px] text-red-300/60 italic mt-1">
+                                    *Check your internet connection or server logs.
+                                </p>
+                            )}
+                        </div>
+                        <button 
+                            onClick={() => setErrorMsg(null)}
+                            className="text-white/50 hover:text-white p-1"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    {/* Fix Actions */}
+                    {(errorMsg.includes("401") || errorMsg.includes("Auth") || errorMsg.includes("JWT")) && (
+                        <button 
+                            onClick={handleForceLogout}
+                            className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-lg shadow-lg transition-colors w-full flex items-center justify-center gap-2"
+                        >
+                            <RefreshCw className="h-3 w-3" />
+                            Re-authenticate
+                        </button>
+                    )}
                 </div>
             </div>
         )}

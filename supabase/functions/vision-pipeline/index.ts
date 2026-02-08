@@ -105,7 +105,7 @@ serve(async (req) => {
     const userGoal = profile?.metabolic_state_json?.current_goal ||
       "maintenance";
 
-    // 4. Node B: Identification (Gemini 2.0 Flash)
+    // 4. Node B: Identification (Gemini 3.0 Strict)
     // We use Gemini to "See" the image and extract tags/text.
     const descriptionPrompt = `Analyze this food image. 
        1. List all visible food items.
@@ -122,20 +122,66 @@ serve(async (req) => {
       }],
     };
 
-    // Call Gemini (Vision)
-    const geminiUrl =
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
-    const geminiResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(descriptionPayload),
-    });
+    // Call Gemini (Vision) with STRICT 3.0 Policy
+    const models = [
+      "gemini-3-flash-preview", // Priority: 3.0 Flash
+      "gemini-3-pro-preview", // Priority: 3.0 Pro
+    ];
 
-    if (!geminiResponse.ok) {
-      throw new Error(`Gemini Vision Failed: ${await geminiResponse.text()}`);
+    let geminiData;
+    let errors: string[] = [];
+
+    for (const model of models) {
+      try {
+        // Simple Retry Loop (2 attempts per model)
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+          const url =
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_API_KEY}`;
+
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(descriptionPayload),
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (res.ok) {
+            geminiData = await res.json();
+            break; // Break retry loop
+          } else {
+            const errText = await res.text();
+            errors.push(
+              `[${model}]: Status ${res.status} - ${
+                errText.substring(0, 200)
+              }...`,
+            );
+
+            // If 429, wait 2s and retry (once)
+            if (res.status === 429 && attempt === 0) {
+              await new Promise((r) => setTimeout(r, 2000));
+              continue;
+            }
+            break; // Don't retry other errors
+          }
+        }
+
+        if (geminiData) break; // Break model loop if success
+      } catch (e) {
+        errors.push(`[${model}]: Exception - ${String(e)}`);
+      }
     }
 
-    const geminiData = await geminiResponse.json();
+    if (!geminiData) {
+      throw new Error(
+        `Gemini 3.0 Strict Mode Failed. Errors:\n${errors.join("\n")}`,
+      );
+    }
+
     const sceneDescription =
       geminiData.candidates?.[0]?.content?.parts?.[0]?.text ||
       "No description generated.";
@@ -180,41 +226,55 @@ serve(async (req) => {
           }
         `;
 
-      const deepSeekPayload = {
-        model: "deepseek-ai/DeepSeek-R1", // Validate exact model name
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a precise nutritional physics engine. Output JSON only.",
-          },
-          { role: "user", content: physicsPrompt },
-        ],
-        temperature: 0.1,
-      };
+      const dsModels = [
+        "deepseek-ai/DeepSeek-R1-0528",
+        "deepseek-ai/DeepSeek-R1-0528-fast",
+      ];
 
-      const deepSeekResponse = await fetch(DEEPSEEK_BASE_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${NEBIUS_API_KEY}`,
-        },
-        body: JSON.stringify(deepSeekPayload),
-      });
+      for (const dsModel of dsModels) {
+        try {
+          const deepSeekPayload = {
+            model: dsModel,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a precise nutritional physics engine. Output JSON only.",
+              },
+              { role: "user", content: physicsPrompt },
+            ],
+            temperature: 0.1,
+          };
 
-      if (deepSeekResponse.ok) {
-        const dsData = await deepSeekResponse.json();
-        const rawContent = dsData.choices?.[0]?.message?.content || "{}";
-        // Clean markdown
-        const jsonStr = rawContent.replace(/```json/g, "").replace(/```/g, "")
-          .trim();
-        finalResult = JSON.parse(jsonStr);
-      } else {
-        console.warn(
-          "DeepSeek Failed, falling back to Gemini Logic:",
-          await deepSeekResponse.text(),
-        );
-        // Fallback to Gemini Logic if DeepSeek fails
+          const deepSeekResponse = await fetch(DEEPSEEK_BASE_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${NEBIUS_API_KEY}`,
+            },
+            body: JSON.stringify(deepSeekPayload),
+            signal: AbortSignal.timeout(60000), // Increase to 60s for Reasoning
+          });
+
+          if (deepSeekResponse.ok) {
+            const dsData = await deepSeekResponse.json();
+            const rawContent = dsData.choices?.[0]?.message?.content || "{}";
+            const jsonStr = rawContent.replace(/```json/g, "").replace(
+              /```/g,
+              "",
+            )
+              .trim();
+            finalResult = JSON.parse(jsonStr);
+            break; // Success!
+          } else {
+            console.warn(
+              `DeepSeek Model ${dsModel} Failed:`,
+              await deepSeekResponse.text(),
+            );
+          }
+        } catch (e) {
+          console.warn(`DeepSeek Model ${dsModel} Error:`, e);
+        }
       }
     }
 
@@ -234,13 +294,62 @@ serve(async (req) => {
         }],
       };
 
-      const fbRes = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fbPayload),
-      });
+      let fbData;
+      let fbErrors: string[] = [];
 
-      const fbData = await fbRes.json();
+      const fbModels = [
+        "gemini-3-flash-preview",
+        "gemini-3-pro-preview",
+      ];
+
+      for (const model of fbModels) {
+        try {
+          // Retry Loop (2 attempts)
+          for (let attempt = 0; attempt < 2; attempt++) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const url =
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_API_KEY}`;
+            const res = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(fbPayload),
+              signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+              fbData = await res.json();
+              break;
+            } else {
+              const errText = await res.text();
+              fbErrors.push(
+                `[${model}]: Status ${res.status} - ${
+                  errText.substring(0, 200)
+                }...`,
+              );
+
+              if (res.status === 429 && attempt === 0) {
+                await new Promise((r) => setTimeout(r, 2000));
+                continue;
+              }
+              break;
+            }
+          }
+          if (fbData) break;
+        } catch (e) {
+          fbErrors.push(`[${model}]: Exception - ${String(e)}`);
+        }
+      }
+
+      if (!fbData) {
+        throw new Error(
+          `Fallback Gemini 3.0 Strict Failed. Errors:\n${fbErrors.join("\n")}`,
+        );
+      }
+
       const rawText = fbData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
       const jsonStr = rawText.replace(/```json/g, "").replace(/```/g, "")
         .trim();
