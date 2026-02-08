@@ -4,6 +4,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY") ?? "";
 
 serve(async (req) => {
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // CRITICAL CONFIGURATION - DO NOT MODIFY WITHOUT USER APPROVAL
+  // 1. Node B (ID): MUST be Gemini 3.0 Flash/Pro ONLY. No 2.0/1.5 Fallbacks.
+  // 2. Node C (Physics): DeepSeek R1 Primary. Fallback MUST be Gemini 3.0 ONLY.
+  // 3. Error Handling: 429 Retry Logic (2s wait) is REQUIRED for Gemini.
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   // CORS Headers
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
