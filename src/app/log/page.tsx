@@ -61,6 +61,8 @@ export default function LogPage() {
       if (error) throw error;
       */
      
+      console.log('Mutating log for user:', user.id);
+      
       // OFFLINE-AWARE MUTATION
       const { mutateLog } = await import('@/lib/offline/mutations');
       const mutationResult = await mutateLog({
@@ -79,13 +81,24 @@ export default function LogPage() {
          }
       });
       
-      console.log('Log saved via:', mutationResult.source);
+      console.log('Log Mutation Result:', mutationResult); 
+
+      if (mutationResult.source === 'queue') {
+          // Verify queue write
+          console.log("Written to queue. Checking persistence...");
+          import('@/lib/offline/queue').then(({ listQueue }) => {
+              listQueue().then(items => {
+                  console.log("Current Queue Items:", items.length);
+              });
+          });
+          alert("Log saved to Offline Queue. It will sync automatically when online.");
+      }
 
       stopCamera();
       router.push('/dashboard');
     } catch (err) {
-      console.error("Save failed:", err);
-      setErrorMsg("Failed to save log. Please try again.");
+      console.error("Save critical failure:", err);
+      alert(`Failed to save log: ${(err as Error).message}`);
       setIsSaving(false);
     }
   };
@@ -419,6 +432,24 @@ export default function LogPage() {
                     Depth: {(result.edge_intelligence.volumetric?.mean_depth || 0).toFixed(2)}m (Est)
                  </div>
              )}
+
+             {/* Metabolic Insight Banner */}
+             {result.metabolic_insight && Math.abs(result.metabolic_insight.score) >= 7 && (
+                <div className={`mt-6 p-4 rounded-xl border backdrop-blur-md max-w-sm w-full animate-in slide-in-from-bottom-5 duration-700 delay-200 fill-mode-both ${
+                    result.metabolic_insight.score > 0 
+                        ? 'bg-linear-to-r from-blue-900/40 to-emerald-900/40 border-blue-500/30 shadow-[0_0_20px_-5px_var(--success)]' 
+                        : 'bg-linear-to-r from-red-900/40 to-orange-900/40 border-red-500/30 shadow-[0_0_20px_-5px_rgba(239,68,68,0.4)]'
+                }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-lg ${result.metabolic_insight.score > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {result.metabolic_insight.score > 0 ? '✦ Metabolic Supercharger' : '⚠ Metabolic Tax'}
+                        </span>
+                    </div>
+                    <p className="text-sm text-zinc-200 leading-relaxed">
+                        {result.metabolic_insight.layman_explanation}
+                    </p>
+                </div>
+             )}
         </div>
 
         {/* Macro Cards */}
@@ -517,6 +548,20 @@ export default function LogPage() {
                             {JSON.stringify(debugLog || { status: 'Waiting for input...' }, null, 2)}
                         </div>
                      </div>
+
+                     {/* AI Trace */}
+                     {result?.debug_trace && (
+                         <div className="flex flex-col gap-1 border-t border-white/10 pt-2">
+                             <span className="text-purple-400 text-[9px] uppercase tracking-widest">AI Reasoning Trace</span>
+                             <div className="bg-purple-900/10 p-2 rounded border border-purple-500/20 text-purple-200 text-[10px] break-words whitespace-pre-wrap font-mono max-h-40 overflow-y-auto">
+                                 <span className="text-white/50 block mb-1">Gemini Saw:</span>
+                                 {result.debug_trace.gemini_description}
+                                 <div className="h-2" />
+                                 <span className="text-white/50 block mb-1">DeepSeek Thought:</span>
+                                 {result.debug_trace.deepseek_raw}
+                             </div>
+                         </div>
+                     )}
 
                      {/* Error Box */}
                      {errorMsg && (

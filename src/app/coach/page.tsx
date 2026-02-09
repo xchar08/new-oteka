@@ -120,8 +120,9 @@ export default function CoachPage() {
 
         {busy && (
           <div className="flex justify-start">
-            <div className="bg-white/5 border border-white/5 text-zinc-500 text-xs px-4 py-2 rounded-full animate-pulse">
-              Thinking...
+            <div className="bg-white/5 border border-white/5 text-zinc-500 text-xs px-4 py-2 rounded-full animate-pulse flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+              Gemini 3.0 Deep Reasoning...
             </div>
           </div>
         )}

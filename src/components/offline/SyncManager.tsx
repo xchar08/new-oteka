@@ -35,6 +35,14 @@ export function SyncManager() {
     // 3. Start Sync Listener (Auto-process queue when 'online' event fires)
     const cleanupSync = installQueueAutoSync();
 
+    // 4. Trigger immediate sync check on mount (in case we disregarded a queue item earlier)
+    if (navigator.onLine) {
+        import('@/lib/offline/sync').then(({ processOfflineQueue }) => {
+            console.log('[SyncManager] Triggering initial sync check...');
+            processOfflineQueue();
+        });
+    }
+
     return () => {
       window.removeEventListener('online', updateStatus);
       window.removeEventListener('offline', updateStatus);

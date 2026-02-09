@@ -9,7 +9,8 @@ export type QueueItemType =
   | "VISION_LOG"
   | "PANTRY_VERIFY"
   | "GENERIC_MUTATION"
-  | "SHOPPING_MUTATION";
+  | "SHOPPING_MUTATION"
+  | "PANTRY_ITEM_MUTATION";
 
 export type QueueItem = {
   id: string;

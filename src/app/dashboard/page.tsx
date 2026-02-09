@@ -70,18 +70,39 @@ export default function DashboardPage() {
           []
       );
 
-      // 3. Fetch Daily Logs & Aggregate
+      // 3. Fetch Daily Logs & Aggregate (Online + Offline)
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
       
-      const { data: todaysLogs } = await supabase
+      const { data: onlineLogs } = await supabase
         .from('logs')
         .select('metabolic_tags_json')
         .eq('user_id', authUser.id)
         .gte('captured_at', startOfDay.toISOString());
 
-      if (todaysLogs) {
-        const totals = todaysLogs.reduce((acc, log) => {
+      let allLogs = onlineLogs || [];
+
+      // Merge Offline Queue
+      try {
+          if (typeof window !== 'undefined') {
+              const { listQueue, readQueuePayload } = await import('@/lib/offline/queue');
+              const queueItems = await listQueue();
+              const pendingLogs = queueItems.filter(i => i.type === 'VISION_LOG' && (i.status === 'PENDING' || i.status === 'FAILED'));
+              
+              for (const item of pendingLogs) {
+                  const payload: any = await readQueuePayload(item);
+                  // Check if it's for today
+                  if (new Date(payload.captured_at || item.created_at) >= startOfDay) {
+                      allLogs.push({ metabolic_tags_json: payload.metabolic_tags_json });
+                  }
+              }
+          }
+      } catch (e) {
+          console.warn('Failed to load offline logs:', e);
+      }
+
+      if (allLogs.length > 0) {
+        const totals = allLogs.reduce((acc, log) => {
             const m = log.metabolic_tags_json || {};
             return {
                 calories: acc.calories + (Number(m.calories) || 0),
@@ -93,41 +114,70 @@ export default function DashboardPage() {
         setDailyMacros(totals);
       }
 
-      // 4. Fetch Advice
+      // 4. Fetch Advice (with Caching & Silent Fallback)
       try {
-        if (navigator.onLine) {
-           const { data, error } = await supabase.functions.invoke('advisor-context', {
-             body: { context: 'dashboard' }
-           });
+          const CACHE_KEY = 'oteka_dashboard_advice';
+          const cached = localStorage.getItem(CACHE_KEY);
+          const now = Date.now();
+          let shouldFetch = true;
 
-           if (!error && data) {
-             if (data.error) {
-               setAdvice(`Advisor Error: ${data.error}`);
-               console.error('Advisor Logic Error:', data.error);
-             } else {
-                // Formatting Fix: Strip markdown styling robustly
-                const cleaning = (data.advice || 'Metabolic state nominal.')
-                   .replace(/[\*\_\#\>]/g, '') 
-                   .replace(/\[.*?\]/g, '') 
-                   .replace(/^\s*[-•]\s*/gm, '• ') 
-                   .trim();
-                setAdvice(cleaning);
+          if (cached) {
+              const { timestamp, text } = JSON.parse(cached);
+              // 30-minute cache to save tokens/quota
+              if (now - timestamp < 30 * 60 * 1000) {
+                  setAdvice(text);
+                  shouldFetch = false;
               }
-           } else {
-             console.error('Advisor Function Error:', error);
-             setAdvice(`System Error: ${error?.message || 'Connection failed'}`);
-           }
-        } else {
-          setAdvice('Offline Mode: Using cached protocols.');
-        }
-      } catch (e) {
-        console.error('Advisor Exception:', e);
-        setAdvice('Advisor offline.');
-      }
+          }
 
-      setLoading(false);
+          if (shouldFetch && navigator.onLine) {
+               const { data, error } = await supabase.functions.invoke('advisor-context', {
+                 body: { context: 'dashboard' }
+               });
+               
+               if (error) throw error;
+               if (data?.error) throw new Error(data.error);
+
+               let text = data.advice || 'Metabolic state nominal.';
+               // Check for "Overheated" message
+               if (text.includes('overheated') || text.includes('try again')) {
+                   console.warn('Advisor Rate Limited (Suppressed)');
+                   if (cached) {
+                        const { text: oldText } = JSON.parse(cached);
+                        setAdvice(oldText);
+                   } else {
+                        setAdvice("Ready to track. Scan your next meal to analyze.");
+                   }
+               } else {
+                   text = text.replace(/[\*\_\#\>]/g, '') 
+                       .replace(/\[.*?\]/g, '') 
+                       .replace(/^\s*[-•]\s*/gm, '• ') 
+                       .trim();
+                    
+                   setAdvice(text);
+                   localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: now, text }));
+               }
+          } else if (!navigator.onLine) {
+              setAdvice('Offline Mode: Sync pending.');
+          }
+      } catch (e: any) {
+          console.warn('Advisor Network Exception:', e);
+          // Don't block dashboard load on advisor error
+          setAdvice('Metabolic Coach unavailable. (Check Connection)');
+      } finally {
+          setLoading(false);
+      }
     }
-    load();
+    
+    // Safety timeout to prevent infinite loading
+    const safetyTimeout = setTimeout(() => setLoading(false), 5000);
+    
+    load().catch(e => {
+        console.error("Dashboard Load Critical Fail:", e);
+        setLoading(false);
+    });
+
+    return () => clearTimeout(safetyTimeout);
   }, [supabase]);
 
   if (loading)

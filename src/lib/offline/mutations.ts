@@ -158,3 +158,59 @@ export async function mutateShopping(payload: {
 
     return { success: true, source: "queue" };
 }
+
+/**
+ * Tries to modify pantry item (Upsert or Delete).
+ */
+export async function mutatePantryItem(payload: {
+    action: "UPSERT" | "DELETE";
+    item: {
+        id?: number;
+        name?: string;
+        expiry?: string | null;
+        category?: string;
+        household_id?: string | null;
+        user_id?: string;
+        temp_id?: string;
+    };
+    user_id: string;
+}) {
+    const isOnline = typeof navigator !== "undefined" && navigator.onLine;
+
+    if (isOnline) {
+        try {
+            if (payload.action === "DELETE" && payload.item.id) {
+                await supabase.from("pantry").delete().eq(
+                    "id",
+                    payload.item.id,
+                );
+            } else if (payload.action === "UPSERT") {
+                const { id, temp_id, ...data } = payload.item;
+                if (id) {
+                    await supabase.from("pantry").update(data).eq("id", id);
+                } else {
+                    await supabase.from("pantry").insert({
+                        ...data,
+                        status: "active",
+                        probability_score: 1.0,
+                        created_at: new Date().toISOString(),
+                    });
+                }
+            }
+            return { success: true, source: "online" };
+        } catch (err: any) {
+            console.warn("Online pantry mutation failed, queueing:", err);
+        }
+    }
+
+    const id = crypto.randomUUID();
+    await enqueueMutation({
+        id,
+        type: "PANTRY_ITEM_MUTATION",
+        user_id: payload.user_id,
+        client_updated_at_ms: Date.now(),
+        payload: { ...payload, client_ts: Date.now() },
+    });
+
+    return { success: true, source: "queue" };
+}

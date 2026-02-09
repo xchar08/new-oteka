@@ -1,0 +1,59 @@
+{
+  "version": "5",
+  "remote": {
+    "https://deno.land/std@0.208.0/dotenv/mod.ts": "039468f5c87d39b69d7ca6c3d68ebca82f206ec0ff5e011d48205eea292ea5a6",
+    "https://deno.land/std@0.224.0/dotenv/mod.ts": "0180eaeedaaf88647318811cdaa418cc64dc51fb08354f91f5f480d0a1309f7d",
+    "https://deno.land/std@0.224.0/dotenv/parse.ts": "09977ff88dfd1f24f9973a338f0f91bbdb9307eb5ff6085446e7c423e4c7ba0c",
+    "https://deno.land/std@0.224.0/dotenv/stringify.ts": "275da322c409170160440836342eaa7cf012a1d11a7e700d8ca4e7f2f8aa4615"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@ai-sdk/google@^3.0.13",
+        "npm:@ai-sdk/openai@^3.0.18",
+        "npm:@capacitor-community/camera-preview@^7.0.4",
+        "npm:@capacitor/android@^8.0.1",
+        "npm:@capacitor/app@8",
+        "npm:@capacitor/browser@8",
+        "npm:@capacitor/camera@8",
+        "npm:@capacitor/cli@^7.4.5",
+        "npm:@capacitor/core@^8.0.1",
+        "npm:@capacitor/ios@^8.0.1",
+        "npm:@capacitor/local-notifications@8",
+        "npm:@ionic/pwa-elements@^3.3.0",
+        "npm:@radix-ui/react-slot@^1.2.4",
+        "npm:@stripe/stripe-js@^8.7.0",
+        "npm:@supabase/ssr@0.8",
+        "npm:@supabase/supabase-js@^2.91.1",
+        "npm:@tailwindcss/postcss@4",
+        "npm:@types/node@20",
+        "npm:@types/react-dom@19",
+        "npm:@types/react@19",
+        "npm:@upstash/ratelimit@^2.0.8",
+        "npm:@upstash/redis@^1.36.1",
+        "npm:ai@^6.0.49",
+        "npm:class-variance-authority@~0.7.1",
+        "npm:clsx@^2.1.1",
+        "npm:eslint-config-next@16.1.4",
+        "npm:eslint@9",
+        "npm:framer-motion@^12.31.0",
+        "npm:idb-keyval@^6.2.2",
+        "npm:lucide-react@0.563",
+        "npm:next-themes@~0.4.6",
+        "npm:next@16.1.4",
+        "npm:onnxruntime-web@^1.23.2",
+        "npm:patch-package@^8.0.1",
+        "npm:postinstall-postinstall@^2.1.0",
+        "npm:react-dom@19.2.3",
+        "npm:react@19.2.3",
+        "npm:sonner@^2.0.7",
+        "npm:stripe@^20.3.0",
+        "npm:tailwind-merge@^3.4.0",
+        "npm:tailwindcss@4",
+        "npm:typescript@5",
+        "npm:zod@^4.3.6",
+        "npm:zustand@^5.0.10"
+      ]
+    }
+  }
+}

@@ -63,6 +63,7 @@ create table if not exists pantry (
   probability_score numeric default 1.0,
   last_verified_at timestamptz default now(),
   status text default 'active', -- active, review_needed, consumed
+  metadata_json jsonb default '{}'::jsonb, -- Stores ingredients, micros, packaging info
   created_at timestamptz default now()
 );
 

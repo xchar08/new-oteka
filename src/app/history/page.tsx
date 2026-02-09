@@ -14,13 +14,43 @@ export default function HistoryPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data } = await supabase
+      const { data: onlineLogs } = await supabase
         .from('logs')
         .select('*')
         .order('captured_at', { ascending: false })
         .limit(20);
       
-      if (data) setLogs(data);
+      let allLogs = onlineLogs || [];
+
+      // Merge Offline Queue
+      try {
+          if (typeof window !== 'undefined') {
+              const { listQueue, readQueuePayload } = await import('@/lib/offline/queue');
+              const queueItems = await listQueue();
+              const pendingLogs = queueItems.filter(i => i.type === 'VISION_LOG' && (i.status === 'PENDING' || i.status === 'FAILED'));
+              
+              const offlineEntries = [];
+              for (const item of pendingLogs) {
+                  const payload: any = await readQueuePayload(item);
+                  offlineEntries.push({
+                      id: `temp-${item.id}`, // Temp ID
+                      captured_at: payload.captured_at || item.created_at,
+                      metabolic_tags_json: payload.metabolic_tags_json,
+                      is_offline: true,
+                      status: item.status
+                  });
+              }
+              // Merge and Sort
+              allLogs = [...offlineEntries, ...allLogs].sort((a, b) => 
+                  new Date(b.captured_at).getTime() - new Date(a.captured_at).getTime()
+              );
+          }
+      } catch (e) {
+          console.warn('Failed to load offline logs:', e);
+      }
+      
+      setLogs(allLogs);
+      setLoading(false);
     }
     load();
   }, []);

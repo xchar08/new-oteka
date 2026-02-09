@@ -2,16 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { CheckCircle, Loader2, Plus, Users, ShoppingCart } from 'lucide-react';
+import { CheckCircle, Loader2, Plus, Users, ShoppingCart, Sparkles, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 type ShoppingItem = {
   id: string; // "pantry-{id}" or "plan-{id}" or "list-{id}"
   type: 'db_list' | 'suggestion';
   db_id?: number; // Real DB ID for shopping_list or pantry items
   name: string;
-  category: 'Shared List' | 'Pantry Restock' | 'Meal Plan';
+  category: 'Shared List' | 'Pantry Restock' | 'Meal Plan' | 'Smart Suggestion';
   reason: string;
+  priority?: string;
 };
 
 export default function ShoppingPage() {
@@ -68,8 +70,6 @@ export default function ShoppingPage() {
         .select('id, probability_score, foods ( name )')
         .eq('status', 'active')
         .lt('probability_score', 0.3)
-        // RLS handles household filtering now, but we can be explicit if needed.
-        // For simplicity, rely on RLS + user association
         .order('probability_score', { ascending: true }); // most depleted first
 
       if (depletedPantry) {
@@ -126,28 +126,31 @@ export default function ShoppingPage() {
     if (!user) return;
 
     try {
-        const { mutateShopping, mutatePantryVerify } = await import('@/lib/offline/mutations');
+        const { mutateShopping, mutatePantryVerify, mutatePantryItem } = await import('@/lib/offline/mutations');
 
         if (item.type === 'db_list') {
             // ACTION: Mark as Bought -> Delete from List + Add to Pantry
              
-             // 1. Delete from List (Offline Aware)
+             // 1. Delete from List
              await mutateShopping({
                  action: 'DELETE',
                  item: { id: item.db_id },
                  user_id: user.id
              });
 
-             // 2. Add to Pantry (Reuse Verify logic or new insert?)
-             // For now, let's just Insert a new Pantry Item via "Pantry Verify" mutation 
-             // logic is tricky because Verify expects an ID.
-             // We need a "Pantry Insert" mutation really. 
-             // For MVP Phase 4 speed: We will use direct insert if online, else skip?
-             // NO, we need offline support.
-             // Let's rely on the user manually adding it to pantry if they want strict tracking,
-             // OR we map it to a "Generic Mutation" for pantry insert.
-             // Actually, let's keep it simple: Just remove from list for now.
-             // User can scan it into pantry later.
+             // 2. Add to Pantry
+             await mutatePantryItem({
+                 action: 'UPSERT',
+                 item: {
+                     household_id: householdId || undefined,
+                     user_id: user.id,
+                     name: item.name,
+                     category: item.name,
+                     temp_id: crypto.randomUUID()
+                 },
+                 user_id: user.id
+             });
+             toast.success(`${item.name} purchased & added to pantry`);
 
         } else if (item.category === 'Pantry Restock' && item.db_id) {
             // ACTION: Suggestion accepted -> Refill Pantry directly
@@ -156,24 +159,21 @@ export default function ShoppingPage() {
                 status: 'active',
                 user_id: user.id
             });
+            toast.success(`${item.name} restocked`);
         
         } else {
-             // ACTION: Plan Item -> Add to Shopping List
-             // This is a "Add" action, but visually we "Check" it?
-             // If I click check on a plan item, I want to ADD it to my real list? 
-             // Or buy it?
-             // Let's assume "Add to List".
-             
+             // ACTION: Plan/Smart Item -> Add to Shopping List
              await mutateShopping({
                  action: 'UPSERT',
                  item: {
-                     household_id: householdId,
+                     household_id: householdId || undefined,
                      name: item.name,
                      added_by: user.id,
                      temp_id: crypto.randomUUID()
                  },
                  user_id: user.id
              });
+             toast.success(`${item.name} added to shared list`);
         }
 
       // Remove from UI
@@ -181,7 +181,7 @@ export default function ShoppingPage() {
 
     } catch (err) {
       console.error("Failed to update inventory", err);
-      alert("Failed to update. Try again.");
+      toast.error("Failed to update inventory. Please try again.");
     } finally {
       setProcessingId(null);
     }
@@ -207,42 +207,127 @@ export default function ShoppingPage() {
          await mutateShopping({
              action: 'UPSERT',
              item: {
-                 household_id: householdId,
+                 household_id: householdId || undefined,
                  name: name,
                  added_by: user.id,
                  temp_id: tempId
              },
              user_id: user.id
          });
+         toast.success("Item added");
      } catch (e) {
          console.error("Add failed", e);
-         // Revert UI?
+         toast.error("Failed to add item");
+         setItems(prev => prev.filter(i => i.id !== `list-${tempId}`));
      }
   };
 
   if (loading) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-500">Syncing Lists...</div>;
 
+  // 2. Generate Smart List via Edge Function
+  const handleGenerateSmartList = async () => {
+    setLoading(true);
+    setProcessingId('generating');
+    const toastId = toast.loading("Analyzing metabolism & pantry...");
+    
+    try {
+        // 1. Ensure Valid Session & Token
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (!session || sessionError) {
+            throw new Error("Please log in again to use Smart Gen.");
+        }
+
+        const token = session.access_token;
+        if (!token) throw new Error("No access token found.");
+
+        const { data, error } = await supabase.functions.invoke('shopping-generator', {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        
+        // 1. Handle Transport Error (500s that Supabase catches)
+        if (error) throw error;
+
+        // 2. Handle Application Error (200 OK but failure: true)
+        if (data?.failure || data?.error) {
+            throw new Error(data.error || "Generation Failed");
+        }
+        
+        const suggestions = data.suggestions || [];
+        if (suggestions.length === 0) {
+            toast.info("Your list looks optimal! No suggestions needed.", { id: toastId });
+            return;
+        }
+
+        const newItems: ShoppingItem[] = suggestions.map((s: any, i: number) => ({
+            id: `smart-${i}-${Date.now()}`,
+            type: 'suggestion',
+            name: s.name,
+            category: 'Smart Suggestion',
+            reason: s.reason,
+            priority: s.priority
+        }));
+
+        // Filter out dupes
+        const uniqueNew = newItems.filter(n => !items.some(existing => existing.name.toLowerCase() === n.name.toLowerCase()));
+        
+        if (uniqueNew.length === 0) {
+            toast.info("Suggestions already in list.", { id: toastId });
+        } else {
+            setItems(prev => [...uniqueNew, ...prev]);
+            toast.success(`Generated ${uniqueNew.length} smart suggestions!`, { id: toastId });
+        }
+
+    } catch (e: any) {
+        console.error("Smart Gen Error:", e);
+        
+        // Detailed Error Extraction
+        let msg = e.message || "Unknown Error";
+        
+        // If it's a Supabase FunctionsHttpError, the body is inconsistent.
+        // But since we moved to returning 200 OK for logical errors, 
+        // this catch block mainly catches network issues or true crashes.
+        
+        toast.error(`Smart Gen Failed: ${msg}`, { 
+            id: toastId,
+            duration: 8000, // Longer duration to read
+            action: {
+                label: 'Retry',
+                onClick: () => handleGenerateSmartList()
+            }
+        });
+    } finally {
+        setLoading(false);
+        setProcessingId(null);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 pb-32 text-zinc-100">
+    <div className="min-h-screen bg-background p-6 space-y-6 pb-32 text-foreground">
        <div className="fixed top-0 left-0 w-full h-[50vh] bg-purple-900/10 blur-[100px] pointer-events-none" />
        
-      <header className="mb-8 mt-4 relative z-10">
-        <div className="flex justify-between items-start">
-            <div>
-                <h1 className="text-3xl font-light tracking-tight text-white">Shopping</h1>
-                <div className="flex items-center gap-2 text-zinc-500 text-sm mt-1">
-                    <Users className="h-4 w-4" />
-                    <span>Household Sync Active</span>
-                </div>
-            </div>
-            <div className="bg-purple-500/10 p-3 rounded-full text-purple-400 border border-purple-500/20">
-                <ShoppingCart className="h-6 w-6" />
+      <header className="flex items-center justify-between mb-8 mt-4 relative z-10">
+        <div>
+            <h1 className="text-3xl font-light tracking-tight text-white">Shopping</h1>
+            <div className="flex items-center gap-2 text-zinc-500 text-sm mt-1">
+                <Users className="h-4 w-4" />
+                <span>Household Sync Active</span>
             </div>
         </div>
+        
+        <button 
+            onClick={handleGenerateSmartList}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg shadow-lg hover:brightness-110 disabled:opacity-50 transition-all font-medium"
+        >
+            {processingId === 'generating' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+            <span>Smart Gen</span>
+        </button>
       </header>
 
       {/* Manual Add Input */}
-      <div className="relative mb-8 z-10">
+      <div className="relative mb-8 z-10 group">
           <input 
             type="text" 
             placeholder="Add to shared list..."
@@ -254,7 +339,7 @@ export default function ShoppingPage() {
                 }
             }}
           />
-          <div className="absolute right-4 top-4 text-purple-500 pointer-events-none">
+          <div className="absolute right-4 top-4 text-purple-500 pointer-events-none group-focus-within:text-purple-400 transition-colors">
               <Plus className="h-6 w-6" />
           </div>
       </div>
@@ -277,34 +362,38 @@ export default function ShoppingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0 }}
                 key={item.id} 
-                className={`flex items-center justify-between p-4 rounded-xl border backdrop-blur-md ${
+                className={`flex items-center justify-between p-4 rounded-xl border backdrop-blur-md transition-all ${
                     item.category === 'Shared List' 
                     ? 'bg-purple-500/10 border-purple-500/20' 
+                    : item.category === 'Smart Suggestion'
+                    ? 'bg-amber-500/5 border-amber-500/20'
                     : 'bg-white/5 border-white/5'
                 }`}
             >
-                <div>
-                <div className="font-medium text-zinc-100 text-lg flex items-center gap-2">
+                <div className="flex-1 min-w-0 mr-4">
+                <div className="font-medium text-zinc-100 text-lg flex items-center gap-2 truncate">
                     {item.name}
                 </div>
-                <div className={`text-[10px] inline-block px-2 py-0.5 rounded-full mt-1 font-bold uppercase tracking-wider ${
+                <div className={`text-[10px] inline-flex items-center px-2 py-0.5 rounded-full mt-1 font-bold uppercase tracking-wider ${
                     item.category === 'Pantry Restock' ? 'text-red-400 bg-red-950/30' : 
                     item.category === 'Shared List' ? 'text-purple-300 bg-purple-900/30' :
+                    item.category === 'Smart Suggestion' ? 'text-amber-300 bg-amber-900/30' :
                     'text-blue-400 bg-blue-900/30'
                 }`}>
+                    {item.category === 'Smart Suggestion' && <Sparkles className="w-3 h-3 mr-1" />}
                     {item.reason}
                 </div>
                 </div>
                 <button 
                 onClick={() => handleAction(item)}
                 disabled={!!processingId}
-                className="text-zinc-500 hover:text-emerald-400 transition-colors p-2 disabled:opacity-50"
+                className="text-zinc-500 hover:text-emerald-400 transition-colors p-2 disabled:opacity-50 flex-shrink-0"
                 >
                 {processingId === item.id ? (
                     <Loader2 className="animate-spin" size={24} />
                 ) : (
                     <div className="w-8 h-8 rounded-full border-2 border-zinc-600 hover:border-emerald-500 hover:bg-emerald-500/10 flex items-center justify-center transition-all">
-                        <CheckCircle size={16} className="opacity-0 hover:opacity-100" />
+                        {item.category === 'Shared List' ? <CheckCircle size={16} className="opacity-0 hover:opacity-100" /> : <Plus size={16} />}
                     </div>
                 )}
                 </button>

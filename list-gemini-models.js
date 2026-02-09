@@ -1,12 +1,27 @@
-
-// const fetch = require('node-fetch'); // Using native fetch
+const fs = require('fs');
+const path = require('path');
 
 async function listGeminiModels() {
-    // We need the key from .env.local usually, but I'll try to read it or expect it.
-    // I know the key from previous steps. 
-    // GOOGLE_GENERATIVE_AI_API_KEY=AIzaSyCGCNP31YTkQPMsWfJQUn8gYUTYS0MdhyE (from Step 2310)
-    
-    const apiKey = "AIzaSyCGCNP31YTkQPMsWfJQUn8gYUTYS0MdhyE";
+    // 1. Read API Key from .env.local
+    const envPath = path.join(__dirname, '.env.local');
+    let apiKey = '';
+
+    try {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      const match = envContent.match(/GOOGLE_GENERATIVE_AI_API_KEY=(.*)/);
+      if (match && match[1]) {
+        apiKey = match[1].trim().replace(/^["']|["']$/g, ''); 
+      }
+    } catch (e) {
+      console.error("Error reading .env.local:", e.message);
+      return;
+    }
+
+    if (!apiKey) {
+      console.error("GOOGLE_GENERATIVE_AI_API_KEY not found");
+      return;
+    }
+
     const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
 
     try {
@@ -17,9 +32,12 @@ async function listGeminiModels() {
         }
 
         const data = await response.json();
-        const fs = require('fs');
+        const flashModels = data.models?.filter(m => m.name.includes('flash')).map(m => m.name);
+        
+        console.log("Flash Models Available:", flashModels);
+        
         fs.writeFileSync('gemini_models_full.json', JSON.stringify(data, null, 2));
-        console.log("Wrote models to gemini_models_full.json");
+        console.log("Wrote full list to gemini_models_full.json");
     } catch (e) {
         console.error("Error:", e);
     }

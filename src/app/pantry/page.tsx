@@ -141,14 +141,22 @@ export default function PantryPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from('pantry').insert({
-      user_id: user.id,
-      household_id: householdId, // Link to household
-      name: name,
-      category: name, // simplified
-      probability_score: 1.0,
-      status: 'active',
-      expires_at: expiryDate || null
+    // Optimistic UI Update (Optional, but good for perceived speed)
+    // We rely on fetchPantry() called after specific flow, or could append to local state.
+    // Given the scan flow refetches, we'll let that happen.
+
+    const { mutatePantryItem } = await import('@/lib/offline/mutations');
+    await mutatePantryItem({
+        action: 'UPSERT',
+        item: {
+            household_id: householdId,
+            user_id: user.id,
+            name: name,
+            category: name, // simplified
+            expiry: expiryDate,
+            temp_id: crypto.randomUUID()
+        },
+        user_id: user.id
     });
   };
 
@@ -187,8 +195,20 @@ export default function PantryPage() {
   }
 
   async function removeItem(id: string) {
-    await supabase.from('pantry').delete().eq('id', id);
-    fetchPantry();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Optimistic Update
+    setItems(items.filter(i => i.id !== Number(id)));
+
+    const { mutatePantryItem } = await import('@/lib/offline/mutations');
+    await mutatePantryItem({
+        action: 'DELETE',
+        item: { id: Number(id) },
+        user_id: user.id
+    });
+    
+    // fetchPantry(); // No need if we optimistically removed
   }
 
   const reviewNeeded = items.filter(i => isGhost(i.probability_score));
@@ -211,9 +231,9 @@ export default function PantryPage() {
              <Button 
                 variant="outline"
                 className="rounded-full border-blue-500/20 bg-blue-500/5 text-blue-400 hover:bg-blue-500/10 h-12 w-12 p-0"
-                onClick={handleCameraScan}
+                onClick={() => router.push('/pantry/scan')}
               >
-                {isScanning ? <RefreshCcw className="animate-spin h-5 w-5" /> : <ScanLine className="h-5 w-5" />}
+                <ScanLine className="h-5 w-5" />
               </Button>
             <Button 
                 className="rounded-full bg-emerald-500 hover:bg-emerald-400 shadow-lg shadow-emerald-900/20 h-12 w-12 p-0 text-zinc-950"

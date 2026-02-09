@@ -27,7 +27,8 @@ serve(async (req) => {
         | "VISION_LOG"
         | "PANTRY_VERIFY"
         | "GENERIC_MUTATION"
-        | "SHOPPING_MUTATION";
+        | "SHOPPING_MUTATION"
+        | "PANTRY_ITEM_MUTATION";
       user_id: string;
       client_updated_at_ms: number;
     };
@@ -197,6 +198,54 @@ serve(async (req) => {
         JSON.stringify({ success: true }),
         { headers: { "Content-Type": "application/json" } },
       );
+    }
+
+    if (queueItem.type === "PANTRY_ITEM_MUTATION") {
+      const payload = body.payload as {
+        action: "UPSERT" | "DELETE";
+        item: any;
+        client_ts: number;
+      };
+
+      if (payload.action === "DELETE" && payload.item.id) {
+        const { error } = await supabase.from("pantry").delete().eq(
+          "id",
+          payload.item.id,
+        );
+        if (error) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+          });
+        }
+      } else if (payload.action === "UPSERT") {
+        const { id, temp_id, ...data } = payload.item;
+        if (id) {
+          const { error } = await supabase.from("pantry").update(data).eq(
+            "id",
+            id,
+          );
+          if (error) {
+            return new Response(JSON.stringify({ error: error.message }), {
+              status: 500,
+            });
+          }
+        } else {
+          const { error } = await supabase.from("pantry").insert({
+            ...data,
+            status: "active",
+            probability_score: 1.0,
+            created_at: new Date().toISOString(),
+          });
+          if (error) {
+            return new Response(JSON.stringify({ error: error.message }), {
+              status: 500,
+            });
+          }
+        }
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ error: "unknown_mutation_type" }), {
