@@ -72,36 +72,53 @@ Deno.serve(async (req) => {
             );
         }
 
-        // 1. Fetch Context Data
-        // A. Profile (Goal)
-        const { data: profile } = await supabase
+        // 1. Fetch Household & Members
+        const { data: userData } = await supabase
             .from("users")
-            .select("metabolic_state_json, display_name")
+            .select("household_id")
             .eq("id", user.id)
             .single();
+
+        const hId = userData?.household_id;
+        const memberIds = [user.id];
+
+        if (hId) {
+            const { data: members } = await supabase
+                .from("users")
+                .select("id")
+                .eq("household_id", hId);
+            if (members) memberIds.push(...members.map(m => m.id).filter(id => id !== user.id));
+        }
+
+        // 2. Fetch Context Data (AGGREGATED)
+        // A. Profiles (Goals)
+        const { data: profiles } = await supabase
+            .from("users")
+            .select("metabolic_state_json, display_name")
+            .in("id", memberIds);
 
         // B. Medical Conditions
         const { data: medicalContext } = await supabase
             .from("user_conditions")
             .select(`
-        conditions (
-          name,
-          rules_json,
-          never_recommend_json
-        )
-      `)
-            .eq("user_id", user.id);
+                user_id,
+                conditions (
+                    name,
+                    rules_json,
+                    never_recommend_json
+                )
+            `)
+            .in("user_id", memberIds);
 
-        // C. Active Pantry Inventory
+        // C. Household Pantry Inventory
         const { data: pantry } = await supabase
             .from("pantry")
             .select("foods(name), metadata_json, probability_score")
-            .eq("user_id", user.id)
-            .eq("status", "active");
+            .eq("status", "active")
+            .or(`user_id.in.(${memberIds.join(',')}), household_id.eq.${hId || '00000000-0000-0000-0000-000000000000'}`);
 
-        // 2. Prepare Context Strings
-        const goal = profile?.metabolic_state_json?.current_goal ||
-            "maintenance";
+        // 3. Prepare Context Strings
+        const goals = profiles?.map(p => `${p.display_name}: ${p.metabolic_state_json?.current_goal || 'maintenance'}`).join(", ") || "Maintenance";
 
         let safetyContext = "None.";
         if (medicalContext && medicalContext.length > 0) {
@@ -110,7 +127,7 @@ Deno.serve(async (req) => {
                 const avoid = Array.isArray(cond.never_recommend_json)
                     ? cond.never_recommend_json.join(", ")
                     : "";
-                return `- **${cond.name}**: Rules [${
+                return `- **${cond.name}** (Member Profile): Rules [${
                     JSON.stringify(cond.rules_json)
                 }]. NEGATIVE INGREDIENTS: [${avoid}]`;
             }).join("\n");
@@ -125,22 +142,21 @@ Deno.serve(async (req) => {
             }).join("\n");
         }
 
-        // 3. Construct Prompt (DeepSeek R1)
+        // 4. Construct Prompt (DeepSeek R1)
         const systemPrompt = `
-      You are OTEKA, an elite Metabolic Logistics Engine.
-      User Goal: ${goal}
+      You are OTEKA, an elite Household Metabolic Logistics Engine.
+      Household Goals: ${goals}
       
       ## INVENTORY (Do NOT suggest what they already have):
       ${inventoryContext}
 
-      ## MEDICAL SAFETY (CRITICAL - STRICT FILTERS):
+      ## MEDICAL SAFETY (CRITICAL - STRICT FILTERS for EVERY member):
       ${safetyContext}
 
-      Task: Generate a shopping list for 3 days of optimal eating to fill nutritional gaps.
-      - Focus on missing Micronutrients/Macronutrients based on the Goal.
-      - If Goal is Keto, ensure high fat sources if missing.
-      - If Goal is Muscle Gain, ensure protein if missing.
-      - STRICTLY AVOID any ingredients in Medical Safety.
+      Task: Generate a shopping list for 3 days of optimal eating for the ENTIRE HOUSEHOLD.
+      - Satisfy all nutritional gaps across different member goals.
+      - Ensure NO suggestions contain ingredients harmful to ANY member (STRICT MEDICAL FILTER).
+      - If one member is Keto and another is Muscle Gain, suggest items that bridge both or distinct items for each.
 
       Return ONLY JSON:
       {
@@ -148,17 +164,11 @@ Deno.serve(async (req) => {
             {
                 "name": "Spinach",
                 "category": "Produce",
-                "reason": "Magnesium gap fill for sleep support.",
+                "reason": "Magnesium gap fill for sleep support; Iron for muscle oxygenation.",
                 "priority": "high"
-            },
-            {
-                "name": "Salmon",
-                "category": "Protein",
-                "reason": "Omega-3s for inflammation (User Condition).",
-                "priority": "medium"
             }
         ],
-        "analysis": "Brief 1-sentence summary of the gaps found."
+        "analysis": "Brief 1-sentence summary of the shared household gaps."
       }
     `;
 

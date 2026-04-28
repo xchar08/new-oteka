@@ -7,26 +7,134 @@
   .pt-safe {
     padding-top: env(safe-area-inset-top);
   }
+  .sprint-bounce {
+    animation: sprintBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+  }
+  .glass {
+    @apply backdrop-blur-xl bg-white/10 border border-white/20;
+  }
+  .glass-dark {
+    @apply backdrop-blur-xl bg-zinc-950/80 border border-white/5;
+  }
+  .shadow-smooth {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+  .transition-smooth {
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .glow-blue {
+    box-shadow: 0 0 30px -5px rgba(59, 130, 246, 0.5);
+  }
+  .glow-purple {
+    box-shadow: 0 0 30px -5px rgba(147, 51, 234, 0.5);
+  }
+  .glow-emerald {
+    box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.5);
+  }
+  .shadow-card {
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+  }
+  .shadow-card-hover {
+    box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.4);
+  }
+  .animate-infinite-pulse {
+    animation: infinitePulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes sprintBounce {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes infinitePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 :root {
-  /* LIGHT SYSTEM (Clinical - Default) */
-  --warning: #FBBF24;      /* Amber 400 */
-  --error: #F87171;        /* Red 400 */
-  
-  --border: #27272a;       /* Zinc 800 */
-  --ring: 56, 189, 248;
+  /* Default: SOLAR VITALITY (Orange) */
+  --primary: #FF8C00;
+  --ring: 255, 140, 0;
+  --bg-app: #FFFBF5;
+  --bg-surface: #FFFFFF;
+  --bg-surface-2: #FDF9F2;
+  --text-primary: #2D241E;
+  --text-secondary: #6B5E53;
+  --primary-fg: #FFFFFF;
+  --secondary: #2D241E;
+  --accent: #FF8C00;
+  --success: #8F9C82;
+  --warning: #fbbf24;
+  --error: #D47A6A;
+  --border: #F0E6D9;
 }
 
-/* Backward Compatibility Maps (Temporary) */
-:root {
-  --palenight-bg: var(--bg-app);
-  --palenight-surface: var(--bg-surface);
-  --palenight-accent: var(--primary);
-  --palenight-secondary: var(--secondary);
-  --palenight-success: var(--success);
-  --palenight-warning: var(--warning);
-  --palenight-error: var(--error);
+/* Base Theme Color Overrides (Light Mode) */
+.theme-emerald {
+  --primary: #10b981;
+  --ring: 16, 185, 129;
+  --bg-app: #f0fdf4;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #dcfce7;
+  --accent: #059669;
+  --border: #d1fae5;
+}
+
+.theme-cobalt {
+  --primary: #3b82f6;
+  --ring: 59, 130, 246;
+  --bg-app: #eff6ff;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #dbeafe;
+  --accent: #2563eb;
+  --border: #dbeafe;
+}
+
+.theme-midnight {
+  --primary: #8b5cf6;
+  --ring: 139, 92, 246;
+  --bg-app: #f5f3ff;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #ede9fe;
+  --accent: #7c3aed;
+  --border: #ede9fe;
+}
+
+/* DARK MODE - Global overrides when .dark is on html/body */
+.dark {
+  --bg-app: #09090b;
+  --bg-surface: #18181b;
+  --bg-surface-2: #27272a;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --border: #27272a;
+  --secondary: #fafafa;
+}
+
+/* Dark Mode Theme Specifics (Primary color tweaks for contrast) */
+.dark.theme-emerald, .dark .theme-emerald {
+  --bg-app: #022c22;
+  --bg-surface: #064e3b;
+  --bg-surface-2: #065f46;
+  --border: #065f46;
+}
+
+.dark.theme-cobalt, .dark .theme-cobalt {
+  --bg-app: #1e1b4b;
+  --bg-surface: #1e3a8a;
+  --bg-surface-2: #1e40af;
+  --border: #1e40af;
+}
+
+.dark.theme-midnight, .dark .theme-midnight {
+  --bg-app: #1e1b4b;
+  --bg-surface: #2e1065;
+  --bg-surface-2: #4c1d95;
+  --border: #4c1d95;
 }
 
 body {

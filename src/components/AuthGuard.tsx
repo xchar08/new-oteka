@@ -2,35 +2,68 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client'; // ✅ Fixed path
-import { AuthChangeEvent, Session } from '@supabase/supabase-js'; // ✅ Added types
+import { createClient } from '@/lib/supabase/client';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
-const PROTECTED_ROUTES = ['/pantry', '/planner', '/log', '/dashboard'];
+const PROTECTED_ROUTES = ['/pantry', '/planner', '/log', '/dashboard', '/analytics', '/coach', '/shopping', '/history'];
+const ONBOARDING_ROUTES = ['/onboarding', '/login'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
 
     const checkAuth = async () => {
+      // Skip check for onboarding/login routes
+      if (ONBOARDING_ROUTES.some(route => pathname?.startsWith(route))) {
+        setLoading(false);
+        setAuthorized(true);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
 
-      // Check if current route requires auth
       const isProtectedRoute = PROTECTED_ROUTES.some(route => 
         pathname?.startsWith(route)
       );
 
       if (isProtectedRoute && !session) {
-        // Not logged in -> Redirect to login
         router.replace('/login');
         setAuthorized(false);
+      } else if (session) {
+        // Check if user has completed onboarding (has hand_width_mm set)
+        const { data: profile, error } = await supabase
+          .from('users')
+          .select('hand_width_mm, metabolic_state_json')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) {
+           console.error("AuthGuard fetch error:", error);
+        }
+
+        const hasProfile = !!(profile?.metabolic_state_json && (profile.metabolic_state_json as any).age);
+        const hasCalibration = !!(profile?.hand_width_mm);
+
+        if (!hasProfile || !hasCalibration) {
+          // If we are already on onboarding, don't keep replacing (prevents infinite loop in some edge cases)
+          if (pathname === '/onboarding' || pathname.startsWith('/onboarding/')) {
+             setAuthorized(true);
+             setLoading(false);
+             return;
+          }
+          router.replace('/onboarding');
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
+        
+        setAuthorized(true);
       } else {
-        // Logged in OR public route -> Allow
         setAuthorized(true);
       }
       
@@ -39,7 +72,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     checkAuth();
     
-    // Listen for auth state changes (e.g. sign out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, _session: Session | null) => {
         if (event === 'SIGNED_OUT') {
@@ -57,14 +89,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   if (loading) {
-    // Optional: Render a loading spinner while checking auth
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-zinc-950">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
       </div>
     );
   }
 
-  // Only render children if on a public route or authorized
   return <>{children}</>;
 }

@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Check } from 'lucide-react';
+import { ChevronRight, Check, Activity, ShieldAlert, HeartPulse } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type Condition = {
   id: string;
@@ -13,30 +14,25 @@ type Condition = {
   desc?: string;
 };
 
-// Fallback data if DB is empty
-const FALLBACK_CONDITIONS: Condition[] = [
-  { id: 'type-1-diabetes', name: 'Type 1 Diabetes', category: 'Medical', desc: 'Insulin-dependent glucose management.' },
-  { id: 'type-2-diabetes', name: 'Type 2 Diabetes', category: 'Medical', desc: 'Insulin resistance & carb sensitivity.' },
-  { id: 'celiac', name: 'Celiac Disease', category: 'Autoimmune', desc: 'Strict gluten-free requirement.' },
-  { id: 'ibs', name: 'IBS (Low FODMAP)', category: 'Digestive', desc: 'Sensitivity to fermentable carbs.' },
-  { id: 'keto-strict', name: 'Strict Keto', category: 'Dietary', desc: '<20g net carbs per day.' },
-  { id: 'vegan', name: 'Vegan', category: 'Dietary', desc: 'No animal products.' },
-];
-
 export default function MedicalOnboardingPage() {
   const [selected, setSelected] = useState<string[]>([]);
-  const [conditions, setConditions] = useState<Condition[]>(FALLBACK_CONDITIONS);
-  const [loading, setLoading] = useState(false);
+  const [conditions, setConditions] = useState<Condition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const supabase = createClient();
   const router = useRouter();
 
-  // Load conditions from DB (optional enhancement)
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('conditions').select('*');
-      if (data && data.length > 0) {
-        setConditions(data);
-      }
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('conditions')
+        .select('*')
+        .order('category', { ascending: true })
+        .order('name', { ascending: true });
+      
+      if (data) setConditions(data);
+      setLoading(false);
     }
     load();
   }, [supabase]);
@@ -48,13 +44,11 @@ export default function MedicalOnboardingPage() {
   };
 
   const handleContinue = async () => {
-    setLoading(true);
+    setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user) {
-      // Clear old conditions first (simple logic for now)
       await supabase.from('user_conditions').delete().eq('user_id', user.id);
-
       if (selected.length > 0) {
         const payload = selected.map(cid => ({
           user_id: user.id,
@@ -64,62 +58,92 @@ export default function MedicalOnboardingPage() {
       }
     }
 
-    setLoading(false);
+    setSaving(false);
     router.push('/onboarding/calibration');
   };
 
+  // Group conditions by category
+  const grouped = conditions.reduce((acc: Record<string, Condition[]>, c) => {
+    if (!acc[c.category]) acc[c.category] = [];
+    acc[c.category].push(c);
+    return acc;
+  }, {});
+
+  if (loading) return (
+    <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] p-6 pb-32 flex flex-col justify-between animate-in fade-in duration-500">
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] p-6 pb-40 flex flex-col transition-colors duration-500">
       
-      <div className="space-y-6">
+      <div className="space-y-8">
         <header className="pt-safe space-y-2">
           <div className="w-12 h-1 bg-[var(--border)] rounded-full mb-6">
-            <div className="w-1/3 h-full bg-[var(--primary)] rounded-full" />
+            <div className="w-2/3 h-full bg-[var(--primary)] rounded-full" />
           </div>
-          <h1 className="text-3xl font-light tracking-tight">Health Profile</h1>
-          <p className="text-[var(--text-secondary)]">
-            Select any conditions so the metabolic engine can adapt your safety constraints.
+          <h1 className="text-3xl font-black tracking-tight">Health Profile</h1>
+          <p className="text-[var(--text-secondary)] text-sm font-medium leading-relaxed">
+            Every selection updates the engine's metabolic safety rules and recommendation weighting.
           </p>
         </header>
 
-        <div className="grid grid-cols-1 gap-3">
-          {conditions.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => toggleCondition(c.id)}
-              className={`p-4 rounded-xl border text-left transition-all duration-200 flex justify-between items-center ${
-                selected.includes(c.id)
-                  ? 'bg-[var(--bg-surface-2)] border-[var(--primary)] shadow-sm ring-1 ring-[var(--primary)]'
-                  : 'bg-[var(--bg-surface)] border-[var(--border)] hover:bg-[var(--bg-surface-2)]'
-              }`}
-            >
-              <div>
-                <div className={`font-medium ${selected.includes(c.id) ? 'text-[var(--primary)]' : 'text-[var(--text-primary)]'}`}>
-                    {c.name}
-                </div>
-                {c.desc && <div className="text-xs text-[var(--text-secondary)] mt-0.5">{c.desc}</div>}
-              </div>
-              
-              {selected.includes(c.id) && (
-                <div className="bg-[var(--primary)] text-white p-1 rounded-full">
-                    <Check size={14} strokeWidth={3} />
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
+        {Object.entries(grouped).length === 0 ? (
+            <div className="py-20 text-center bg-[var(--bg-surface)] border border-dashed border-[var(--border)] rounded-[32px]">
+                <HeartPulse className="mx-auto h-10 w-10 text-[var(--text-secondary)] opacity-20 mb-4" />
+                <p className="text-[var(--text-secondary)] font-medium">No system constraints defined.</p>
+                <button onClick={handleContinue} className="mt-4 text-[var(--primary)] text-xs font-black uppercase tracking-widest">Skip Step</button>
+            </div>
+        ) : (
+            <div className="space-y-8">
+                {Object.entries(grouped).map(([category, items]) => (
+                    <section key={category} className="space-y-3">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] ml-1 flex items-center gap-2">
+                           <div className="w-1 h-1 rounded-full bg-[var(--primary)]" />
+                           {category}
+                        </h3>
+                        <div className="grid grid-cols-1 gap-2">
+                            {items.map((c) => (
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    key={c.id}
+                                    onClick={() => toggleCondition(c.id)}
+                                    className={`p-4 rounded-2xl border text-left transition-all flex justify-between items-center ${
+                                        selected.includes(c.id)
+                                        ? 'bg-[var(--bg-surface-2)] border-[var(--primary)] shadow-sm ring-1 ring-[var(--primary)]'
+                                        : 'bg-[var(--bg-surface)] border-[var(--border)] hover:bg-[var(--bg-surface-2)] shadow-sm'
+                                    }`}
+                                >
+                                    <div className="flex-1 pr-4">
+                                        <div className={`font-black text-sm uppercase tracking-tight ${selected.includes(c.id) ? 'text-[var(--text-primary)]' : 'text-[var(--text-primary)]'}`}>
+                                            {c.name}
+                                        </div>
+                                        {c.desc && <div className="text-[10px] text-[var(--text-secondary)] mt-1 font-bold leading-tight opacity-70">{c.desc}</div>}
+                                    </div>
+                                    
+                                    <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${selected.includes(c.id) ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-[var(--border)]'}`}>
+                                        {selected.includes(c.id) && <Check size={12} strokeWidth={4} className="text-white" />}
+                                    </div>
+                                </motion.button>
+                            ))}
+                        </div>
+                    </section>
+                ))}
+            </div>
+        )}
       </div>
 
-      <div className="space-y-4">
-        <p className="text-xs text-[var(--text-secondary)] text-center">
-          Information is encrypted and used solely for metabolic safety rules.
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-[var(--bg-app)]/80 backdrop-blur-xl border-t border-[var(--border)] space-y-4">
+        <p className="text-[9px] text-[var(--text-secondary)] text-center font-black uppercase tracking-widest opacity-40">
+           Sovereign Data Encryption Active
         </p>
         <Button 
           onClick={handleContinue} 
-          disabled={loading}
-          className="w-full h-14 bg-[var(--primary)] text-[var(--primary-fg)] hover:opacity-90 rounded-2xl font-semibold shadow-lg text-lg flex items-center justify-center gap-2"
+          disabled={saving}
+          className="w-full h-14 bg-[var(--primary)] text-white hover:opacity-90 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-lg flex items-center justify-center gap-2"
         >
-          {loading ? 'Saving...' : 'Continue'} <ChevronRight size={20} />
+          {saving ? 'Syncing Profile...' : 'Finalize Constraints'} <ChevronRight size={18} />
         </Button>
       </div>
     </div>

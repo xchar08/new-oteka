@@ -1,221 +1,237 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React from 'react';
+import { 
+  User, 
+  Settings, 
+  Target, 
+  Shield, 
+  ChevronRight,
+  LogOut,
+  Menu,
+  Bell,
+  CheckCircle2,
+  Sparkles,
+  Zap,
+  Flame,
+  Droplets,
+  Activity
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { BottomNav } from '@/components/layout/BottomNav';
+import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2, AlertCircle, User, Ruler, Activity, LogOut, ChevronRight } from 'lucide-react';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, scale: 0.9, y: 20 },
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
+    y: 0,
+    transition: { type: 'spring', damping: 15, stiffness: 100 }
+  }
+};
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Form State
-  const [handWidth, setHandWidth] = useState<number | string>('');
-  const [goal, setGoal] = useState('');
-
+  const { user, dailyMacros, loading } = useDashboardData();
   const supabase = createClient();
   const router = useRouter();
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  async function loadProfile() {
-    setLoading(true);
-    setError(null);
-
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) {
-      return router.push('/login');
-    }
-
-    let { data: profile, error: fetchError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
-
-    if (fetchError && fetchError.code === 'PGRST116') {
-      const { data: newProfile, error: createError } = await supabase
-        .from('users')
-        .insert({
-          id: authUser.id,
-          display_name: authUser.email?.split('@')[0] || 'User',
-          metabolic_state_json: { current_goal: 'maintenance' },
-          hand_width_mm: 85, 
-          streak_count: 0
-        })
-        .select()
-        .single();
-      
-      if (createError) {
-        setError('Failed to create profile: ' + createError.message);
-        setLoading(false);
-        return;
-      }
-      profile = newProfile;
-    } else if (fetchError) {
-       setError(fetchError.message);
-       setLoading(false);
-       return;
-    }
-
-    setUser(profile);
-    setHandWidth(profile.hand_width_mm || '');
-    setGoal(profile.metabolic_state_json?.current_goal || 'maintenance');
-    setLoading(false);
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    const { error } = await supabase
-      .from('users')
-      .update({
-        hand_width_mm: Number(handWidth),
-        metabolic_state_json: { ...user.metabolic_state_json, current_goal: goal }
-      })
-      .eq('id', user.id);
-
-    if (error) {
-      setError('Failed to save: ' + error.message);
-    } else {
-      loadProfile();
-    }
-    setSaving(false);
-  }
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.replace('/login');
+    router.push('/login');
   };
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950 text-white">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-      </div>
-    );
+     return (
+       <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center">
+         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#FF8C00] border-t-transparent" />
+       </div>
+     );
   }
 
+  // Calculate targets from user profile or defaults
+  const meta = user?.metabolic_state_json || {};
+  const targets = {
+    protein: meta.protein_target || 140,
+    carbs: meta.carbs_target || 180,
+    fats: meta.fats_target || 65,
+    calories: meta.bmr || 2100
+  };
+
   return (
-    <div className="min-h-screen bg-background p-6 pb-32 text-foreground flex flex-col gap-8 animate-in fade-in duration-500">
-      
-      {/* Header */}
-      <header className="flex justify-between items-end pt-safe">
-        <div>
-           <h1 className="text-3xl font-light tracking-tight mb-1">Profile</h1>
-           <p className="text-muted-foreground text-sm">Manage your metabolic identity.</p>
+    <div className="min-h-screen bg-[#FFFBF5] text-[#2D241E] pb-32 font-sans overflow-x-hidden">
+      {/* Top App Bar */}
+      <motion.header 
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="px-6 pt-8 pb-4 flex justify-between items-center bg-[#FFFBF5]/80 backdrop-blur-md sticky top-0 z-40"
+      >
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
         </div>
-        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
-            <span className="font-bold text-primary-fg text-lg">{user?.display_name?.[0].toUpperCase()}</span>
-        </div>
-      </header>
+        <motion.button 
+          whileHover={{ scale: 1.1, rotate: 90 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => router.push('/settings')}
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-[#FF8C00]/10 text-[var(--text-secondary)]"
+        >
+          <Settings size={20} />
+        </motion.button>
+      </motion.header>
 
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-start gap-3 text-red-200 text-sm">
-          <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Physics Card */}
-      <section className="space-y-3">
-          <div className="flex items-center gap-2 text-zinc-400 px-1">
-              <Ruler className="h-4 w-4" />
-              <span className="text-xs uppercase tracking-widest font-medium">Calibration</span>
+      {/* Profile Header */}
+      <section className="px-6 py-10 flex flex-col items-center">
+        <motion.div 
+          initial={{ scale: 0, rotate: -10 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', damping: 12 }}
+          className="relative"
+        >
+          <div className="w-28 h-28 rounded-[32px] overflow-hidden border-4 border-white shadow-2xl relative z-10 bg-zinc-100 flex items-center justify-center">
+            {user?.avatar_url ? (
+              <img 
+                src={user.avatar_url} 
+                alt={user.display_name || "Profile"} 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User size={48} className="text-zinc-300" />
+            )}
           </div>
-          <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl space-y-4">
-               <div>
-                  <Label className="text-zinc-400 text-xs mb-1.5 block">Hand Width (mm)</Label>
-                  <div className="flex gap-3">
-                      <Input 
-                        type="number" 
-                        value={handWidth} 
-                        onChange={(e) => setHandWidth(e.target.value)} 
-                        className="bg-black/20 border-white/10 text-white h-12 text-lg font-mono focus:border-emerald-500/50 focus:ring-emerald-500/20" 
-                      />
-                      <div className="w-12 flex items-center justify-center text-zinc-500 font-mono text-sm bg-white/5 rounded-md border border-white/5">
-                          mm
-                      </div>
-                  </div>
-                  <p className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
-                      *Used as the primary reference scale for all volumetric food analysis. Measure palm width excluding thumb.
-                  </p>
-               </div>
-          </div>
-      </section>
-
-      {/* Metabolic Card */}
-      <section className="space-y-3">
-          <div className="flex items-center gap-2 text-zinc-400 px-1">
-              <Activity className="h-4 w-4" />
-              <span className="text-xs uppercase tracking-widest font-medium">Metabolic Data</span>
-          </div>
-          <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl space-y-5">
-              
-              <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                       <Label className="text-zinc-500 text-xs">Weight ({user?.metabolic_state_json?.units === 'imperial' ? 'lbs' : 'kg'})</Label>
-                       <div className="h-10 border-b border-white/10 flex items-center text-white font-medium">
-                           {user?.metabolic_state_json?.units === 'imperial' 
-                              ? Math.round((user?.metabolic_state_json?.weight || 0) * 2.20462) 
-                              : (user?.metabolic_state_json?.weight || '--')}
-                       </div>
-                  </div>
-                  <div className="space-y-1.5">
-                       <Label className="text-zinc-500 text-xs">Height ({user?.metabolic_state_json?.units === 'imperial' ? 'in' : 'cm'})</Label>
-                       <div className="h-10 border-b border-white/10 flex items-center text-white font-medium">
-                           {user?.metabolic_state_json?.units === 'imperial'
-                              ? Math.round((user?.metabolic_state_json?.height || 0) / 2.54)
-                              : (user?.metabolic_state_json?.height || '--')}
-                       </div>
-                  </div>
-              </div>
-
-               <div className="space-y-2 pt-2 border-t border-white/5">
-                  <Label className="text-zinc-400 text-xs text-center w-full block">Current Protocol</Label>
-                  <div className="relative">
-                      <select 
-                        value={goal}
-                        onChange={(e) => setGoal(e.target.value)}
-                        className="w-full h-12 appearance-none bg-black/20 border border-white/10 rounded-xl px-4 text-white text-sm focus:outline-none focus:border-emerald-500/50"
-                      >
-                        <option value="maintenance">Maintenance Phase</option>
-                        <option value="fat_loss">Fat Loss Protocol</option>
-                        <option value="muscle_gain">Hypertrophy Block</option>
-                        <option value="longevity">Longevity / Anti-Aging</option>
-                      </select>
-                      <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none rotate-90" />
-                  </div>
-              </div>
-          </div>
-      </section>
-
-      {/* Actions */}
-      <div className="mt-auto space-y-4">
-          <Button 
-            className="w-full h-14 bg-white text-black hover:bg-zinc-200 rounded-2xl font-semibold shadow-lg shadow-white/5 text-lg" 
-            onClick={handleSave}
-            disabled={saving}
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            className="absolute -inset-2 bg-gradient-to-tr from-[#FF8C00] to-yellow-300 rounded-[40px] opacity-20 blur-sm"
+          />
+          <motion.div 
+            whileHover={{ scale: 1.2 }}
+            className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#FF8C00] text-white rounded-xl flex items-center justify-center shadow-lg z-20"
           >
-            {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Save Changes"}
-          </Button>
+            <Sparkles size={18} />
+          </motion.div>
+        </motion.div>
+        
+        <motion.h2 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-2xl font-black text-[#2D241E] mt-6 text-center"
+        >
+          {user?.display_name || "Explorer"}
+        </motion.h2>
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF8C00] mt-1"
+        >
+          Metabolic Score: {user?.streak_count > 0 ? 88 + user.streak_count : 88} • {user?.streak_count > 5 ? 'ELITE' : 'ACTIVE'}
+        </motion.p>
+      </section>
+
+      {/* Main Content */}
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="px-6 space-y-6"
+      >
+        {/* Metabolic Goals Card */}
+        <motion.div 
+          variants={cardVariants}
+          whileHover={{ y: -5 }}
+          className="bg-[#FF8C00] rounded-[32px] p-8 text-white relative overflow-hidden shadow-2xl shadow-[#FF8C00]/30"
+        >
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Activity size={120} strokeWidth={1} />
+          </div>
           
-          <Button 
-            variant="ghost" 
-            className="w-full h-12 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl" 
-            onClick={handleSignOut}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Daily Summary</h3>
+              <p className="text-3xl font-black">{((dailyMacros.calories / targets.calories) * 100).toFixed(1)}%</p>
+            </div>
+            <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase">
+              {dailyMacros.calories > targets.calories ? 'Over Goal' : 'On Track'}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg"><Zap size={16} /></div>
+              <div>
+                <p className="text-[10px] opacity-70 uppercase font-bold">Protein</p>
+                <p className="font-bold">{dailyMacros.protein.toFixed(0)}g<span className="text-[10px] opacity-50 ml-1">/{targets.protein}</span></p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg"><Flame size={16} /></div>
+              <div>
+                <p className="text-[10px] opacity-70 uppercase font-bold">Carbs</p>
+                <p className="font-bold">{dailyMacros.carbs.toFixed(0)}g<span className="text-[10px] opacity-50 ml-1">/{targets.carbs}</span></p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg"><Droplets size={16} /></div>
+              <div>
+                <p className="text-[10px] opacity-70 uppercase font-bold">Fats</p>
+                <p className="font-bold">{dailyMacros.fats.toFixed(0)}g<span className="text-[10px] opacity-50 ml-1">/{targets.fats}</span></p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg"><Target size={16} /></div>
+              <div>
+                <p className="text-[10px] opacity-70 uppercase font-bold">Calories</p>
+                <p className="font-bold">{dailyMacros.calories.toFixed(0)}<span className="text-[10px] opacity-50 ml-1">/{targets.calories}</span></p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Settings List */}
+        <motion.div 
+          variants={cardVariants}
+          className="bg-white rounded-[24px] overflow-hidden shadow-xl shadow-[#FF8C00]/5 border border-[#FF8C00]/5"
+        >
+          <div className="px-6 py-2">
+            {[
+              { icon: Settings, label: 'Configuration', onClick: () => router.push('/settings') },
+              { icon: Target, label: 'Pricing & Plans', onClick: () => router.push('/pricing') },
+              { icon: Shield, label: 'Privacy Policy', onClick: () => router.push('/privacy') },
+              { icon: LogOut, label: 'Sign Out', danger: true, onClick: handleSignOut },
+            ].map((item, i, arr) => (
+              <motion.button 
+                key={item.label}
+                onClick={item.onClick}
+                whileHover={{ x: 5 }}
+                className={`w-full flex items-center justify-between py-5 ${i !== arr.length - 1 ? 'border-b border-gray-50' : ''} group`}
+              >
+                <div className={`flex items-center gap-4 ${item.danger ? 'text-red-500' : 'text-[#2D241E]'}`}>
+                  <item.icon size={20} strokeWidth={item.danger ? 2.5 : 2} />
+                  <span className="font-bold text-sm">{item.label}</span>
+                </div>
+                <ChevronRight size={18} className="text-gray-200 group-hover:text-[#FF8C00] transition-colors" />
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      </motion.div>
+
+      <div className="px-6 mt-12 text-center">
+        <p className="text-[10px] font-bold uppercase text-gray-300 tracking-[0.4em]">Solar Core v3.0.1</p>
       </div>
 
+      <BottomNav />
     </div>
   );
 }

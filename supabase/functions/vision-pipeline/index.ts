@@ -92,12 +92,51 @@ Deno.serve(async (req) => {
     }
 
     // 2. Parse Body
-    const { image, mode } = await req.json();
-    if (!image) {
-      return new Response("No image provided", {
+    const { 
+      image, // Base64 (Legacy)
+      imagePath, // Storage Path (Modern)
+      bucket = 'food_scans',
+      mode, 
+      location_context, 
+      latitude, 
+      longitude 
+    } = await req.json();
+
+    let finalImageBase64 = image;
+
+    // 2b. Handle Storage Path (Modern Path)
+    if (imagePath) {
+      console.log(`[Vision] Downloading image from storage: ${bucket}/${imagePath}`);
+      const { data: fileData, error: downloadError } = await supabase
+        .storage
+        .from(bucket)
+        .download(imagePath);
+
+      if (downloadError) {
+        throw new Error(`Failed to download image from storage: ${downloadError.message}`);
+      }
+
+      // Convert Blob to Base64
+      const arrayBuffer = await fileData.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < uint8Array.byteLength; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+      }
+      finalImageBase64 = btoa(binary);
+    }
+
+    if (!finalImageBase64) {
+      return new Response("No image or imagePath provided", {
         status: 400,
         headers: corsHeaders,
       });
+    }
+
+    // 3a. Location Context for Smart Detection
+    let locationHint = "";
+    if (location_context) {
+      locationHint = `\n\n## LOCATION CONTEXT (User is near these places):\n${location_context}\nUse this to inform identification - if user is at a specific restaurant, prioritize menu items from that establishment.`;
     }
 
     // 3. Fetch User Profile for Calibration
@@ -245,10 +284,10 @@ Deno.serve(async (req) => {
     // 5. Node B: Identification (Gemini 3.0 Strict)
     // We use Gemini to "See" the image and extract tags/text.
     let descriptionPrompt = `Analyze this food image. 
-       1. List all visible food items.
+       1. List EVERY single visible food item distinctly. Do not categorize them as one unless they are a mixed dish.
        2. Describe the container/portion size relative to the hand (if visible).
        3. Transcribe any visible nutrition labels or text.
-       4. Return a concise, factual scene description. Do not estimate calories yet.`;
+       4. Return a concise, factual scene description enumerating all foods. Do not estimate calories yet.`;
 
     if (mode === "pantry") {
       descriptionPrompt = `Analyze this image of pantry items.
@@ -259,11 +298,19 @@ Deno.serve(async (req) => {
          5. Return a concise list of items found.`;
     }
 
+    // Inject location hint into identification prompt
+    if (locationHint) {
+      descriptionPrompt += locationHint;
+    }
+
+    // Add calibration reference request
+    descriptionPrompt += `\n\nIMPORTANT: Also note any visible reference objects in the image that could be used for size estimation: hand, phone, fork, knife, spoon, credit card, bottle, can, or any other common object. This helps calculate accurate portion sizes.`;
+
     const descriptionPayload = {
       contents: [{
         parts: [
           { text: descriptionPrompt },
-          { inline_data: { mime_type: "image/jpeg", data: image } },
+          { inline_data: { mime_type: "image/jpeg", data: finalImageBase64 } },
         ],
       }],
     };
@@ -365,7 +412,7 @@ Deno.serve(async (req) => {
                 { type: "text", text: descriptionPrompt },
                 {
                   type: "image_url",
-                  image_url: { url: `data:image/jpeg;base64,${image}` },
+                  image_url: { url: `data:image/jpeg;base64,${finalImageBase64}` },
                 },
               ],
             },
@@ -407,6 +454,23 @@ Deno.serve(async (req) => {
       sceneDescription = "Node B Failed - Image Analysis Unavailable";
     }
 
+    // Calibration Fallback Detection based on Gemini's description
+    let calibrationHint = "";
+    const descLower = sceneDescription.toLowerCase();
+    if (descLower.includes('hand') || descLower.includes('palm') || descLower.includes('fingers')) {
+      calibrationHint = `\n## CALIBRATION: Hand visible (${userHandMm}mm) - use for absolute volumetric estimation.`;
+    } else if (descLower.includes('phone') || descLower.includes('iphone') || descLower.includes('smartphone') || descLower.includes('android')) {
+      calibrationHint = `\n## CALIBRATION: Mobile phone visible (~15cm standard) - use for absolute volumetric estimation.`;
+    } else if (descLower.includes('fork') || descLower.includes('knife') || descLower.includes('spoon')) {
+      calibrationHint = `\n## CALIBRATION: Cutlery visible (~20cm standard fork, ~16cm spoon) - use for absolute volumetric estimation.`;
+    } else if (descLower.includes('credit card') || descLower.includes('debit card') || descLower.includes('card')) {
+      calibrationHint = `\n## CALIBRATION: Credit card visible (~8.5cm x 5.4cm standard) - use for absolute volumetric estimation.`;
+    } else if (descLower.includes('bottle') || descLower.includes('can') || descLower.includes('soda') || descLower.includes('water')) {
+      calibrationHint = `\n## CALIBRATION: Container detected - estimate volume using standard bottle/can dimensions (500ml typical).`;
+    } else {
+      calibrationHint = `\n## CALIBRATION: No reference object detected - use typical serving size estimates and visible fullness level (Full/Half/Quarter).`;
+    }
+
     // Only run DeepSeek if we actually have a description
     if (
       NEBIUS_API_KEY &&
@@ -420,6 +484,8 @@ Deno.serve(async (req) => {
           - Scene Description: "${sceneDescription}"
           - Reference Hand Width: ${userHandMm}mm
           - Mode: ${mode}
+          ${locationHint ? `- Location Context: ${location_context || 'Near ' + latitude?.toFixed(4) + ',' + longitude?.toFixed(4)}` : ''}
+          ${calibrationHint}
 
           ## MEDICAL SAFETY PROTOCOLS (ACTIVE)
           ${safetyContext}
@@ -428,8 +494,10 @@ Deno.serve(async (req) => {
           ${phenomenaContext}
           
           Task:
-          1. detailed analysis...
-          
+          1. Provide a detailed nutritional breakdown for the entire scene.
+          2. CRITICAL MULTI-FOOD RULE: If there are multiple distinct food items (e.g., eggs, bacon, and toast), you MUST include ALL of them in the \`items\` array. 
+          3. CRITICAL MULTI-FOOD RULE: The final \`macros\` object MUST be the SUM TOTAL of all items combined. Do not just return the macros for the largest item.
+
           If Mode is 'pantry':
           - Identify ALL distinct items.
           - Extract Brand, Name, Quantity, and Expiry for each.
@@ -439,12 +507,14 @@ Deno.serve(async (req) => {
             "pantry_items": [
                 { "name": "Brand Product", "quantity": "string", "expiry": "string or null", "ingredients": ["string"] }
             ],
-            "items": ["string names for compatibility"], 
+            "items": [
+                { "name": "string", "quantity": "string (e.g., 2 medium, 150g)", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
+            ], 
             "ingredients": [{"name": "string", "ratio": 0.0}], 
             "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }, 
             "micros": [{"name": "string", "amount": "string", "daily_value_pct": 0}], 
             "volume_cm3": 0, 
-            "reasoning_trace": "Brief explanation",
+            "reasoning_trace": "Brief explanation of how the total macros were summed",
             "metabolic_insight": {
                 "score": 0,
                 "impact_level": "neutral",
@@ -589,10 +659,14 @@ Deno.serve(async (req) => {
             Input Description: ${sceneDescription}
 
             If pantry: Identify ALL items with Quantity/Expiry.
+            If food: List EVERY item in \`items\` array. The \`macros\` MUST be the SUM TOTAL of all items combined.
+            
             Return ONLY JSON key/value:
             { 
                 "pantry_items": [{ "name": "string", "quantity": "string", "expiry": "string" }],
-                "items": ["name"], 
+                "items": [
+                    { "name": "string", "quantity": "string", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
+                ], 
                 "ingredients": [{"name": "string", "ratio": 0.0}], 
                 "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }, 
                 "micros": [{"name": "string", "amount": "string", "daily_value_pct": 0}], 
@@ -610,7 +684,7 @@ Deno.serve(async (req) => {
           parts: [
             { text: fallbackPrompt },
             // If we have an image, send it again, otherwise just text
-            { inline_data: { mime_type: "image/jpeg", data: image } },
+            { inline_data: { mime_type: "image/jpeg", data: finalImageBase64 } },
           ],
         }],
       };
@@ -707,7 +781,7 @@ Deno.serve(async (req) => {
                   { type: "text", text: fallbackPrompt },
                   {
                     type: "image_url",
-                    image_url: { url: `data:image/jpeg;base64,${image}` },
+                    image_url: { url: `data:image/jpeg;base64,${finalImageBase64}` },
                   },
                 ],
               },
@@ -773,13 +847,45 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 6. Return Result with Debug Trace
+    // 6. Final Processing & Database Insertion
+    if (mode === 'log' && finalResult && !finalResult.pantry_items) {
+      console.log(`[Vision] Persisting log to database for user ${user.id}`);
+      
+      const logEntry = {
+        user_id: user.id,
+        grams: finalResult.volume_cm3 || 0,
+        metabolic_tags_json: {
+          item: finalResult.items?.[0]?.name || 'Unknown Food',
+          calories: finalResult.macros?.calories || 0,
+          protein: finalResult.macros?.protein || 0,
+          carbs: finalResult.macros?.carbs || 0,
+          fats: finalResult.macros?.fat || 0,
+          micros: finalResult.micros || [],
+          ingredients: finalResult.ingredients || [],
+          reasoning: finalResult.reasoning_trace,
+          metabolic_insight: finalResult.metabolic_insight,
+          image_path: imagePath || null
+        },
+        captured_at: new Date().toISOString()
+      };
+
+      const { error: insertError } = await supabase
+        .from('logs')
+        .insert(logEntry);
+
+      if (insertError) {
+        console.error('[Vision] DB Insert Failed:', insertError);
+      }
+    }
+
+    // 7. Return Result with Debug Trace
     const responseBody = {
       ...finalResult,
       debug_trace: {
         gemini_description: sceneDescription,
         deepseek_raw: deepseekRaw || "No Output",
         model_used: "final-pipeline-v2",
+        storage_path: imagePath || "base64-direct",
         timestamp: new Date().toISOString(),
       },
     };

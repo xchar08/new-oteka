@@ -5,8 +5,10 @@ import { runOptimization } from '@/lib/engine/planner/worker';
 import { PlannerControls, PlannerConstraints } from '@/components/planner/PlannerControls';
 import { createClient } from '@/lib/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, ChefHat, Sparkles } from 'lucide-react';
+import { Loader2, ChefHat, Sparkles, ChevronLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { BottomNav } from '@/components/layout/BottomNav';
 
 export default function PlannerPage() {
   const [plans, setPlans] = useState<any[]>([]);
@@ -15,68 +17,45 @@ export default function PlannerPage() {
   const [error, setError] = useState<string | null>(null);
   
   const supabase = createClient();
+  const router = useRouter();
 
   const handleRun = async (constraints: PlannerConstraints) => {
     setLoading(true);
-    setStatus('Fetching Profile & Pantry...');
+    setStatus('Analyzing Metabolism...');
     setError(null);
     setPlans([]);
     
     try {
-      // 0. Auth Check
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       let items, profile, conditions;
 
-      if (navigator.onLine) {
-          // ONLINE: Fetch & Cache
-          const { data: _items } = await supabase
-            .from('pantry')
-            .select('*, foods(*)')
-            .eq('user_id', user.id)
-            .eq('status', 'active');
-          items = _items;
+      const { data: _items } = await supabase
+        .from('pantry')
+        .select('*, foods(*)')
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+      items = _items;
 
-          const { data: _profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          profile = _profile;
+      const { data: _profile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      profile = _profile;
 
-          const { data: _conditions } = await supabase
-            .from('user_conditions')
-            .select('*, conditions(*)')
-            .eq('user_id', user.id);
-          conditions = _conditions;
-
-          // Save to Cache
-          localStorage.setItem('planner_cache_items', JSON.stringify(items));
-          localStorage.setItem('planner_cache_profile', JSON.stringify(profile));
-          localStorage.setItem('planner_cache_conditions', JSON.stringify(conditions));
-      } else {
-          // OFFLINE: Read from Cache
-          setStatus('Offline Mode: Loading cached inventory...');
-          const cItems = localStorage.getItem('planner_cache_items');
-          const cProfile = localStorage.getItem('planner_cache_profile');
-          const cConditions = localStorage.getItem('planner_cache_conditions');
-
-          if (!cItems || !cProfile) {
-              throw new Error("No offline data available. Please connect once to sync.");
-          }
-
-          items = JSON.parse(cItems);
-          profile = JSON.parse(cProfile);
-          conditions = JSON.parse(cConditions || '[]');
-      }
+      const { data: _conditions } = await supabase
+        .from('user_conditions')
+        .select('*, conditions(*)')
+        .eq('user_id', user.id);
+      conditions = _conditions;
         
       if (!profile) throw new Error("Please complete your profile first.");
 
       const activeConditions = conditions?.map((c: any) => c.conditions) || [];
 
-      // 4. Offload to Web Worker
-      setStatus('Optimizing (NSGA-II)...');
+      setStatus('Optimizing Nutrients...');
       
       const result = await runOptimization({
         pantry_items: items || [],
@@ -89,12 +68,8 @@ export default function PlannerPage() {
         }
       });
 
-      if ((result as any).retries_used > 0) {
-        setStatus(`Solved with relaxed constraints (Retries: ${(result as any).retries_used})`);
-      } else {
-        setStatus('Optimal solution found.');
-      }
       setPlans((result as any).solutions);
+      setStatus(plans.length > 0 ? 'Optimal compositions found.' : '');
       
     } catch (err: any) {
       setError(err.message);
@@ -105,35 +80,38 @@ export default function PlannerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 pb-32 text-zinc-100 flex flex-col gap-6 animate-in fade-in duration-500">
-      <header className="pt-safe">
-        <h1 className="text-3xl font-light tracking-tight text-white mb-1">Planner</h1>
-        <p className="text-zinc-500 text-sm">AI-driven meal compositions</p>
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] p-6 pb-32 flex flex-col gap-6 animate-in fade-in duration-500">
+      <header className="flex items-center gap-4 pt-safe">
+        <button 
+            onClick={() => router.back()}
+            className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-secondary)] transition-colors"
+        >
+            <ChevronLeft size={24} />
+        </button>
+        <div>
+           <h1 className="text-3xl font-light tracking-tight mb-1">Planner</h1>
+           <p className="text-[var(--text-secondary)] text-sm">AI Compositions</p>
+        </div>
       </header>
 
       {error && (
-        <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-200">
+        <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-600 rounded-2xl">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <PlannerControls onRun={handleRun} />
+      <div className="bg-[var(--bg-surface)] p-2 rounded-[32px] border border-[var(--border)] shadow-sm">
+        <PlannerControls onRun={handleRun} />
+      </div>
       
       <div className="space-y-4">
         {loading && (
-          <div className="flex flex-col items-center justify-center p-12 space-y-4 text-zinc-500 animate-pulse">
-             <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+          <div className="flex flex-col items-center justify-center p-12 space-y-4 text-[var(--text-secondary)]">
+             <div className="h-16 w-16 rounded-3xl bg-[var(--primary)]/10 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
              </div>
-             <span className="text-xs font-mono uppercase tracking-widest">{status}</span>
+             <span className="text-xs font-bold uppercase tracking-widest">{status}</span>
           </div>
-        )}
-        
-        {!loading && status && !error && (
-           <div className="flex items-center gap-2 text-sm text-emerald-400 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
-             <Sparkles size={16} />
-             {status}
-           </div>
         )}
         
         <div className="space-y-4">
@@ -143,43 +121,44 @@ export default function PlannerPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
                 key={i} 
-                className="group relative border border-white/5 p-5 rounded-2xl bg-white/5 backdrop-blur-md overflow-hidden hover:bg-white/10 transition-all active:scale-[0.98]"
+                className="group relative border border-[var(--border)] p-6 rounded-[32px] bg-[var(--bg-surface)] overflow-hidden shadow-sm active:scale-[0.98] transition-all"
             >
-              {/* Decorative Blur */}
-              <div className="absolute -right-10 -top-10 h-32 w-32 bg-blue-500/20 blur-3xl rounded-full pointer-events-none group-hover:bg-blue-500/30 transition-colors" />
-
-              <div className="flex justify-between items-start mb-4 relative z-10">
-                 <div className="flex items-center gap-2">
-                     <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">
-                         <span className="font-bold text-xs">{i + 1}</span>
+              <div className="flex justify-between items-start mb-6 relative z-10">
+                 <div className="flex items-center gap-3">
+                     <div className="h-10 w-10 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)]">
+                         <span className="font-black text-sm">{String.fromCharCode(65 + i)}</span>
                      </div>
-                     <h3 className="font-bold text-zinc-200">Option {String.fromCharCode(65 + i)}</h3>
+                     <h3 className="font-black text-[var(--text-primary)]">Composition {i + 1}</h3>
                  </div>
-                 <span className="bg-white/10 text-white text-xs px-3 py-1 rounded-full font-mono border border-white/10">
+                 <span className="bg-[var(--bg-app)] text-[var(--primary)] text-xs px-4 py-1.5 rounded-full font-bold border border-[var(--border)]">
                     {plan.stats.calories} kcal
                  </span>
               </div>
               
-              <div className="space-y-3 relative z-10">
+              <div className="space-y-4 relative z-10 mb-6">
                 {plan.menu.map((item: string, idx: number) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_10px_var(--primary)]" />
-                    <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">{item}</span>
+                  <div key={idx} className="flex items-center gap-4 group/item">
+                    <div className="w-2 h-2 bg-[var(--primary)] rounded-full group-hover/item:scale-150 transition-transform" />
+                    <span className="text-sm font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">{item}</span>
                   </div>
                 ))}
               </div>
               
-              {/* Personalized Note */}
               {plan.personalized_note && (
-                 <div className="mt-4 text-xs text-amber-400/90 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 leading-relaxed relative z-10">
-                    <span className="font-bold block mb-1 uppercase tracking-wider text-[10px] text-amber-500">Advisor Note</span>
-                    {plan.personalized_note}
+                 <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-app)] p-4 rounded-2xl border border-[var(--border)] leading-relaxed relative z-10 italic">
+                    <div className="flex items-center gap-2 mb-2 not-italic">
+                        <Sparkles size={12} className="text-[var(--primary)]" />
+                        <span className="font-bold uppercase tracking-widest text-[9px] text-[var(--primary)]">Metabolic Advisor</span>
+                    </div>
+                    "{plan.personalized_note}"
                  </div>
               )}
             </motion.div>
           ))}
         </div>
       </div>
+
+      <BottomNav />
     </div>
   );
 }

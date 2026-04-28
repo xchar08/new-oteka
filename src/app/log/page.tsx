@@ -1,688 +1,328 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { CameraPreview } from '@capacitor-community/camera-preview';
-import { Capacitor } from '@capacitor/core';
-import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
-import { HandOverlay } from '@/components/vision/HandOverlay';
-import { Loader2, RefreshCw, ChevronLeft, Check, Camera } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  Plus, 
+  Search, 
+  Bell, 
+  ChevronRight,
+  Barcode,
+  Flame,
+  Zap,
+  Droplets,
+  Menu,
+  Clock,
+  Camera,
+  Utensils,
+  User
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BottomNav } from '@/components/layout/BottomNav';
+import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import { useRouter } from 'next/navigation';
-import { Camera as CapacitorCamera } from '@capacitor/camera';
-import { runClientInference } from '@/lib/vision/client-inference';
-import { ScanningGrid } from '@/components/vision/ScanningGrid';
 
-const loadImage = (base64: string): Promise<HTMLImageElement> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = `data:image/jpeg;base64,${base64}`;
-  });
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { type: 'spring', stiffness: 100 }
+  }
 };
 
 export default function LogPage() {
-  const [analyzing, setAnalyzing] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [debugLog, setDebugLog] = useState<any>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(false); // Default Hidden
-  const [enable3D, setEnable3D] = useState(false); // NEW: 3D Toggle
-  const supabase = createClient();
+  const { user, dailyLogs, loading } = useDashboardData();
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const router = useRouter();
-  const isMounted = useRef(true);
-  const isProcessing = useRef(false);
-  const [isSaving, setIsSaving] = useState(false);
+  
+  const calorieGoal = user?.metabolic_state_json?.bmr || 2100;
 
-  const handleConfirm = async () => {
-    if (!result || isSaving) return;
-    setIsSaving(true);
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
-
-      /*
-      const { error } = await supabase.from('logs').insert({
-        user_id: user.id,
-        grams: 0, // Default/Estimated
-        metabolic_tags_json: {
-           item: result.items?.[0] || 'Unknown',
-           calories: result.macros?.calories || 0,
-           protein: result.macros?.protein || 0,
-           carbs: result.macros?.carbs || 0,
-           fats: result.macros?.fat || 0,
-           timestamp: new Date().toISOString(),
-           edge_data: result.edge_intelligence || null
-        }
-      });
-
-      if (error) throw error;
-      */
-     
-      console.log('Mutating log for user:', user.id);
-      
-      // OFFLINE-AWARE MUTATION
-      const { mutateLog } = await import('@/lib/offline/mutations');
-      const mutationResult = await mutateLog({
-          user_id: user.id,
-          grams: 0,
-          metabolic_tags_json: {
-            item: result.items?.[0] || 'Unknown',
-            calories: result.macros?.calories || 0,
-            protein: result.macros?.protein || 0,
-            carbs: result.macros?.carbs || 0,
-            fats: result.macros?.fat || 0,
-            micros: result.micros || [],
-            ingredients: result.ingredients || [],
-            timestamp: new Date().toISOString(),
-            edge_data: result.edge_intelligence || null
-         }
-      });
-      
-      console.log('Log Mutation Result:', mutationResult); 
-
-      if (mutationResult.source === 'queue') {
-          // Verify queue write
-          console.log("Written to queue. Checking persistence...");
-          import('@/lib/offline/queue').then(({ listQueue }) => {
-              listQueue().then(items => {
-                  console.log("Current Queue Items:", items.length);
-              });
-          });
-          alert("Log saved to Offline Queue. It will sync automatically when online.");
-      }
-
-      stopCamera();
-      router.push('/dashboard');
-    } catch (err) {
-      console.error("Save critical failure:", err);
-      alert(`Failed to save log: ${(err as Error).message}`);
-      setIsSaving(false);
-    }
-  };
-
-  useEffect(() => {
-    isMounted.current = true;
-    if (Capacitor.isNativePlatform()) {
-      startCamera();
-    }
-    
-    // Cleanup function
-    return () => {
-      isMounted.current = false;
-      stopCamera();
+  // Generate current week dates
+  const today = new Date();
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    // Start from Monday of current week
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
+    d.setDate(diff + i);
+    return {
+      fullDate: new Date(d),
+      day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      date: d.getDate().toString(),
     };
-  }, []);
+  });
 
-  const startCamera = async () => {
-    try {
-      if (Capacitor.isNativePlatform()) {
-        const { camera } = await CapacitorCamera.requestPermissions();
-        if (camera !== 'granted') {
-          console.warn('Camera permission not granted');
-          return;
-        }
-      }
-      
-      await CameraPreview.stop().catch(() => {});
+  // Filter logs by selected date
+  const filteredLogs = dailyLogs.filter((log: any) => {
+      const logDate = new Date(log.captured_at);
+      return logDate.getDate() === selectedDate.getDate() && 
+             logDate.getMonth() === selectedDate.getMonth() &&
+             logDate.getFullYear() === selectedDate.getFullYear();
+  });
 
-      await CameraPreview.start({
-        position: 'rear',
-        parent: 'cameraPreview',
-        className: 'cameraPreview',
-        toBack: true, 
-        disableAudio: true,
-      });
-
-      if (isMounted.current) {
-        document.body.classList.add('camera-active'); 
-        document.documentElement.classList.add('camera-active');
-        setCameraActive(true);
-      }
-    } catch (e) {
-      console.error('Failed to start camera', e);
-    }
-  };
-
-  const stopCamera = async () => {
-    try {
-      await CameraPreview.stop();
-    } catch (e) {
-      // Ignore errors when stopping
-    } finally {
-        document.body.classList.remove('camera-active');
-        document.documentElement.classList.remove('camera-active');
-        if (isMounted.current) setCameraActive(false);
-    }
-  };
-
-  const handleCapture = async () => {
-    if (analyzing || isProcessing.current) return;
-    isProcessing.current = true;
-    setAnalyzing(true);
-    setErrorMsg(null);
-    setDebugLog(null);
-    setResult(null);
-    
-    try {
-      let base64Image = '';
-
-      if (Capacitor.isNativePlatform()) {
-        const result = await CameraPreview.capture({ quality: 85 });
-        base64Image = result.value;
-      } else {
-        alert("Web Camera not fully implemented. Use Native Device.");
-        setAnalyzing(false);
-        isProcessing.current = false;
-        return;
-      }
-
-      await processImage(base64Image);
-
-    } catch (err) {
-      console.error(err);
-      setErrorMsg('Capture failed. Please try again.');
-      setAnalyzing(false);
-      isProcessing.current = false;
-    }
-  };
-
-  const processImage = async (base64: string) => {
-    try {
-      stopCamera();
-
-      // Helper to perform the actual fetch
-      const performRequest = async (activeToken: string) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000); // Increased to 180s (3m) for DeepSeek
-        
-        try {
-           return await fetch(
-            `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/vision-pipeline`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                // GATEWAY BYPASS: Send Anon Key to pass Supabase Gateway
-                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                // FUNCTION AUTH: Send actual User Token for manual verification
-                'x-user-token': activeToken
-              },
-              body: JSON.stringify({
-                image: base64,
-                mode: 'log', 
-              }),
-              signal: controller.signal
-            }
-          );
-        } finally {
-            clearTimeout(timeoutId);
-        }
-      };
-
-      // 0. Check Network Status
-      const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
-
-      if (isOffline) {
-          if (isMounted.current) {
-             setDebugLog({ status: "Offline Mode Detected", action: "Running Local ONNX Inference..." });
-          }
-
-          // Force enable 3D for offline mode
-          try {
-              const img = await loadImage(base64);
-              const edgeResult = await runClientInference(img);
-              
-              // Construct Offline Result
-              const offlineData = {
-                  items: ['Offline Scan (Pending Sync)'],
-                  macros: { calories: 0, protein: 0, carbs: 0, fat: 0 },
-                  summary: { name: 'Pending Cloud Analysis', calories: 0 },
-                  ingredients: [],
-                  micros: [],
-                  bounding_box: undefined,
-                  edge_intelligence: edgeResult,
-                  is_offline_capture: true
-              };
-
-              if (isMounted.current) {
-                  setResult(offlineData);
-                  setDebugLog((prev:any) => ({ ...prev, status: "Local Inference Complete", result: "Ready to Queue" }));
-              }
-          } catch (offlineErr) {
-              console.error("Local Inference Failed:", offlineErr);
-              // Fallback to minimal data
-               if (isMounted.current) {
-                  setResult({
-                      items: ['Offline Scan'],
-                      macros: { calories: 0, protein: 0, carbs: 0, fat: 0 },
-                      summary: { name: 'Pending Cloud Analysis', calories: 0 },
-                      is_offline_capture: true
-                  });
-              }
-          }
-          if (isMounted.current) setAnalyzing(false);
-          isProcessing.current = false;
-          return; // STOP HERE
-      }
-
-      // 1. First Attempt + Edge Inference in Parallel
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session?.access_token) {
-         setErrorMsg("Authentication missing. Please log in.");
-         return;
-      }
-
-      if (isMounted.current) {
-        setDebugLog({ 
-           status: "Requesting...", 
-           url: "vision-pipeline",
-           token_preview: session.access_token.substring(0, 10) + "...",
-           edge_status: enable3D ? "Initializing Neural Engine..." : "Disabled"
-        });
-      }
-
-      // LAUNCH PARALLEL TASKS
-      const geminiPromise = performRequest(session.access_token);
-      let edgePromise = Promise.resolve(null as any);
-
-      if (enable3D) {
-          edgePromise = loadImage(base64)
-            .then(img => runClientInference(img))
-            .catch(e => ({ error: "Edge Inference Failed", details: e }));
-      }
-
-      // Wait for Gemini (Primary)
-      let res = await geminiPromise;
-      let textBody = await res.text();
-
-      // Retry Logic for Gemini
-      if (res.status === 401) {
-         if (isMounted.current) {
-             setDebugLog((prev: any) => ({ ...prev, status: "401 detected. Refreshing Session..." }));
-         }
-         
-         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-         
-         if (refreshError || !refreshData.session) {
-             console.error("Critical Refresh Failure:", refreshError);
-             throw new Error("Session expired. Please use the button below to fix.");
-         }
-
-         // Retry with new token
-         res = await performRequest(refreshData.session.access_token);
-         textBody = await res.text();
-         
-         if (res.status === 401) {
-             let serverDiag = null;
-             try { serverDiag = JSON.parse(textBody); } catch {}
-             
-             const err = new Error("Authentication refused. Please Re-authenticate.");
-             (err as any).serverDiag = serverDiag;
-             throw err;
-         }
-      }
-
-      // Parse Gemini Result
-      let data;
-      try {
-        data = JSON.parse(textBody);
-      } catch (e) {
-        console.warn("Non-JSON response:", textBody);
-        data = { error: "Invalid JSON from server", debug_auth: { raw_response: textBody } };
-      }
-      
-      // Wait for Edge Result (if any)
-      if (enable3D) {
-         if (isMounted.current) setDebugLog((prev: any) => ({ ...prev, edge_status: "Computing Volumetrics..." }));
-         const edgeResult = await edgePromise;
-         data.edge_intelligence = edgeResult; // Merge into data
-      }
-
-      if (isMounted.current) {
-        setDebugLog(data);
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || `Server Error: ${res.status}`);
-      }
-
-      // Sanitize Data to prevent Crash
-      const safeData = {
-          items: Array.isArray(data.items) ? data.items : (data.item ? [data.item] : ['Unknown']),
-          macros: {
-              calories: Number(data.macros?.calories) || 0,
-              protein: Number(data.macros?.protein) || 0,
-              carbs: Number(data.macros?.carbs) || 0,
-              fat: Number(data.macros?.fat) || 0,
-          },
-          micros: data.micros || [],
-          ingredients: data.ingredients || [],
-          bounding_box: Array.isArray(data.bounding_box) && data.bounding_box.length === 4 
-              ? data.bounding_box 
-              : undefined,
-          summary: { name: 'Use items[0]', calories: 0 },
-          // Pass Edge Data to Result for display if needed
-          edge_intelligence: data.edge_intelligence
-      };
-
-      if (isMounted.current) {
-        setResult(safeData);
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      console.error("Vision Pipeline Error:", message, err);
-      
-      if (isMounted.current) { 
-        setErrorMsg(message);
-        setDebugLog((prev: any) => ({
-             ...prev,
-             error: message,
-             debug_auth: { 
-                 client_error: message, 
-                 server_diag: (err as any).serverDiag,
-                 last_state: prev 
-             } 
-        }));
-        
-        startCamera();
-      }
-    } finally {
-      if (isMounted.current) setAnalyzing(false);
-      isProcessing.current = false;
-    }
-  };
-
-  const handleForceLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
-
-  // Fallback for web testing
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      setAnalyzing(true);
-      processImage(base64);
+  // Aggregate Macros for filtered logs
+  const filteredMacros = filteredLogs.reduce((acc, log) => {
+    const m = log.metabolic_tags_json || {};
+    return {
+      calories: acc.calories + (Number(m.calories) || 0),
+      protein: acc.protein + (Number(m.protein) || 0),
+      carbs: acc.carbs + (Number(m.carbs) || 0),
+      fats: acc.fats + (Number(m.fats || m.fat) || 0),
     };
-    reader.readAsDataURL(file);
-  };
+  }, { calories: 0, protein: 0, carbs: 0, fats: 0 });
 
-  if (result) {
+  const caloriesLeft = Math.max(0, calorieGoal - filteredMacros.calories);
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-between p-6 animate-in fade-in duration-500">
-        
-        {/* Header / Summary */}
-        <div className="flex flex-col items-center gap-2 mt-12 text-center animate-in slide-in-from-bottom-5 duration-700 delay-100 fill-mode-both">
-             <div className="h-24 w-24 rounded-full bg-linear-to-br from-emerald-400/20 to-emerald-600/20 flex items-center justify-center ring-1 ring-emerald-500/50 shadow-[0_0_30px_-5px_var(--success)] mb-6 animate-in zoom-in-50 duration-500 delay-200 fill-mode-both">
-                <Check className="h-12 w-12 text-emerald-400" />
-             </div>
-             <h1 className="text-4xl font-light tracking-tight text-white capitalize">{result.items?.[0] || 'Unknown Food'}</h1>
-             <p className="text-emerald-400 font-medium text-xl mt-1">{result.macros?.calories || 0} kcal</p>
-             
-             {/* Edge Intelligence Badge */}
-             {result.edge_intelligence && (
-                 <div className="mt-2 px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] border border-purple-500/30">
-                    Depth: {(result.edge_intelligence.volumetric?.mean_depth || 0).toFixed(2)}m (Est)
-                 </div>
-             )}
-
-             {/* Metabolic Insight Banner */}
-             {result.metabolic_insight && Math.abs(result.metabolic_insight.score) >= 7 && (
-                <div className={`mt-6 p-4 rounded-xl border backdrop-blur-md max-w-sm w-full animate-in slide-in-from-bottom-5 duration-700 delay-200 fill-mode-both ${
-                    result.metabolic_insight.score > 0 
-                        ? 'bg-linear-to-r from-blue-900/40 to-emerald-900/40 border-blue-500/30 shadow-[0_0_20px_-5px_var(--success)]' 
-                        : 'bg-linear-to-r from-red-900/40 to-orange-900/40 border-red-500/30 shadow-[0_0_20px_-5px_rgba(239,68,68,0.4)]'
-                }`}>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-lg ${result.metabolic_insight.score > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {result.metabolic_insight.score > 0 ? '✦ Metabolic Supercharger' : '⚠ Metabolic Tax'}
-                        </span>
-                    </div>
-                    <p className="text-sm text-zinc-200 leading-relaxed">
-                        {result.metabolic_insight.layman_explanation}
-                    </p>
-                </div>
-             )}
-        </div>
-
-        {/* Macro Cards */}
-        <div className="w-full max-w-sm grid grid-cols-3 gap-3 animate-in slide-in-from-bottom-10 duration-700 delay-300 fill-mode-both">
-            {[
-                { label: 'Protein', value: result.macros?.protein, color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', delay: 'delay-300' },
-                { label: 'Carbs', value: result.macros?.carbs, color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', delay: 'delay-400' },
-                { label: 'Fat', value: result.macros?.fat, color: 'bg-rose-500/10 text-rose-400 border-rose-500/20', delay: 'delay-500' }
-            ].map((macro) => (
-                <div key={macro.label} className={`rounded-2xl border ${macro.color} p-4 flex flex-col items-center justify-center gap-1 backdrop-blur-sm`}>
-                    <span className="text-xs uppercase tracking-wider opacity-70">{macro.label}</span>
-                    <span className="text-2xl font-bold">{macro.value}g</span>
-                </div>
-            ))}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="w-full max-w-sm flex gap-3 mb-8 animate-in slide-in-from-bottom-5 duration-700 delay-500 fill-mode-both">
-            <Button 
-                variant="outline" 
-                className="flex-1 h-16 rounded-2xl border-white/10 bg-white/5 backdrop-blur-md text-white hover:bg-white/10 hover:text-white transition-all text-lg font-medium"
-                onClick={() => { setResult(null); startCamera(); }}
-            >
-                Retake
-            </Button>
-            <Button 
-                className="flex-1 h-16 rounded-2xl bg-white text-black hover:bg-zinc-200 font-semibold shadow-lg shadow-white/10 transition-all text-lg"
-                onClick={handleConfirm}
-                disabled={isSaving}
-            >
-                {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Confirm Log"}
-            </Button>
-        </div>
+      <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className={`relative h-screen w-screen overflow-hidden ${cameraActive ? 'bg-transparent' : 'bg-black'}`}>
-        {/* WEBCAM CONTAINER */}
-        <div id="cameraPreview" className="absolute inset-0 bg-transparent z-0" />
-
-        {/* GRADIENT OVERLAYS - Cinematic View */}
-        <div className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-black/80 to-transparent z-10 pointer-events-none" />
-        <div className="absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-black/90 via-black/50 to-transparent z-10 pointer-events-none" />
-
-        {/* BACK NAVIGATION */}
-        <button 
-            onClick={() => router.back()}
-            className="absolute top-6 left-6 z-50 p-3 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white active:scale-95 transition-transform"
-        >
-            <ChevronLeft className="h-6 w-6" />
-        </button>
-
-        {/* AR GUI */}
-        <HandOverlay 
-            status={analyzing ? 'scanning' : (result ? 'locked' : 'idle')} 
-            boundingBox={result?.bounding_box}
-        />
-
-        {/* MESHING EFFECT */}
-        {analyzing && <ScanningGrid />}
-
-        {/* DEBUG OVERLAY (Moved to top-level, below header area) */}
-        {showDebug && (
-            <div className="absolute top-24 left-4 right-4 z-[60] pointer-events-auto animate-in slide-in-from-top-5 fade-in duration-300">
-                <div className="bg-black/90 rounded-xl p-4 text-[11px] font-mono backdrop-blur-xl border border-white/20 shadow-2xl overflow-y-auto max-h-[50vh] flex flex-col gap-3">
-                     
-                     {/* Header: Status & Network */}
-                     <div className="flex justify-between items-center border-b border-white/10 pb-2">
-                        <div className="flex items-center gap-2">
-                            <div className={`h-2 w-2 rounded-full ${analyzing ? "bg-yellow-400 animate-pulse" : "bg-emerald-400"}`} />
-                            <span className="font-bold text-white tracking-wider">{analyzing ? 'Processing...' : 'System Ready'}</span>
-                        </div>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${navigator.onLine ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/30 text-red-400'}`}>
-                            {navigator.onLine ? 'ONLINE' : 'OFFLINE'}
-                        </span>
-                     </div>
-                     
-                     {/* 3D Toggle */}
-                     <div className="flex justify-between items-center bg-white/5 p-2 rounded border border-white/10">
-                        <span className="text-purple-300 font-bold">Edge Intelligence (Beta)</span>
-                        <button 
-                             onClick={() => setEnable3D(!enable3D)}
-                             className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${enable3D ? 'bg-purple-500 text-white' : 'bg-white/10 text-white/50'}`}
-                        >
-                            {enable3D ? 'ENABLED' : 'DISABLED'}
-                        </button>
-                     </div>
-                     <p className="text-[10px] text-zinc-500 mt-[-8px] mb-1">*Requires ~50MB Model Download</p>
-
-                     {/* Log Viewer */}
-                     <div className="flex flex-col gap-1">
-                        <span className="text-white/40 text-[9px] uppercase tracking-widest">Console Log ({new Date().toLocaleTimeString()})</span>
-                        <div className="bg-white/5 p-2 rounded border border-white/5 text-blue-200 break-all whitespace-pre-wrap font-mono">
-                            {JSON.stringify(debugLog || { status: 'Waiting for input...' }, null, 2)}
-                        </div>
-                     </div>
-
-                     {/* AI Trace */}
-                     {result?.debug_trace && (
-                         <div className="flex flex-col gap-1 border-t border-white/10 pt-2">
-                             <span className="text-purple-400 text-[9px] uppercase tracking-widest">AI Reasoning Trace</span>
-                             <div className="bg-purple-900/10 p-2 rounded border border-purple-500/20 text-purple-200 text-[10px] break-words whitespace-pre-wrap font-mono max-h-40 overflow-y-auto">
-                                 <span className="text-white/50 block mb-1">Gemini Saw:</span>
-                                 {result.debug_trace.gemini_description}
-                                 <div className="h-2" />
-                                 <span className="text-white/50 block mb-1">DeepSeek Thought:</span>
-                                 {result.debug_trace.deepseek_raw}
-                             </div>
-                         </div>
-                     )}
-
-                     {/* Error Box */}
-                     {errorMsg && (
-                        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-200 flex flex-col gap-3">
-                            <div className="flex items-start gap-2">
-                                <div className="mt-0.5 min-w-[16px] text-red-500">⚠</div>
-                                <div className="flex flex-col gap-1">
-                                    <span className="font-bold text-red-400">Error Detected</span>
-                                    <p className="leading-tight">{errorMsg}</p>
-                                    {errorMsg.includes("Failed to fetch") && (
-                                        <p className="text-[10px] text-red-300/70 italic">
-                                            *Usually unrelated to Auth. Check internet or server CORS configuration.
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Fix Actions */}
-                            {(errorMsg.includes("401") || errorMsg.includes("Auth") || errorMsg.includes("JWT")) && (
-                                <button 
-                                    onClick={handleForceLogout}
-                                    className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-md shadow-lg transition-colors w-full"
-                                >
-                                    Relink Account (Force Logout)
-                                </button>
-                            )}
-                        </div>
-                     )}
-
-                     {/* Server Info (Manual Check) */}
-                     <div className="text-[9px] text-white/30 border-t border-white/5 pt-2 flex justify-between">
-                         <span>v0.1.0-beta</span>
-                         <span>{process.env.NEXT_PUBLIC_SUPABASE_URL?.split('://')[1]?.split('.')[0]}</span>
-                     </div>
-                </div>
-            </div>
-        )}
-
-        {/* ERROR NOTIFICATION (Always Visible) */}
-        {errorMsg && (
-            <div className="absolute top-24 left-4 right-4 z-[70] animate-in slide-in-from-top-5 fade-in duration-300">
-                <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 text-red-200 backdrop-blur-xl shadow-2xl flex flex-col gap-3">
-                    <div className="flex items-start gap-3">
-                        <div className="mt-0.5 p-1 bg-red-500/20 rounded-full">
-                            <span className="text-red-500 font-bold block w-4 h-4 text-center leading-none">!</span>
-                        </div>
-                        <div className="flex flex-col gap-1 flex-1">
-                            <span className="font-bold text-red-400 text-sm">Scan Failed</span>
-                            <p className="text-xs leading-relaxed opacity-90">{errorMsg}</p>
-                            {errorMsg.includes("Failed to fetch") && (
-                                <p className="text-[10px] text-red-300/60 italic mt-1">
-                                    *Check your internet connection or server logs.
-                                </p>
-                            )}
-                        </div>
-                        <button 
-                            onClick={() => setErrorMsg(null)}
-                            className="text-white/50 hover:text-white p-1"
-                        >
-                            ✕
-                        </button>
-                    </div>
-
-                    {/* Fix Actions */}
-                    {(errorMsg.includes("401") || errorMsg.includes("Auth") || errorMsg.includes("JWT")) && (
-                        <button 
-                            onClick={handleForceLogout}
-                            className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-lg shadow-lg transition-colors w-full flex items-center justify-center gap-2"
-                        >
-                            <RefreshCw className="h-3 w-3" />
-                            Re-authenticate
-                        </button>
-                    )}
-                </div>
-            </div>
-        )}
-
-        {/* CONTROLS */}
-        <div className="absolute bottom-12 left-0 right-0 z-50 flex flex-col items-center justify-end gap-8 pb-safe">
-            
-            <div className="text-center space-y-1">
-                {analyzing ? (
-                     <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-emerald-500/20 text-white/90 shadow-[0_0_20px_-5px_rgba(16,185,129,0.3)]">
-                        <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-                        <span className="text-sm font-medium tracking-wide">Analyzing Food...</span>
-                     </div>
-                ) : (
-                    <button 
-                        onClick={() => setShowDebug(!showDebug)} 
-                        className="text-white/40 text-[10px] tracking-[0.2em] uppercase font-medium hover:text-white/80 transition-colors"
-                    >
-                        {showDebug ? 'HIDE DEBUG' : 'TAP FOR DEBUG'}
-                    </button>
-                )}
-            </div>
-
-            <div className="relative">
-                {/* Outer Ring - Breathing Animation */}
-                <div className={`absolute inset-0 rounded-full border border-white/10 scale-110 transition-transform duration-[2000ms] ${analyzing ? 'animate-pulse opacity-20' : 'animate-[ping_3s_ease-in-out_infinite] opacity-10'}`} />
-                
-                {/* Capture Button - Glassmorphic */}
-                <button 
-                    onClick={handleCapture}
-                    disabled={analyzing}
-                    className="group relative h-20 w-20 rounded-full border-[3px] border-white/80 flex items-center justify-center bg-white/5 backdrop-blur-sm active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <div className="h-16 w-16 rounded-full bg-white group-active:scale-90 transition-transform duration-200 shadow-inner" />
-                </button>
-            </div>
-
-            {/* WEB DEBUGGER (Only shows in browser) */}
-            {!Capacitor.isNativePlatform() && (
-                <div className="absolute bottom-4 right-4 z-50">
-                     <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur text-xs text-white/70 cursor-pointer hover:bg-white/20 transition-colors">
-                        <Camera className="h-3 w-3" />
-                        Debug Upload
-                        <input type="file" className="hidden" onChange={handleFileUpload} />
-                    </label>
-                </div>
-            )}
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] pb-32 font-sans overflow-x-hidden transition-colors duration-500">
+      {/* Top App Bar */}
+      <motion.header 
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="px-6 pt-8 pb-4 flex justify-between items-center bg-[var(--bg-app)]/80 backdrop-blur-md sticky top-0 z-40"
+      >
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold tracking-tight">Daily Log</h1>
         </div>
+        <div className="flex items-center gap-3">
+          <motion.button 
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--bg-surface)] shadow-sm border border-[var(--border)]"
+          >
+            <Bell size={20} className="text-[var(--primary)]" />
+          </motion.button>
+          <motion.div 
+            onClick={() => router.push('/profile')}
+            whileHover={{ scale: 1.1 }}
+            className="w-10 h-10 rounded-xl overflow-hidden border-2 border-[var(--primary)]/20 shadow-sm bg-[var(--bg-surface)] flex items-center justify-center cursor-pointer"
+          >
+            {user?.avatar_url ? (
+               <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+               <User size={20} className="text-[var(--text-secondary)]" />
+            )}
+          </motion.div>
+        </div>
+      </motion.header>
+
+      {/* Date Selector */}
+      <section className="px-6 py-4 overflow-x-auto scrollbar-hide">
+        <motion.div 
+          initial={{ x: 100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="flex justify-between min-w-full gap-3"
+        >
+          {weekDates.map((d, i) => {
+            const isActive = d.fullDate.getDate() === selectedDate.getDate() && 
+                             d.fullDate.getMonth() === selectedDate.getMonth();
+            return (
+                <motion.button 
+                key={i} 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedDate(d.fullDate)}
+                className={`flex flex-col items-center justify-center min-w-[54px] py-4 rounded-2xl transition-all duration-300 ${
+                    isActive 
+                    ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/30 scale-110' 
+                    : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border)] shadow-sm'
+                }`}
+                >
+                <span className="text-[10px] font-bold uppercase tracking-widest mb-1">{d.day}</span>
+                <span className="text-base font-black">{d.date}</span>
+                </motion.button>
+            );
+          })}
+        </motion.div>
+      </section>
+
+      {/* Hero: Solar Ring Progress */}
+      <section className="px-6 py-8">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[32px] p-8 shadow-sm flex flex-col items-center relative overflow-hidden"
+        >
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-[var(--primary)]/5 rounded-full blur-3xl" />
+          
+          <div className="relative w-48 h-48 flex items-center justify-center">
+            <svg className="w-full h-full transform -rotate-90">
+              <circle
+                cx="96"
+                cy="96"
+                r="88"
+                stroke="currentColor"
+                strokeWidth="12"
+                fill="transparent"
+                className="text-[var(--bg-app)]"
+              />
+              <motion.circle
+                initial={{ strokeDasharray: "0 553" }}
+                animate={{ strokeDasharray: `${Math.min((filteredMacros.calories / calorieGoal) * 553, 553)} 553` }}
+                transition={{ duration: 2, ease: "easeOut" }}
+                cx="96"
+                cy="96"
+                r="88"
+                stroke="currentColor"
+                strokeWidth="12"
+                strokeDashcap="round"
+                fill="transparent"
+                className="text-[var(--primary)]"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-4xl font-black text-[var(--text-primary)]">{caloriesLeft.toLocaleString()}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--primary)]">kcal left</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 w-full mt-10 gap-4">
+            <div className="text-center">
+              <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] mb-1">Protein</p>
+              <p className="font-bold text-[var(--text-primary)]">{filteredMacros.protein.toFixed(0)}g</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] mb-1">Carbs</p>
+              <p className="font-bold text-[var(--text-primary)]">{filteredMacros.carbs.toFixed(0)}g</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] mb-1">Fats</p>
+              <p className="font-bold text-[var(--text-primary)]">{filteredMacros.fats.toFixed(0)}g</p>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Actions Bar */}
+      <section className="px-6 mb-8 flex gap-3">
+        <motion.button 
+          onClick={() => router.push('/vision')}
+          whileHover={{ scale: 1.02, backgroundColor: 'var(--primary)', color: '#fff' }}
+          whileTap={{ scale: 0.98 }}
+          className="flex-1 bg-[var(--bg-surface)] text-[var(--primary)] border-2 border-[var(--primary)] rounded-2xl py-4 flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-xs transition-colors shadow-sm"
+        >
+          <Barcode size={20} />
+          Scan Code
+        </motion.button>
+        <motion.button 
+          onClick={() => router.push('/vision')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="flex-1 bg-[var(--secondary)] text-white rounded-2xl py-4 flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-xs shadow-lg"
+        >
+          <Camera size={20} />
+          AI Vision
+        </motion.button>
+      </section>
+
+      {/* Meal Feed */}
+      <motion.section 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="px-6 space-y-6"
+      >
+        <div className="flex justify-between items-center px-2">
+          <h3 className="text-lg font-bold text-[var(--text-primary)]">Recent Logs</h3>
+          <button 
+            onClick={() => router.push('/history')}
+            className="text-[10px] font-bold uppercase text-[var(--primary)] tracking-widest hover:opacity-70 transition-opacity"
+          >
+            See All
+          </button>
+        </div>
+
+        <AnimatePresence mode="popLayout">
+            {filteredLogs.length === 0 ? (
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12 bg-[var(--bg-surface)] rounded-[24px] border border-dashed border-[var(--border)]">
+                <Utensils size={32} className="mx-auto text-[var(--text-secondary)] opacity-20 mb-3" />
+                <p className="text-sm text-[var(--text-secondary)] opacity-50 font-medium">No meals logged for this day</p>
+            </motion.div>
+            ) : (
+            filteredLogs.map((log: any) => {
+                const meta = log.metabolic_tags_json || {};
+                const macros = meta.macros || meta || {};
+                const name = meta.food_name || meta.item || 'Unknown Food';
+                const time = new Date(log.captured_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                return (
+                <motion.div key={log.id} layout variants={itemVariants} className="bg-[var(--bg-surface)] rounded-[24px] p-4 shadow-sm border border-[var(--border)]">
+                    <div className="flex gap-4">
+                    <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-inner bg-[var(--bg-app)] flex items-center justify-center border border-[var(--border)]">
+                        {log.image_url ? (
+                        <img src={log.image_url} alt={name} className="w-full h-full object-cover" />
+                        ) : (
+                        <Utensils size={32} className="text-[var(--text-secondary)] opacity-10" />
+                        )}
+                    </div>
+                    <div className="flex-1 py-1 flex flex-col justify-between min-w-0">
+                        <div>
+                        <div className="flex justify-between items-start">
+                            <h4 className="font-bold text-[var(--text-primary)] leading-tight capitalize truncate w-[80%]">{name}</h4>
+                            <Clock size={14} className="text-[var(--text-secondary)] opacity-30" />
+                        </div>
+                        <p className="text-[10px] font-bold uppercase text-[var(--primary)] mt-1 tracking-wider">{time}</p>
+                        </div>
+                        <div className="flex gap-4">
+                        <div className="text-[10px] font-bold text-[var(--text-primary)] flex flex-col">
+                            <span className="text-[var(--text-secondary)] opacity-40">P</span>
+                            <span>{Number(macros.protein || 0).toFixed(0)}g</span>
+                        </div>
+                        <div className="text-[10px] font-bold text-[var(--text-primary)] flex flex-col">
+                            <span className="text-[var(--text-secondary)] opacity-40">C</span>
+                            <span>{Number(macros.carbs || 0).toFixed(0)}g</span>
+                        </div>
+                        <div className="text-[10px] font-bold text-[var(--text-primary)] flex flex-col">
+                            <span className="text-[var(--text-secondary)] opacity-40">F</span>
+                            <span>{Number(macros.fats || macros.fat || 0).toFixed(0)}g</span>
+                        </div>
+                        <div className="ml-auto text-right">
+                            <span className="text-xs font-black text-[var(--text-primary)]">{Number(macros.calories || 0).toFixed(0)}</span>
+                            <span className="text-[8px] font-bold text-[var(--text-secondary)] opacity-40 block uppercase">kcal</span>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
+                </motion.div>
+                );
+            })
+            )}
+        </AnimatePresence>
+      </motion.section>
+
+      {/* Floating Action Button */}
+      <motion.button 
+        onClick={() => router.push('/vision')}
+        whileHover={{ scale: 1.1, rotate: 90 }}
+        whileTap={{ scale: 0.9 }}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ type: 'spring', damping: 10, stiffness: 200, delay: 0.5 }}
+        className="fixed bottom-24 right-6 w-16 h-16 bg-[var(--primary)] text-white rounded-2xl shadow-2xl shadow-[var(--primary)]/40 flex items-center justify-center z-50"
+      >
+        <Plus size={36} strokeWidth={3} />
+      </motion.button>
+
+      <BottomNav />
     </div>
   );
 }

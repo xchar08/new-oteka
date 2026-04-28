@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation';
 import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { createClient } from '@/lib/supabase/client';
-import { storeOfflineVisionData } from '@/lib/vision/offline-store'; // ✅ Added offline fallback
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { visionService } from '@/lib/services/vision.service';
+import { Sparkles, CheckCircle2, Scan, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+
 
 export function OptimisticCapture({
   onCapture,
@@ -16,6 +20,44 @@ export function OptimisticCapture({
   const [status, setStatus] = useState<'idle' | 'uploading' | 'complete'>('idle');
   const videoRef = useRef<HTMLVideoElement>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const uploadMutation = useMutation({
+    mutationFn: async ({ userId, blob }: { userId: string, blob: Blob }) => {
+      const { path } = await visionService.uploadScan(userId, blob);
+
+      // ✅ TRIGGER EDGE FUNCTION (Modern Storage-First Path)
+      // We call the function with the path. The function downloads it and inserts the log.
+      const { data, error } = await supabase.functions.invoke('vision-pipeline', {
+        body: { 
+          imagePath: path,
+          mode: 'log'
+        }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      setStatus('complete');
+      queryClient.invalidateQueries({ queryKey: ['daily-logs'] });
+
+      // Minimize app after a short delay
+      const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNative;
+      setTimeout(async () => {
+        if (isNative) {
+          await App.minimizeApp();
+        } else {
+          router.push('/dashboard');
+        }
+      }, 800);
+    },
+    onError: (error: any) => {
+      console.error('Upload Failed:', error);
+      setStatus('idle');
+      toast.error('Upload failed: ' + (error.message || 'Unknown error'));
+    }
+  });
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -50,116 +92,83 @@ export function OptimisticCapture({
 
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      
+      // ✅ MEMORY FIX: Downscale high-res camera feeds
+      const MAX_DIMENSION = 1024;
+      let width = videoRef.current.videoWidth;
+      let height = videoRef.current.videoHeight;
+      
+      if (width > height) {
+        if (width > MAX_DIMENSION) {
+          height *= MAX_DIMENSION / width;
+          width = MAX_DIMENSION;
+        }
+      } else {
+        if (height > MAX_DIMENSION) {
+          width *= MAX_DIMENSION / height;
+          height = MAX_DIMENSION;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
       const ctx = canvas.getContext('2d');
-      ctx?.drawImage(videoRef.current, 0, 0);
+      ctx?.drawImage(videoRef.current, 0, 0, width, height);
 
       const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, 'image/jpeg', 0.85)
+        canvas.toBlob(resolve, 'image/jpeg', 0.8)
       );
       if (!blob) throw new Error('capture_failed');
 
-      // Convert Blob to Base64 for Edge Function
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      
-      const base64Promise = new Promise<string>((resolve) => {
-        reader.onloadend = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          resolve(base64);
-        };
-      });
-
-      const base64Image = await base64Promise;
-
-      // ✅ FIXED: Get session & add Authorization header
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!session?.access_token) {
+      if (!user) {
         throw new Error('Please log in first');
       }
 
-      // CALL SUPABASE EDGE FUNCTION with auth
-      const functionPromise = supabase.functions.invoke('vision-pipeline', {
-        body: { image: base64Image },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`  // ✅ CRITICAL FIX
-        }
-      });
-
-      // UX requirement: keep foreground until upload ack (>= 1.5s)
-      const timerPromise = new Promise((r) => setTimeout(r, 1500));
-      
-      // Wait for both
-      const [funcResult] = await Promise.all([functionPromise, timerPromise]);
-
-      if (funcResult.error) {
-        console.error('Edge Function Error:', funcResult.error);
-        // ✅ FALLBACK: Save offline
-        await storeOfflineVisionData('current-user-id', { 
-          calories: 0, 
-          name: 'Unknown (offline)' 
-        }, base64Image);
-        throw new Error('Server unavailable - saved offline');
-      }
-
-      const data = funcResult.data; // The JSON response from Edge Function
-      setStatus('complete');
+      // DIRECT UPLOAD (Storage-First)
+      await uploadMutation.mutateAsync({ userId: user.id, blob });
 
       // Schedule notification
       const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNative;
 
       if (isNative) {
         await LocalNotifications.requestPermissions();
-        const calories = data?.summary?.calories;
-        const name = data?.summary?.name;
 
         await LocalNotifications.schedule({
           notifications: [
             {
               id: Date.now(),
-              title: 'Oteka Analysis Complete',
-              body: calories
-                ? `${Math.round(calories)} kcal logged (${name || 'Food'})`
-                : 'Your food log has been processed.',
-              schedule: { at: new Date(Date.now() + 5000) },
+              title: 'Oteka Analysis Started',
+              body: 'Your meal is being analyzed in the background.',
+              schedule: { at: new Date(Date.now() + 2000) },
               smallIcon: "ic_stat_icon_config_sample",
               sound: "beep.wav"
             },
           ],
         });
       }
-
-      // Minimize app
-      setTimeout(async () => {
-        if (isNative) {
-          await App.minimizeApp();
-        } else {
-          router.push('/dashboard');
-        }
-      }, 800);
-      
     } catch (e: any) {
-      console.error(e);
-      alert('Upload Failed: ' + (e.message || 'Unknown error'));
+      console.error('Capture/Upload Error:', e);
       setStatus('idle');
     }
   };
 
   if (status === 'uploading') {
     return (
-      <div className="fixed inset-0 bg-palenight-bg flex items-center justify-center z-50 backdrop-blur-sm">
-        <div className="w-64 space-y-6 text-center">
-          <div className="text-white text-xl font-bold animate-pulse">Analyzing...</div>
-          <div className="h-2 bg-palenight-surface rounded-full overflow-hidden w-full">
-            <div
-              className="h-full bg-palenight-accent animate-[width_1.5s_ease-out_forwards]"
-              style={{ width: '100%' }}
-            />
+      <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50 backdrop-blur-md transition-all duration-300">
+        <div className="w-72 p-8 rounded-[2rem] bg-card border border-border shadow-2xl flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
+          <div className="relative w-20 h-20 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-[3px] border-primary/20"></div>
+            <div className="absolute inset-0 rounded-full border-[3px] border-primary border-t-transparent animate-spin"></div>
+            <Sparkles className="h-8 w-8 text-primary animate-pulse" />
           </div>
-          <p className="text-gray-400 text-xs">Identifying food & calculating volume</p>
+          <div className="space-y-2 text-center">
+            <h3 className="text-xl font-bold tracking-tight text-foreground">Analyzing Meal</h3>
+            <p className="text-sm text-muted-foreground font-medium">Extracting nutritional data...</p>
+          </div>
         </div>
       </div>
     );
@@ -167,11 +176,15 @@ export function OptimisticCapture({
 
   if (status === 'complete') {
     return (
-      <div className="fixed inset-0 bg-palenight-success flex items-center justify-center z-50 animate-in fade-in duration-300">
-        <div className="text-center text-white space-y-2">
-          <div className="text-6xl mb-4">✓</div>
-          <div className="text-3xl font-bold">Logged!</div>
-          <p className="text-green-100">Check your notification in 5s</p>
+      <div className="fixed inset-0 bg-emerald-500 flex items-center justify-center z-50 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="text-center text-white space-y-4 scale-110 animate-in zoom-in-50 duration-500">
+          <div className="bg-white/20 p-4 rounded-full inline-block backdrop-blur-xl">
+            <CheckCircle2 className="w-16 h-16 text-white" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-3xl font-bold tracking-tight">Logged!</h2>
+            <p className="text-white/80 font-medium text-sm">Processing in background...</p>
+          </div>
         </div>
       </div>
     );

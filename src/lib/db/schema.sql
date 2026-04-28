@@ -23,10 +23,10 @@
 create extension if not exists vector;
 create extension if not exists pg_cron;
 
--- 1. HOUSEHOLDS
 create table if not exists households (
   id uuid default gen_random_uuid() primary key,
   name text not null,
+  join_code text unique default substring(gen_random_uuid()::text from 1 for 6),
   created_at timestamptz default now()
 );
 
@@ -337,4 +337,56 @@ alter table subscriptions enable row level security;
 
 drop policy if exists "Users view own subscription" on subscriptions;
 create policy "Users view own subscription" on subscriptions for select using ((select auth.uid()) = user_id);
+
+-- ========================================================
+-- 14. VOUCHERS (Custom Access Codes)
+-- ========================================================
+create table if not exists vouchers (
+  id uuid default gen_random_uuid() primary key,
+  code text unique not null,
+  type text not null, -- e.g., 'oteka_plus_30d', 'discount_50'
+  is_redeemed boolean default false,
+  redeemed_by uuid references users(id),
+  redeemed_at timestamptz,
+  expires_at timestamptz,
+  created_at timestamptz default now()
+);
+
+alter table vouchers enable row level security;
+
+drop policy if exists "Users view their own redeemed vouchers" on vouchers;
+create policy "Users view their own redeemed vouchers" on vouchers for select using ((select auth.uid()) = redeemed_by);
+
+-- Allow admins or service role to manage vouchers (standard for Supabase)
+-- Public can check if a voucher is valid (usually handled via Edge Function)
+
+-- ========================================================
+-- 14. STORAGE CONFIGURATION
+-- ========================================================
+
+-- Ensure the bucket exists
+insert into storage.buckets (id, name, public) 
+values ('food_scans', 'food_scans', false) 
+on conflict (id) do nothing;
+
+-- Allow users to upload their own scans
+drop policy if exists "Users can upload own scans" on storage.objects;
+create policy "Users can upload own scans" on storage.objects for insert with check (
+  bucket_id = 'food_scans' and 
+  (select auth.uid())::text = (storage.foldername(name))[1]
+);
+
+-- Allow users to view their own scans
+drop policy if exists "Users can view own scans" on storage.objects;
+create policy "Users can view own scans" on storage.objects for select using (
+  bucket_id = 'food_scans' and 
+  (select auth.uid())::text = (storage.foldername(name))[1]
+);
+
+-- ========================================================
+-- 15. REALTIME CONFIGURATION
+-- ========================================================
+
+-- Enable realtime for logs table to support optimistic UI updates
+alter publication supabase_realtime add table logs;
 

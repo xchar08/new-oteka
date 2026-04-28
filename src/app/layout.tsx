@@ -1,13 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import dynamic from 'next/dynamic';
-
 import { Toaster } from "@/components/ui/sonner";
+import { ClientProviders } from '@/components/providers/ClientProviders';
+import { DebugConsole } from '@/components/ui/DebugConsole';
 
 const inter = Inter({ subsets: ['latin'] });
-
-import { ClientProviders } from '@/components/providers/ClientProviders';
 
 export const metadata: Metadata = {
   title: 'Oteka',
@@ -21,6 +19,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: '#292D3E',
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -29,12 +28,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} text-white`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} text-white bg-[var(--bg-app)]`}>
         <ClientProviders>
           {children}
         </ClientProviders>
         <Toaster />
+        <DebugConsole />
       </body>
     </html>
   );

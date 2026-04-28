@@ -5,19 +5,21 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { MealRating } from '@/components/viz/MealRating';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { motion } from 'framer-motion';
+import { ChevronLeft, Zap, Sparkles, CheckCircle2 } from 'lucide-react';
+import { BottomNav } from '@/components/layout/BottomNav';
 
 export default function RatingPage() {
   const [rating, setRating] = useState(0);
   const [lastLogId, setLastLogId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [mealName, setMealName] = useState('');
   
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
-    // Find the most recent un-rated log
     async function findLog() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -31,13 +33,9 @@ export default function RatingPage() {
         .single();
         
       if (data) {
-        // Check if already rated? (Assuming we store rating in metabolic_tags_json for MVP schema simplicity)
-        // Ideally schema has 'user_score' column. We will use tags for now as per schema provided.
         const tags = data.metabolic_tags_json as any;
-        if (tags?.user_score) {
-           // Already rated
-           // setLastLogId(null); 
-        } else {
+        setMealName(tags?.food_name || tags?.item || 'Latest Meal');
+        if (!tags?.user_score) {
            setLastLogId(data.id);
         }
       }
@@ -50,18 +48,6 @@ export default function RatingPage() {
     if (!lastLogId || rating === 0) return;
     setSubmitting(true);
 
-    // Update the log with the score
-    // We append to the JSONB blob
-    const { error } = await supabase.rpc('append_log_score', { 
-        log_id: lastLogId, 
-        score: rating 
-    }); 
-    // OR simpler client-side update if RPC not set up:
-    // 1. Get current tags
-    // 2. Update tags
-    // 3. Write back
-    
-    // Simple approach for this snippet:
     const { data: current } = await supabase.from('logs').select('metabolic_tags_json').eq('id', lastLogId).single();
     const newTags = { ...(current?.metabolic_tags_json as object), user_score: rating };
     
@@ -71,49 +57,93 @@ export default function RatingPage() {
       .eq('id', lastLogId);
 
     setSubmitting(false);
-    router.push('/dashboard'); // Return home
+    router.push('/dashboard'); 
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Loading...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
+    </div>
+  );
 
   if (!lastLogId) {
     return (
-      <div className="p-6 text-center space-y-4 pt-20">
-        <h1 className="text-xl font-bold text-gray-800">All Caught Up!</h1>
-        <p className="text-gray-500">You have no recent meals to rate.</p>
-        <Button onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
+      <div className="min-h-screen bg-[var(--bg-app)] p-6 flex flex-col items-center justify-center text-center space-y-6">
+        <div className="w-20 h-20 bg-[var(--primary)]/10 rounded-[32px] flex items-center justify-center text-[var(--primary)]">
+            <CheckCircle2 size={40} />
+        </div>
+        <div>
+            <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">Sync Complete</h1>
+            <p className="text-[var(--text-secondary)] text-sm font-medium mt-2">All recent meals have been analyzed and rated.</p>
+        </div>
+        <button 
+            onClick={() => router.push('/dashboard')}
+            className="px-10 py-4 bg-[var(--primary)] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg active:scale-95 transition-all"
+        >
+            Back to Hub
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-md mx-auto min-h-screen flex flex-col justify-center space-y-8">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">How did you feel?</h1>
-        <p className="text-gray-500">Rate your energy levels 2 hours post-meal.</p>
-      </div>
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] p-6 pb-32 flex flex-col justify-center transition-colors duration-500 font-sans">
       
-      <Card className="p-8 flex justify-center items-center shadow-md">
-        <MealRating score={rating} onRate={setRating} size={40} />
-      </Card>
-
-      <div className="space-y-4">
-        <div className="text-center h-6 text-sm font-medium text-blue-600 transition-opacity duration-300">
-           {rating === 1 && "Low Energy / Bloated"}
-           {rating === 2 && "Slightly Sluggish"}
-           {rating === 3 && "Neutral / Okay"}
-           {rating === 4 && "Good Energy"}
-           {rating === 5 && "High Performance / Focused"}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-md mx-auto w-full space-y-10"
+      >
+        <div className="text-center space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] text-[10px] font-black uppercase tracking-widest border border-[var(--primary)]/10">
+                <Sparkles size={12} />
+                Energy Calibration
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-[var(--text-primary)]">How do you feel?</h1>
+            <p className="text-[var(--text-secondary)] text-sm font-medium px-4">
+                Rate your energy, focus, and digestion after consuming <span className="text-[var(--primary)] font-black capitalize">{mealName}</span>.
+            </p>
+        </div>
+        
+        <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[40px] p-10 shadow-sm flex flex-col items-center gap-8">
+            <MealRating score={rating} onRate={setRating} size={48} />
+            
+            <div className="text-center h-10 flex items-center justify-center px-4 py-2 rounded-xl bg-[var(--bg-app)] border border-[var(--border)]">
+               <span className="text-[10px] font-black uppercase tracking-widest text-[var(--primary)]">
+                {rating === 1 && "Low Energy / Sluggish"}
+                {rating === 2 && "Neutral / Balanced"}
+                {rating === 3 && "Good / Focused"}
+                {rating === 4 && "Optimal Performance"}
+                {rating === 5 && "Peak Human Baseline"}
+                {rating === 0 && "Select a Vitality Score"}
+               </span>
+            </div>
         </div>
 
-        <Button 
-          className="w-full h-12 text-lg" 
-          disabled={rating === 0 || submitting}
-          onClick={submitRating}
-        >
-          {submitting ? 'Saving...' : 'Submit Feedback'}
-        </Button>
-      </div>
+        <div className="space-y-4">
+            <button 
+                disabled={rating === 0 || submitting}
+                onClick={submitRating}
+                className="w-full h-16 bg-[var(--primary)] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3"
+            >
+                {submitting ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
+                Update Neural Weights
+            </button>
+            
+            <button 
+                onClick={() => router.push('/dashboard')}
+                className="w-full text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors py-4"
+            >
+                Skip Assessment
+            </button>
+        </div>
+      </motion.div>
+
+      <BottomNav />
     </div>
   );
+}
+
+function Loader2({ className, size }: { className?: string; size?: number }) {
+    return <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className={className}><Sparkles size={size} /></motion.div>
 }

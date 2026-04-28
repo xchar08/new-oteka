@@ -11,6 +11,7 @@ import { Loader2, RefreshCw, ChevronLeft, Check, Camera, Plus, Trash2, Edit2, Sa
 import { useRouter } from 'next/navigation';
 import { Camera as CapacitorCamera } from '@capacitor/camera';
 import { ScanningGrid } from '@/components/vision/ScanningGrid';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface PantryItemDraft {
     id: string; // Temp ID
@@ -28,7 +29,6 @@ export default function PantryScanPage() {
   // Multi-Select State
   const [scannedItems, setScannedItems] = useState<PantryItemDraft[]>([]);
   const [showResults, setShowResults] = useState(false);
-  const [result, setResult] = useState<any>(null); // Legacy, kept for safe transition before removal
 
   const [debugLog, setDebugLog] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -61,7 +61,6 @@ export default function PantryScanPage() {
         user_id: user.id,
         household_id: userData?.household_id,
         name: item.name,
-        category: item.name, // Simplified
         status: 'active',
         probability_score: 1.0,
         metadata_json: {
@@ -75,17 +74,15 @@ export default function PantryScanPage() {
 
       if (error) throw error;
 
-      console.log('Batch saved:', inserts.length);
       stopCamera();
       router.push('/pantry');
     } catch (err) {
       console.error("Save failed:", err);
-      setErrorMsg("Failed to save items. Please try again.");
+      setErrorMsg("Failed to save items.");
       setIsSaving(false);
     }
   };
 
-  // --- ITEM ACTIONS ---
   const toggleItem = (id: string) => {
       setScannedItems(prev => prev.map(item => 
           item.id === id ? { ...item, checked: !item.checked } : item
@@ -125,10 +122,7 @@ export default function PantryScanPage() {
     try {
       if (Capacitor.isNativePlatform()) {
         const { camera } = await CapacitorCamera.requestPermissions();
-        if (camera !== 'granted') {
-            console.warn('Camera permission denied');
-            return;
-        }
+        if (camera !== 'granted') return;
       }
       
       await CameraPreview.stop().catch(() => {});
@@ -161,33 +155,25 @@ export default function PantryScanPage() {
     }
   };
 
-  // --- CAPTURE & PROCESS ---
   const handleCapture = async () => {
     if (analyzing || isProcessing.current) return;
     isProcessing.current = true;
     setAnalyzing(true);
     setErrorMsg(null);
-    setDebugLog(null);
-    setShowResults(false);
-    setResult(null);
     
     try {
       let base64Image = '';
-
       if (Capacitor.isNativePlatform()) {
         const result = await CameraPreview.capture({ quality: 85 });
         base64Image = result.value;
       } else {
-        alert("Web Camera not implemented. Use Native Device or Debug Upload.");
+        alert("Native environment required for multi-scan.");
         setAnalyzing(false);
         isProcessing.current = false;
         return;
       }
-
       await processImage(base64Image);
-
     } catch (err) {
-      console.error(err);
       setErrorMsg('Capture failed.');
       setAnalyzing(false);
       isProcessing.current = false;
@@ -195,78 +181,36 @@ export default function PantryScanPage() {
   };
 
   const processImage = async (base64: string) => {
+    const supabaseClient = createClient(); // Ensure local scope definition
     try {
-      stopCamera(); // Freeze preview implied
-
-      const { data: { session } } = await supabase.auth.getSession();
+      stopCamera(); 
+      const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session?.access_token) throw new Error("Auth missing");
 
-      if (isMounted.current) {
-         setDebugLog({ status: "Preparing Upload...", mode: "pantry" });
-      }
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-      // 0. Check Network
-      if (!navigator.onLine) {
-          throw new Error("No Internet Connection (Offline Mode not supported for Pantry yet)");
-      }
-
-      // CALL VISION PIPELINE (MODE = PANTRY)
-      // 180s Timeout for consistency
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 180000); 
-
-      if (isMounted.current) {
-         setDebugLog((prev: any) => ({ ...prev, status: "Sending Image to Cloud..." }));
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error("Configuration missing (URL/Key)");
       }
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/vision-pipeline`,
+        `${supabaseUrl}/functions/v1/vision-pipeline`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
             'x-user-token': session.access_token
           },
-          body: JSON.stringify({
-            image: base64,
-            mode: 'pantry', 
-          }),
-          signal: controller.signal
+          body: JSON.stringify({ image: base64, mode: 'pantry' }),
         }
       );
       
-      clearTimeout(timeoutId);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Server error");
 
-      if (isMounted.current) {
-         setDebugLog((prev: any) => ({ ...prev, status: "Response Received. Parsing..." }));
-      }
-
-      const textBody = await res.text();
-      let data;
-      try { data = JSON.parse(textBody); } catch { 
-          data = { error: "Invalid JSON", raw: textBody.substring(0, 100) }; 
-      }
-
-      if (isMounted.current) setDebugLog(data);
-
-      if (!res.ok) throw new Error(data.error || `Server Error: ${res.status}`);
-
-      // Parse Result
-      // Pantry mode returns somewhat similar structure but let's be safe
-      // Parse Result -> Map to Draft Items
       const rawItems = data.pantry_items || []; 
-      
-      // Fallback for legacy single-item
-      if (rawItems.length === 0 && data.items && data.items.length > 0) {
-          rawItems.push({
-              name: data.items[0],
-              quantity: "Full",
-              expiry: "",
-              ingredients: data.ingredients || [] // Attach ingredients to primary
-          });
-      }
-
       const drafts: PantryItemDraft[] = rawItems.map((item: any, idx: number) => ({
           id: `temp-${Date.now()}-${idx}`,
           name: item.name || "Unknown Item",
@@ -280,181 +224,155 @@ export default function PantryScanPage() {
           setScannedItems(drafts);
           setShowResults(true);
       }
-
-    } catch (err) {
-       const msg = err instanceof Error ? err.message : String(err);
-       console.error("Pantry Scan Error:", msg);
-       if (isMounted.current) {
-           setErrorMsg(msg);
-           startCamera(); // Restart on error
-       }
+    } catch (err: any) {
+       setErrorMsg(err.message);
+       startCamera();
     } finally {
        if (isMounted.current) setAnalyzing(false);
        isProcessing.current = false;
     }
   };
 
-  // Fallback for web testing
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      setAnalyzing(true);
-      processImage(base64);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // --- RENDER RESULTS (LIST VIEW) ---
+  // --- RENDER RESULTS ---
   if (showResults) {
       return (
-        <div className="min-h-screen bg-zinc-950 flex flex-col p-4 animate-in fade-in duration-500 pb-safe">
-            <h1 className="text-2xl font-bold text-white mb-4 mt-8">Review Items</h1>
+        <div className="min-h-screen bg-[var(--bg-app)] flex flex-col p-6 animate-in fade-in duration-500 pb-safe transition-colors">
+            <header className="flex items-center gap-4 pt-safe mb-6">
+                <button onClick={() => { setShowResults(false); startCamera(); }} className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-secondary)] shadow-sm">
+                    <ChevronLeft size={24} />
+                </button>
+                <div>
+                    <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">Verify Scan</h1>
+                    <p className="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest">Multi-Item Logistics</p>
+                </div>
+            </header>
             
-            <div className="flex-1 overflow-y-auto space-y-3 pb-24">
-                {scannedItems.map((item) => (
-                    <div key={item.id} className={`p-4 rounded-xl border transition-all ${item.checked ? 'bg-white/10 border-blue-500/50' : 'bg-white/5 border-white/5 opacity-60'}`}>
-                        <div className="flex items-start gap-3">
-                            <div 
-                                onClick={() => toggleItem(item.id)}
-                                className={`h-6 w-6 rounded-full border flex items-center justify-center mt-1 cursor-pointer ${item.checked ? 'bg-blue-500 border-blue-500' : 'border-zinc-500'}`}
-                            >
-                                {item.checked && <Check className="h-4 w-4 text-white" />}
-                            </div>
-                            
-                            <div className="flex-1 space-y-2">
-                                <Input 
-                                    value={item.name} 
-                                    onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                                    className="bg-transparent border-none text-lg font-bold p-0 h-auto focus-visible:ring-0 text-white placeholder:text-zinc-600"
-                                    placeholder="Item Name"
-                                />
-                                <div className="flex gap-2">
-                                    <Input 
-                                        value={item.quantity}
-                                        onChange={(e) => updateItem(item.id, 'quantity', e.target.value)}
-                                        className="bg-white/5 border-white/10 h-8 text-xs w-24 text-zinc-300"
-                                        placeholder="Qty"
+            <div className="flex-1 overflow-y-auto space-y-4 pb-24 scrollbar-hide">
+                <AnimatePresence mode="popLayout">
+                    {scannedItems.map((item) => (
+                        <motion.div 
+                            layout
+                            key={item.id} 
+                            className={`p-5 rounded-[28px] border transition-all duration-300 ${item.checked ? 'bg-[var(--bg-surface)] border-[var(--primary)] shadow-md' : 'bg-[var(--bg-surface)] border-[var(--border)] opacity-40'}`}
+                        >
+                            <div className="flex items-start gap-4">
+                                <button 
+                                    onClick={() => toggleItem(item.id)}
+                                    className={`h-7 w-7 rounded-full border-2 flex items-center justify-center mt-1 transition-all ${item.checked ? 'bg-[var(--primary)] border-[var(--primary)]' : 'bg-transparent border-[var(--border)]'}`}
+                                >
+                                    {item.checked && <Check size={16} className="text-white" />}
+                                </button>
+                                
+                                <div className="flex-1 space-y-3">
+                                    <input 
+                                        value={item.name} 
+                                        onChange={(e) => updateItem(item.id, 'name', e.target.value)}
+                                        className="bg-transparent border-none text-lg font-black p-0 h-auto focus:outline-none w-full text-[var(--text-primary)] capitalize"
+                                        placeholder="Item Name"
                                     />
-                                    <Input 
-                                        value={item.expiry || ''}
-                                        onChange={(e) => updateItem(item.id, 'expiry', e.target.value)}
-                                        className="bg-white/5 border-white/10 h-8 text-xs w-28 text-zinc-300"
-                                        placeholder="Expiry"
-                                    />
-                                </div>
-                                {item.ingredients && item.ingredients.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                        <div className="text-[10px] px-2 py-0.5 rounded-full border border-zinc-700 text-zinc-400">
-                                            {item.ingredients.length} Ingredients Found
+                                    <div className="flex gap-2">
+                                        <div className="flex-1 bg-[var(--bg-app)] border border-[var(--border)] rounded-xl px-3 py-2 flex flex-col">
+                                            <span className="text-[8px] font-black uppercase text-[var(--text-secondary)] opacity-50">Quantity</span>
+                                            <input value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} className="bg-transparent text-xs font-bold focus:outline-none" />
+                                        </div>
+                                        <div className="flex-1 bg-[var(--bg-app)] border border-[var(--border)] rounded-xl px-3 py-2 flex flex-col">
+                                            <span className="text-[8px] font-black uppercase text-[var(--text-secondary)] opacity-50">Expiry</span>
+                                            <input value={item.expiry} onChange={e => updateItem(item.id, 'expiry', e.target.value)} className="bg-transparent text-xs font-bold focus:outline-none" placeholder="None" />
                                         </div>
                                     </div>
-                                )}
+                                </div>
+
+                                <button className="text-[var(--text-secondary)] opacity-30 hover:text-[var(--error)] p-2 transition-colors" onClick={() => deleteItem(item.id)}>
+                                    <Trash2 size={18} />
+                                </button>
                             </div>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
 
-                            <Button variant="ghost" className="text-zinc-500 hover:text-red-400 p-2 h-8 w-8" onClick={() => deleteItem(item.id)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                ))}
-
-                <Button variant="outline" onClick={addItem} className="w-full border-dashed border-white/20 bg-transparent text-zinc-400 hover:bg-white/5 hover:text-white">
-                    <Plus className="h-4 w-4 mr-2" /> Add Missing Item
-                </Button>
+                <button 
+                    onClick={addItem} 
+                    className="w-full h-16 border-2 border-dashed border-[var(--border)] rounded-[28px] bg-transparent text-[var(--text-secondary)] flex items-center justify-center gap-2 font-black uppercase tracking-widest text-[10px] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all"
+                >
+                    <Plus size={16} /> Add Missing Item
+                </button>
             </div>
 
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-zinc-950/80 backdrop-blur-lg border-t border-white/10 flex gap-3 pb-safe">
-                <Button 
-                    variant="outline" 
-                    className="flex-1 h-12 rounded-xl border-white/10 bg-white/5 text-white"
+            <div className="fixed bottom-0 left-0 right-0 p-6 bg-[var(--bg-app)]/80 backdrop-blur-xl border-t border-[var(--border)] flex gap-4 pb-safe z-50">
+                <button 
+                    className="flex-1 h-14 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-primary)] font-black uppercase tracking-widest text-xs shadow-sm active:scale-95 transition-all"
                     onClick={() => { setShowResults(false); startCamera(); }}
                 >
                     Retake
-                </Button>
-                <Button 
-                    className="flex-[2] h-12 rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-bold"
+                </button>
+                <button 
+                    className="flex-[2] h-14 rounded-2xl bg-[var(--primary)] text-white font-black uppercase tracking-widest text-xs shadow-lg active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-2"
                     onClick={handleSaveBatch}
                     disabled={isSaving || scannedItems.filter(i => i.checked).length === 0}
                 >
-                    {isSaving ? <Loader2 className="animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save {scannedItems.filter(i => i.checked).length} Items
-                </Button>
+                    {isSaving ? <Loader2 className="animate-spin h-5 w-5" /> : <Save size={18} />}
+                    Sync {scannedItems.filter(i => i.checked).length} items
+                </button>
             </div>
         </div>
       );
   }
 
-
   // --- RENDER CAMERA ---
   return (
-    <div className={`relative h-screen w-screen overflow-hidden ${cameraActive ? 'bg-transparent' : 'bg-black'}`}>
+    <div className={`relative h-screen w-screen overflow-hidden ${cameraActive ? 'bg-transparent' : 'bg-black'} transition-colors duration-700`}>
         <div id="cameraPreview" className="absolute inset-0 bg-transparent z-0" />
         
-        {/* Navigation */}
         <button 
             onClick={() => router.back()}
-            className="absolute top-6 left-6 z-50 p-3 rounded-full bg-black/40 backdrop-blur border border-white/10 text-white"
+            className="absolute top-6 left-6 z-50 p-3 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 text-white active:scale-90 transition-all"
         >
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft size={24} />
         </button>
 
-        {/* Overlays */}
         <HandOverlay status={analyzing ? 'scanning' : 'idle'} />
         {analyzing && <ScanningGrid />}
 
-        {/* Loading State */}
-        {analyzing && (
-            <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/40 backdrop-blur-sm">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
-                    <span className="text-blue-200 font-medium tracking-wide">Multi-Item Scan...</span>
-                </div>
-            </div>
-        )}
+        <AnimatePresence>
+            {analyzing && (
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute inset-0 flex items-center justify-center z-40 bg-black/60 backdrop-blur-sm"
+                >
+                    <div className="flex flex-col items-center gap-6">
+                        <div className="relative w-20 h-20">
+                            <div className="absolute inset-0 border-4 border-white/20 rounded-full" />
+                            <div className="absolute inset-0 border-4 border-t-white rounded-full animate-spin" />
+                        </div>
+                        <div className="text-center">
+                            <span className="text-white font-black uppercase tracking-[0.3em] text-sm block">Neural Matrix</span>
+                            <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest mt-2 block">Extracting Logistics...</span>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
 
-        {/* Debug Console */}
-        {showDebug && (
-            <div className="absolute top-24 left-4 right-4 z-[60] bg-black/90 p-4 rounded-xl border border-white/20 max-h-[40vh] overflow-auto text-[10px] font-mono text-zinc-300">
-                 <pre>{JSON.stringify(debugLog || { status: 'Ready' }, null, 2)}</pre>
-            </div>
-        )}
-
-        {/* Error */}
         {errorMsg && (
-             <div className="absolute top-24 left-4 right-4 z-[70] bg-red-500/20 border border-red-500/50 p-4 rounded-xl text-red-200 backdrop-blur-md">
-                 <p className="font-bold mb-1">Error</p>
-                 <p className="text-xs">{errorMsg}</p>
-                 <button onClick={() => setErrorMsg(null)} className="absolute top-2 right-2 p-1 opacity-50">✕</button>
-             </div>
+             <motion.div initial={{ y: -100 }} animate={{ y: 0 }} className="absolute top-24 left-6 right-6 z-[70] bg-red-500/90 border border-white/20 p-4 rounded-2xl text-white backdrop-blur-xl shadow-2xl flex justify-between items-center">
+                 <p className="font-bold text-xs">{errorMsg}</p>
+                 <button onClick={() => setErrorMsg(null)} className="p-1">✕</button>
+             </motion.div>
         )}
 
-        {/* Controls */}
-        <div className="absolute bottom-12 left-0 right-0 z-50 flex flex-col items-center justify-end gap-6 pb-safe">
-            <button 
-                onClick={() => setShowDebug(!showDebug)} 
-                className="text-white/30 text-[10px] uppercase tracking-widest font-bold"
-            >
-                {showDebug ? 'Hide Debug' : 'Show Debug'}
-            </button>
+        <div className="absolute bottom-16 left-0 right-0 z-50 flex flex-col items-center gap-8 pb-safe">
+            <div className="flex flex-col items-center gap-1">
+                <span className="text-white font-black uppercase tracking-[0.4em] text-[10px] opacity-40">Capture Buffer</span>
+                <div className="w-1 h-1 rounded-full bg-white/20" />
+            </div>
 
             <button 
                 onClick={handleCapture}
                 disabled={analyzing}
-                className="h-20 w-20 rounded-full border-[4px] border-white/20 bg-white shadow-xl flex items-center justify-center active:scale-95 transition-all"
+                className="h-24 w-24 rounded-full border-[6px] border-white/20 bg-white/10 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all group"
             >
-                <div className="h-16 w-16 rounded-full border border-gray-300" />
+                <div className="h-16 w-16 rounded-full bg-white shadow-xl group-hover:scale-95 transition-transform" />
             </button>
-            
-            {/* Web Upload Debug */}
-            {!Capacitor.isNativePlatform() && (
-                 <label className="text-xs text-white/50 cursor-pointer bg-white/10 px-3 py-1 rounded">
-                     Web Upload (Debug)
-                     <input type="file" className="hidden" onChange={handleFileUpload} />
-                 </label>
-            )}
         </div>
     </div>
   );

@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Trophy, Flame, Users, Home, Globe, UserPlus } from 'lucide-react';
+import { Trophy, Flame, Users, Home, Globe, UserPlus, ChevronLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { BottomNav } from '@/components/layout/BottomNav';
 
 type LeaderboardTab = 'global' | 'friends' | 'household';
 
 export default function SocialPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<LeaderboardTab>('global');
   const [leaders, setLeaders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,11 +32,9 @@ export default function SocialPage() {
         .select('id, streak_count, display_name, household_id');
 
       if (activeTab === 'global') {
-        // Top 50 Global
         query = query.order('streak_count', { ascending: false }).limit(50);
       } 
       else if (activeTab === 'friends') {
-        // Fetch IDs of accepted friends
         const { data: friendships } = await supabase
           .from('friendships')
           .select('user_id, friend_id')
@@ -43,13 +45,10 @@ export default function SocialPage() {
           f.user_id === user.id ? f.friend_id : f.user_id
         ) || [];
         
-        // Include self
         friendIds.push(user.id);
-
         query = query.in('id', friendIds).order('streak_count', { ascending: false });
       } 
       else if (activeTab === 'household') {
-        // Get user's household ID first
         const { data: me } = await supabase
           .from('users')
           .select('household_id')
@@ -59,7 +58,6 @@ export default function SocialPage() {
         if (me?.household_id) {
           query = query.eq('household_id', me.household_id).order('streak_count', { ascending: false });
         } else {
-          // User has no household
           setLeaders([]);
           setLoading(false);
           return;
@@ -74,7 +72,6 @@ export default function SocialPage() {
     load();
   }, [activeTab]);
 
-  // ... inside SocialPage ...
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -83,15 +80,11 @@ export default function SocialPage() {
   async function handleSearch() {
     if (!searchQuery.trim()) return;
     setIsSearching(true);
-    
-    // Simple search by display_name
     const { data } = await supabase
         .from('users')
         .select('id, display_name, streak_count')
         .ilike('display_name', `%${searchQuery}%`)
         .limit(5);
-
-    // Filter out self and existing friends (basic client-side filter for now)
     setSearchResults(data?.filter(u => u.id !== currentUserId) || []);
     setIsSearching(false);
   }
@@ -103,7 +96,7 @@ export default function SocialPage() {
             user_id: currentUserId,
             friend_id: friendId,
             status: 'pending' 
-        }); // Check RLS: user_id must be auth.uid(), which it is.
+        });
 
     if (error) {
         alert('Could not send request: ' + error.message);
@@ -116,155 +109,141 @@ export default function SocialPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--palenight-bg)] p-6 pb-24 space-y-6 text-zinc-100 relative">
-      <div className="fixed top-0 left-0 w-full h-[50vh] bg-blue-900/10 blur-[100px] pointer-events-none" />
-
+    <div className="min-h-screen bg-[var(--bg-app)] p-6 pb-32 space-y-8 text-[var(--text-primary)] transition-colors duration-500">
+      
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 relative z-10 pt-safe">
-        <div className="flex items-center gap-3">
-          <Trophy className="text-yellow-500" size={32} />
+      <header className="flex items-center justify-between pt-safe">
+        <div className="flex items-center gap-4">
+          <button 
+              onClick={() => router.back()}
+              className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-secondary)] transition-colors"
+          >
+              <ChevronLeft size={24} />
+          </button>
           <div>
-            <h1 className="text-3xl font-light tracking-tight text-white">Rankings</h1>
-            <p className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">
-              {activeTab === 'global' ? 'World Top 50' : activeTab === 'friends' ? 'Your Circle' : 'Household Stats'}
-            </p>
+            <h1 className="text-2xl font-black tracking-tight">Rankings</h1>
+            <p className="text-[10px] text-[var(--primary)] font-bold uppercase tracking-widest">{activeTab} leaderboards</p>
           </div>
         </div>
-        <Button 
-            className="h-10 w-10 p-0 rounded-full bg-blue-600 hover:bg-blue-500 shadow-lg text-white"
+        <button 
             onClick={() => setIsInviteOpen(true)}
+            className="w-12 h-12 rounded-2xl bg-[var(--primary)] text-white shadow-lg flex items-center justify-center active:scale-90 transition-all"
         >
-          <UserPlus size={18} />
-        </Button>
-      </div>
-
-      {/* ADD FRIEND MODAL */}
-      {isInviteOpen && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6 animate-in fade-in">
-            <div className="w-full max-w-md bg-[var(--palenight-surface)] border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
-                <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-white">Add Friend</h3>
-                    <button onClick={() => setIsInviteOpen(false)} className="text-zinc-400 hover:text-white">✕</button>
-                </div>
-                
-                <div className="flex gap-2">
-                    <input 
-                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                        placeholder="Search by username..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                    <Button onClick={handleSearch} disabled={isSearching} className="bg-blue-600">
-                        {isSearching ? '...' : 'Search'}
-                    </Button>
-                </div>
-
-                <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
-                    {searchResults.map(user => (
-                        <div key={user.id} className="flex justify-between items-center bg-white/5 p-3 rounded-lg hover:bg-white/10 transition">
-                            <div>
-                                <div className="font-medium text-white">{user.display_name}</div>
-                                <div className="text-xs text-zinc-400 flex items-center gap-1">
-                                    <Flame size={10} className="text-orange-500"/> {user.streak_count} Streak
-                                </div>
-                            </div>
-                            <Button size="sm" variant="outline" onClick={() => sendFriendRequest(user.id)} className="h-8 border-blue-500/30 text-blue-400 hover:bg-blue-500/20">
-                                Add
-                            </Button>
-                        </div>
-                    ))}
-                    {searchResults.length === 0 && searchQuery && !isSearching && (
-                        <p className="text-center text-zinc-500 text-sm py-4">No users found.</p>
-                    )}
-                </div>
-            </div>
-         </div>
-      )}
+          <UserPlus size={22} />
+        </button>
+      </header>
 
       {/* Tabs */}
-      <div className="flex p-1 bg-[var(--palenight-surface)] rounded-lg border border-white/5 relative z-10">
-        <button
-          onClick={() => setActiveTab('global')}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'global' ? 'bg-[var(--palenight-bg)] shadow text-white' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Globe size={14} /> Global
-        </button>
-        <button
-          onClick={() => setActiveTab('friends')}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'friends' ? 'bg-[var(--palenight-bg)] shadow text-white' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Users size={14} /> Friends
-        </button>
-        <button
-          onClick={() => setActiveTab('household')}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'household' ? 'bg-[var(--palenight-bg)] shadow text-white' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Home size={14} /> Home
-        </button>
+      <div className="flex p-1.5 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border)] shadow-sm">
+        {(['global', 'friends', 'household'] as LeaderboardTab[]).map(tab => (
+           <button
+             key={tab}
+             onClick={() => tab === 'household' ? router.push('/social/household') : setActiveTab(tab)}
+             className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${
+               activeTab === tab 
+               ? 'bg-[var(--primary)] text-white shadow-md' 
+               : 'text-[var(--text-secondary)] hover:bg-[var(--bg-app)]'
+             }`}
+           >
+             {tab === 'global' && <Globe size={14} />}
+             {tab === 'friends' && <Users size={14} />}
+             {tab === 'household' && <Home size={14} />}
+             {tab}
+           </button>
+        ))}
       </div>
 
-      {/* Content */}
-      <div className="bg-[var(--palenight-surface)] rounded-xl shadow-lg border border-white/5 overflow-hidden min-h-[300px] relative z-10">
+      {/* List */}
+      <div className="space-y-3">
         {loading ? (
-          <div className="p-8 text-center text-gray-400">Updating ranks...</div>
+          <div className="py-20 text-center flex flex-col items-center gap-4">
+             <Loader2 className="animate-spin text-[var(--primary)] h-8 w-8" />
+             <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Syncing World...</span>
+          </div>
         ) : leaders.length === 0 ? (
-          <div className="p-10 text-center flex flex-col items-center gap-3">
-            <div className="w-12 h-12 bg-palenight-bg rounded-full flex items-center justify-center text-zinc-500">
-              {activeTab === 'household' ? <Home size={24}/> : <Users size={24}/>}
-            </div>
-            <p className="text-zinc-400 font-medium">No one here yet.</p>
-            {activeTab === 'household' && (
-              <p className="text-sm text-gray-400">Join a household to share pantry stats.</p>
-            )}
-            {activeTab === 'friends' && (
-              <Button onClick={() => setIsInviteOpen(true)} className="text-blue-400 hover:text-white" variant="ghost">Invite Friends</Button>
-            )}
+          <div className="py-20 text-center bg-[var(--bg-surface)] border border-dashed border-[var(--border)] rounded-[32px] flex flex-col items-center gap-4">
+            <Trophy className="text-[var(--text-secondary)] opacity-10 h-12 w-12" />
+            <p className="text-sm font-bold text-[var(--text-secondary)]">No rankings available yet.</p>
           </div>
         ) : (
-          leaders.map((user, idx) => {
-            const isMe = user.id === currentUserId;
-            const name = user.display_name || `User ${user.id.slice(0, 4)}`;
-
+          leaders.map((u, idx) => {
+            const isMe = u.id === currentUserId;
             return (
-              <div 
-                key={user.id} 
-                className={`flex items-center justify-between p-4 border-b border-white/5 last:border-0 transition-colors ${
-                  isMe ? 'bg-blue-500/10 border-l-4 border-l-blue-500' : 
-                  (idx < 3 && activeTab === 'global') ? 'bg-yellow-500/5' : ''
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                key={u.id} 
+                className={`flex items-center justify-between p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border)] shadow-sm ${
+                  isMe ? 'ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg-app)]' : ''
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <span className={`
-                    w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm shadow-sm
-                    ${idx === 0 ? 'bg-yellow-500/20 text-yellow-500 ring-1 ring-yellow-500/50' : 
-                      idx === 1 ? 'bg-zinc-700 text-zinc-300' : 
-                      idx === 2 ? 'bg-orange-900/40 text-orange-400 border border-orange-700/50' : 'text-zinc-500 bg-palenight-bg border border-white/5'}
-                  `}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${
+                    idx === 0 ? 'bg-yellow-400 text-white shadow-lg' : 
+                    idx === 1 ? 'bg-zinc-300 text-white shadow-md' : 
+                    idx === 2 ? 'bg-orange-400 text-white shadow-sm' : 
+                    'bg-[var(--bg-app)] text-[var(--text-secondary)]'
+                  }`}>
                     {idx + 1}
-                  </span>
-                  <div className="flex flex-col">
-                    <span className={`text-sm font-medium ${isMe ? 'text-blue-400' : 'text-zinc-200'}`}>
-                      {name} {isMe && '(You)'}
-                    </span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-black text-[var(--text-primary)] capitalize">{u.display_name || 'Explorer'}</div>
+                    {isMe && <div className="text-[8px] font-bold text-[var(--primary)] uppercase tracking-widest">You</div>}
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-1.5 text-orange-500 font-bold bg-orange-500/10 px-2 py-1 rounded-md border border-orange-500/20">
-                  <Flame size={16} fill="currentColor" />
-                  {user.streak_count}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--primary)]/5 border border-[var(--primary)]/10 text-[var(--primary)] font-black text-xs">
+                   <Flame size={14} fill="currentColor" />
+                   {u.streak_count || 0}
                 </div>
-              </div>
+              </motion.div>
             );
           })
         )}
       </div>
+
+      {/* Invite Modal */}
+      <AnimatePresence>
+        {isInviteOpen && (
+           <motion.div 
+             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-6"
+           >
+              <motion.div 
+                initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                className="w-full max-w-sm bg-[var(--bg-app)] rounded-[32px] border border-[var(--border)] p-6 shadow-2xl space-y-6"
+              >
+                 <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-black">Find Friends</h3>
+                    <button onClick={() => setIsInviteOpen(false)} className="w-10 h-10 rounded-full bg-[var(--bg-surface)] border border-[var(--border)] flex items-center justify-center">✕</button>
+                 </div>
+                 <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] opacity-40" size={18} />
+                    <input 
+                      className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl h-14 pl-12 pr-6 outline-none focus:border-[var(--primary)] transition-all font-medium"
+                      placeholder="Username..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                 </div>
+                 <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {searchResults.map(u => (
+                      <div key={u.id} className="flex justify-between items-center p-3 bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl">
+                        <span className="font-bold text-sm capitalize">{u.display_name}</span>
+                        <Button onClick={() => sendFriendRequest(u.id)} size="sm" className="bg-[var(--primary)] h-8 rounded-xl px-4">Add</Button>
+                      </div>
+                    ))}
+                 </div>
+                 <Button onClick={handleSearch} disabled={isSearching || !searchQuery} className="w-full h-14 bg-[var(--primary)] rounded-2xl font-black uppercase tracking-widest">
+                   {isSearching ? 'Scanning...' : 'Search World'}
+                 </Button>
+              </motion.div>
+           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <BottomNav />
     </div>
   );
 }

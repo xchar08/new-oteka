@@ -24,14 +24,19 @@ const config: Config = {
         warning: "var(--warning)",
         error: "var(--error)",
         border: "var(--border)",
-        // Legacy Palenight Mappings (for ease of migration)
-        palenight: {
-          bg: "var(--bg-app)",
-          surface: "var(--bg-surface)",
-          accent: "var(--primary)",
-          secondary: "var(--secondary)",
-          success: "var(--success)",
-          warning: "var(--warning)",
+        // Extended Palette for Design System
+        blue: {
+          50: "var(--blue-50)",
+          100: "var(--blue-100)",
+          200: "var(--blue-200)",
+          300: "var(--blue-300)",
+          400: "var(--blue-400)",
+          500: "var(--blue-500)",
+          600: "var(--blue-600)",
+          700: "var(--blue-700)",
+          800: "var(--blue-800)",
+          900: "var(--blue-900)",
+          950: "var(--blue-950)",
         },
       },
       backgroundImage: {
@@ -44,9 +49,14 @@ const config: Config = {
           "0%": { transform: "translateY(0)" },
           "100%": { transform: "translateY(100%)" },
         },
+        "pulse-subtle": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.8" },
+        },
       },
       animation: {
         scan: "scan 2s linear infinite",
+        "pulse-subtle": "pulse-subtle 3s ease-in-out infinite",
       },
     },
   },

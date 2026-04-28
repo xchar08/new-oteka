@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, Zap, Activity, Battery, Flame, Moon, Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import { useAppStore, ColorTheme } from '@/lib/state/appStore';
 
 export default function SettingsPage() {
   const [goal, setGoal] = useState('maintenance');
   const [loading, setLoading] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { colorTheme, setColorTheme } = useAppStore();
   
   const supabase = createClient();
   const router = useRouter();
@@ -40,6 +42,7 @@ export default function SettingsPage() {
 
     await supabase.from('users').update({ metabolic_state_json: newState }).eq('id', user.id);
     setLoading(false);
+    alert("Settings updated successfully.");
   };
 
   const strategies = [
@@ -88,6 +91,34 @@ export default function SettingsPage() {
            >
              <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-md transition-transform ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0'}`} />
            </button>
+        </div>
+      </section>
+
+      {/* Color Themes */}
+      <section className="space-y-4">
+        <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest px-1">Vitality Theme</h2>
+        <div className="grid grid-cols-2 gap-3">
+           {[
+             { id: 'solar', label: 'Solar', color: 'bg-[#FF8C00]' },
+             { id: 'emerald', label: 'Emerald', color: 'bg-[#10b981]' },
+             { id: 'cobalt', label: 'Cobalt', color: 'bg-[#3b82f6]' },
+             { id: 'midnight', label: 'Midnight', color: 'bg-[#8b5cf6]' },
+           ].map((t) => (
+             <button
+               key={t.id}
+               onClick={() => setColorTheme(t.id as ColorTheme)}
+               className={`flex items-center gap-3 p-4 rounded-2xl bg-[var(--bg-surface)] border transition-all ${
+                 colorTheme === t.id 
+                 ? `border-[var(--primary)] ring-1 ring-[var(--primary)]` 
+                 : 'border-[var(--border)] hover:bg-[var(--bg-surface-2)]'
+               }`}
+             >
+               <div className={`w-4 h-4 rounded-full ${t.color}`} />
+               <span className={`text-sm font-bold ${colorTheme === t.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                 {t.label}
+               </span>
+             </button>
+           ))}
         </div>
       </section>
 

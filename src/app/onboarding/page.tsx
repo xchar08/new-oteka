@@ -1,10 +1,22 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Activity } from 'lucide-react';
+import { ArrowRight, Activity, LogOut } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function OnboardingIndex() {
+  const supabase = createClient();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
   return (
-    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] p-8 flex flex-col justify-center items-center text-center space-y-8 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] p-8 pt-safe flex flex-col justify-center items-center text-center space-y-8 animate-in fade-in duration-500">
       <div className="space-y-4">
         <h1 className="text-4xl font-extrabold tracking-tight">
           Metabolic Setup
@@ -24,11 +36,21 @@ export default function OnboardingIndex() {
         </p>
       </div>
 
-      <Link href="/onboarding/profile" className="w-full max-w-xs">
-        <Button className="w-full h-12 text-lg gap-2 bg-[var(--primary)] text-[var(--primary-fg)] hover:opacity-90 rounded-xl shadow-lg font-bold">
+      <div className="w-full max-w-xs space-y-4">
+        <Button 
+          onClick={() => router.push('/onboarding/profile')}
+          className="w-full h-12 text-lg gap-2 bg-[var(--primary)] text-[var(--primary-fg)] hover:opacity-90 rounded-xl shadow-lg font-bold"
+        >
           Start Setup <ArrowRight size={18} />
         </Button>
-      </Link>
+        
+        <button 
+          onClick={handleSignOut}
+          className="flex items-center justify-center gap-2 text-xs text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors w-full"
+        >
+          <LogOut size={12} /> Sign out / Reset session
+        </button>
+      </div>
     </div>
   );
 }
