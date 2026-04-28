@@ -81,14 +81,14 @@ export default function PantryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#FF8C00] border-t-transparent" />
+      <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] text-[#2D241E] pb-32 font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] pb-32 font-sans overflow-x-hidden transition-colors duration-500">
       {/* Top App Bar */}
       <motion.header 
         initial={{ y: -50, opacity: 0 }}
@@ -128,13 +128,13 @@ export default function PantryPage() {
           animate={{ y: 0, opacity: 1 }}
           className="relative"
         >
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] opacity-40" size={20} />
           <input 
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search ingredients..." 
-            className="w-full bg-white border border-[#FF8C00]/5 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-[#FF8C00] transition-colors shadow-xl shadow-[#FF8C00]/5"
+            className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-[var(--primary)] transition-colors shadow-sm"
           />
         </motion.div>
       </section>
@@ -154,8 +154,8 @@ export default function PantryPage() {
               onClick={() => setActiveCategory(cat)}
               className={`px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
                 activeCategory === cat 
-                ? 'bg-[#FF8C00] text-white shadow-lg shadow-[#FF8C00]/20' 
-                : 'bg-white text-gray-400 border border-[#FF8C00]/5 shadow-sm'
+                ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' 
+                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border)] shadow-sm'
               }`}
             >
               {cat}
@@ -173,9 +173,9 @@ export default function PantryPage() {
       >
         <AnimatePresence mode="popLayout">
           {filteredItems.length === 0 ? (
-             <div className="text-center py-20 bg-white rounded-[32px] border border-dashed border-gray-200">
-                <Package className="mx-auto text-gray-200 mb-4" size={48} />
-                <p className="text-gray-400 font-medium">No ingredients found</p>
+             <div className="text-center py-20 bg-[var(--bg-surface)] rounded-[32px] border border-dashed border-[var(--border)]">
+                <Package className="mx-auto text-[var(--text-secondary)] opacity-20 mb-4" size={48} />
+                <p className="text-[var(--text-secondary)] opacity-50 font-medium">No ingredients found</p>
              </div>
           ) : filteredItems.map((item) => (
             <motion.div 
@@ -183,29 +183,29 @@ export default function PantryPage() {
               variants={itemVariants}
               layout
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-[28px] p-4 flex items-center gap-4 shadow-xl shadow-[#FF8C00]/5 border border-[#FF8C00]/5 group"
+              className="bg-[var(--bg-surface)] rounded-[28px] p-4 flex items-center gap-4 shadow-sm border border-[var(--border)] group"
             >
-              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#FFFBF5] border border-[#FF8C00]/5 shadow-inner shrink-0 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[var(--bg-app)] border border-[var(--border)] shadow-inner shrink-0 flex items-center justify-center">
                 {item.metadata_json?.image_url ? (
                    <img src={item.metadata_json.image_url} alt={item.name} className="w-full h-full object-cover" />
                 ) : (
-                   <UtensilsCrossed size={24} className="text-zinc-200" />
+                   <UtensilsCrossed size={24} className="text-[var(--text-secondary)] opacity-20" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-[#2D241E] truncate capitalize">{item.name || item.foods?.name}</h4>
+                <h4 className="font-bold text-[var(--text-primary)] truncate capitalize">{item.name || item.foods?.name}</h4>
                 <div className="flex items-center gap-2 mt-1">
-                   <span className="text-[10px] font-bold uppercase text-[#FF8C00] tracking-wider">{item.metadata_json?.category || 'Grocery'}</span>
-                   <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
-                   <span className="text-[10px] font-bold text-gray-400 uppercase">{(item.foods?.nutritional_info?.calories || 0)} kcal/100g</span>
+                   <span className="text-[10px] font-bold uppercase text-[var(--primary)] tracking-wider">{item.metadata_json?.category || 'Grocery'}</span>
+                   <span className="w-1 h-1 bg-[var(--border)] rounded-full"></span>
+                   <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase">{(item.foods?.nutritional_info?.calories || 0)} kcal/100g</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <motion.button 
                   onClick={() => handleAddMeal(item)}
-                  whileHover={{ scale: 1.1, backgroundColor: '#FF8C00', color: '#fff' }}
+                  whileHover={{ scale: 1.1, backgroundColor: 'var(--primary)', color: '#fff' }}
                   whileTap={{ scale: 0.9 }}
-                  className="w-10 h-10 rounded-xl bg-[#FFFBF5] border border-[#FF8C00]/10 flex items-center justify-center text-[#FF8C00]"
+                  className="w-10 h-10 rounded-xl bg-[var(--bg-app)] border border-[var(--border)] flex items-center justify-center text-[var(--primary)]"
                 >
                   <Plus size={20} strokeWidth={2.5} />
                 </motion.button>
@@ -220,14 +220,14 @@ export default function PantryPage() {
         <motion.div 
           onClick={() => router.push('/shopping')}
           whileHover={{ y: -5 }}
-          className="bg-[#2D241E] rounded-[32px] p-8 text-white relative overflow-hidden shadow-2xl cursor-pointer"
+          className="bg-[var(--secondary)] rounded-[32px] p-8 text-white relative overflow-hidden shadow-2xl cursor-pointer"
         >
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#FF8C00]/20 rounded-full blur-3xl" />
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-[var(--primary)]/20 rounded-full blur-3xl" />
           <h3 className="text-xl font-bold mb-2">Need a Shopping List?</h3>
-          <p className="text-sm text-gray-400 mb-6 max-w-[200px]">Let Oteka AI generate your weekly supply based on your metabolic goals.</p>
+          <p className="text-sm opacity-60 mb-6 max-w-[200px]">Let Oteka AI generate your weekly supply based on your metabolic goals.</p>
           <motion.div 
             whileHover={{ x: 5 }}
-            className="flex items-center gap-2 text-[#FF8C00] font-bold uppercase tracking-widest text-xs"
+            className="flex items-center gap-2 text-[var(--primary)] font-bold uppercase tracking-widest text-xs"
           >
             Generate List <ArrowRight size={16} />
           </motion.div>
@@ -242,7 +242,7 @@ export default function PantryPage() {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', damping: 10, stiffness: 200, delay: 0.5 }}
-        className="fixed bottom-24 right-6 w-16 h-16 bg-[#FF8C00] text-white rounded-2xl shadow-2xl shadow-[#FF8C00]/40 flex items-center justify-center z-50"
+        className="fixed bottom-24 right-6 w-16 h-16 bg-[var(--primary)] text-white rounded-2xl shadow-2xl shadow-[var(--primary)]/40 flex items-center justify-center z-50"
       >
         <Plus size={36} strokeWidth={3} />
       </motion.button>

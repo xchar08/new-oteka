@@ -15,7 +15,16 @@ export function DebugConsole() {
     const originalWarn = console.warn;
 
     const addLog = (type: string, ...args: any[]) => {
-      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      const msg = args.map(a => {
+        if (typeof a === 'object' && a !== null) {
+            try {
+                return JSON.stringify(a);
+            } catch {
+                return "[Circular Object]"; 
+            }
+        }
+        return String(a);
+      }).join(' ');
       setLogs(prev => [...prev.slice(-100), { 
         type, 
         msg, 

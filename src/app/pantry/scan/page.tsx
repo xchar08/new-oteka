@@ -181,17 +181,16 @@ export default function PantryScanPage() {
   };
 
   const processImage = async (base64: string) => {
-    const supabaseClient = createClient(); // Ensure local scope definition
+    const supabaseClient = createClient(); 
     try {
       stopCamera(); 
       const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session?.access_token) throw new Error("Auth missing");
-
+      
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
       if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error("Configuration missing (URL/Key)");
+        throw new Error("Neural Link Down: Missing Supabase Environment Variables.");
       }
 
       const res = await fetch(
@@ -201,7 +200,7 @@ export default function PantryScanPage() {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${supabaseAnonKey}`,
-            'x-user-token': session.access_token
+            'x-user-token': session?.access_token || ''
           },
           body: JSON.stringify({ image: base64, mode: 'pantry' }),
         }
