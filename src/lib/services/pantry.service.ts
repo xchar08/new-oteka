@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/client';
 
-const supabase = createClient();
+const getSupabase = () => createClient();
 
 export const pantryService = {
   async getPantry(userId: string) {
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('pantry')
       .select('*, foods(name, category_decay_rate)')
@@ -15,6 +16,7 @@ export const pantryService = {
   },
 
   async verifyItem(pantryId: number, status: 'active' | 'consumed') {
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('pantry')
       .update({

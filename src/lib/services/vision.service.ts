@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 
-const supabase = createClient();
+const getSupabase = () => createClient();
 
 export const visionService = {
   /**
@@ -8,6 +8,7 @@ export const visionService = {
    * This is the entry point for the "Storage-First" asynchronous pipeline.
    */
   async uploadScan(userId: string, blob: Blob) {
+    const supabase = getSupabase();
     const fileName = `${userId}/${Date.now()}-${crypto.randomUUID()}.jpg`;
     
     const { data, error } = await supabase.storage
@@ -25,6 +26,7 @@ export const visionService = {
    * Fetches the latest logs for the user.
    */
   async getDailyLogs(userId: string) {
+    const supabase = getSupabase();
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 

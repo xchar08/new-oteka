@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/client';
 
-const supabase = createClient();
+const getSupabase = () => createClient();
 
 export const shoppingService = {
   async getList(householdId: string) {
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('shopping_list')
       .select('*')
@@ -15,6 +16,7 @@ export const shoppingService = {
   },
 
   async upsertItem(item: any) {
+    const supabase = getSupabase();
     const { id, temp_id, ...data } = item;
     
     if (id) {
@@ -38,6 +40,7 @@ export const shoppingService = {
   },
 
   async deleteItem(id: number) {
+    const supabase = getSupabase();
     const { error } = await supabase
       .from('shopping_list')
       .delete()
