@@ -25,49 +25,64 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      const isProtectedRoute = PROTECTED_ROUTES.some(route => 
-        pathname?.startsWith(route)
-      );
-
-      if (isProtectedRoute && !session) {
-        router.replace('/login');
-        setAuthorized(false);
-      } else if (session) {
-        // Check if user has completed onboarding (has hand_width_mm set)
-        const { data: profile, error } = await supabase
-          .from('users')
-          .select('hand_width_mm, metabolic_state_json')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) {
-           console.error("AuthGuard fetch error:", error);
-        }
-
-        const hasProfile = !!(profile?.metabolic_state_json && (profile.metabolic_state_json as any).age);
-        const hasCalibration = !!(profile?.hand_width_mm);
-
-        if (!hasProfile || !hasCalibration) {
-          // If we are already on onboarding, don't keep replacing (prevents infinite loop in some edge cases)
-          if (pathname === '/onboarding' || pathname.startsWith('/onboarding/')) {
-             setAuthorized(true);
-             setLoading(false);
-             return;
+        if (sessionError) {
+          if (sessionError.message.includes('Refresh Token Not Found') || sessionError.message.includes('invalid refresh token')) {
+            console.warn("AuthGuard: Session refresh failed, redirecting to login.");
+            router.replace('/login');
+            setAuthorized(false);
+            setLoading(false);
+            return;
           }
-          router.replace('/onboarding');
-          setAuthorized(false);
-          setLoading(false);
-          return;
+          console.error("AuthGuard: Session fetch error:", sessionError);
         }
-        
-        setAuthorized(true);
-      } else {
-        setAuthorized(true);
+
+        const isProtectedRoute = PROTECTED_ROUTES.some(route => 
+          pathname?.startsWith(route)
+        );
+
+        if (isProtectedRoute && !session) {
+          router.replace('/login');
+          setAuthorized(false);
+        } else if (session) {
+          // Check if user has completed onboarding (has hand_width_mm set)
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('hand_width_mm, metabolic_state_json')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profileError) {
+             console.error("AuthGuard profile fetch error:", profileError);
+          }
+
+          const hasProfile = !!(profile?.metabolic_state_json && (profile.metabolic_state_json as any).age);
+          const hasCalibration = !!(profile?.hand_width_mm);
+
+          if (!hasProfile || !hasCalibration) {
+            // If we are already on onboarding, don't keep replacing (prevents infinite loop in some edge cases)
+            if (pathname === '/onboarding' || pathname.startsWith('/onboarding/')) {
+               setAuthorized(true);
+               setLoading(false);
+               return;
+            }
+            router.replace('/onboarding');
+            setAuthorized(false);
+            setLoading(false);
+            return;
+          }
+          
+          setAuthorized(true);
+        } else {
+          setAuthorized(true);
+        }
+      } catch (err) {
+        console.error("AuthGuard: Unhandled exception during auth check:", err);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     checkAuth();

@@ -9,7 +9,8 @@ import {
   ShoppingBag,
   Package,
   ArrowRight,
-  UtensilsCrossed
+  UtensilsCrossed,
+  User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';

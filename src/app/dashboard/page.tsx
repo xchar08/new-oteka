@@ -18,7 +18,8 @@ import {
   User,
   Settings,
   Bell,
-  CheckCircle2
+  CheckCircle2,
+  Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -204,13 +205,18 @@ export default function DashboardPage() {
         {/* Quick Action Grid */}
         <div className="grid grid-cols-4 gap-3">
           {[
-            { onClick: () => router.push('/vision'), icon: Camera, label: 'Scan', color: 'bg-blue-50/50 text-blue-500 border-blue-100' },
-            { onClick: () => router.push('/planner'), icon: Target, label: 'Plan', color: 'bg-purple-50/50 text-purple-500 border-purple-100' },
-            { onClick: () => router.push('/shopping'), icon: ShoppingCart, label: 'Shop', color: 'bg-emerald-50/50 text-emerald-500 border-emerald-100' },
-            { onClick: () => router.push('/coach'), icon: MessageSquare, label: 'Coach', color: 'bg-amber-50/50 text-amber-500 border-amber-100' },
+            { onClick: () => router.push('/vision'), icon: Camera, label: 'Scan', color: 'bg-blue-50/50 text-blue-500 border-blue-100', pro: true },
+            { onClick: () => router.push('/planner'), icon: Target, label: 'Plan', color: 'bg-purple-50/50 text-purple-500 border-purple-100', pro: true },
+            { onClick: () => router.push('/shopping'), icon: ShoppingCart, label: 'Shop', color: 'bg-emerald-50/50 text-emerald-500 border-emerald-100', pro: true },
+            { onClick: () => router.push('/coach'), icon: MessageSquare, label: 'Coach', color: 'bg-amber-50/50 text-amber-500 border-amber-100', pro: true },
           ].map((action) => (
             <motion.div key={action.label} variants={item}>
-              <button onClick={action.onClick} className="flex flex-col items-center gap-2 group w-full">
+              <button onClick={action.onClick} className="flex flex-col items-center gap-2 group w-full relative">
+                {action.pro && (
+                    <div className="absolute -top-1 -right-1 z-10 bg-[var(--primary)] text-white p-1 rounded-full shadow-lg border border-white/20">
+                        <Star size={8} fill="currentColor" />
+                    </div>
+                )}
                 <motion.div 
                   whileHover={{ scale: 1.1, y: -5 }}
                   whileTap={{ scale: 0.9 }}

@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Terminal, X, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { Terminal, X, ChevronDown, Trash2 } from 'lucide-react';
 
 export function DebugConsole() {
   const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState<{ type: string; msg: string; ts: string }[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setIsMounted(true);
     const originalLog = console.log;
     const originalError = console.error;
     const originalWarn = console.warn;
@@ -45,55 +47,72 @@ export function DebugConsole() {
       addLog('warn', ...args);
     };
 
-    window.onerror = (msg, url, line, col, error) => {
-        addLog('error', `Global: ${msg} at ${line}:${col}`);
-        return false;
+    const handleError = (event: ErrorEvent) => {
+        addLog('error', `Global: ${event.message} at ${event.lineno}:${event.colno}`);
     };
+
+    window.addEventListener('error', handleError);
 
     return () => {
       console.log = originalLog;
       console.error = originalError;
       console.warn = originalWarn;
+      window.removeEventListener('error', handleError);
     };
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && isOpen) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [logs, isOpen]);
 
+  if (!isMounted) return null;
+
   return (
     <>
       <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 left-4 z-[9999] w-10 h-10 bg-black/80 border border-white/20 rounded-full flex items-center justify-center text-white/50 backdrop-blur-xl"
+        onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // alert("DEBUG CONSOLE TOGGLE"); // Temporary verification
+            setIsOpen(!isOpen);
+        }}
+        style={{ 
+            zIndex: 999999,
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            pointerEvents: 'auto'
+        }}
+        className="w-12 h-12 bg-[var(--primary)] text-white rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(var(--ring),0.4)] active:scale-95 transition-transform"
       >
-        {isOpen ? <ChevronDown size={20} /> : <Terminal size={20} />}
+        {isOpen ? <ChevronDown size={24} /> : <Terminal size={24} />}
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            className="fixed inset-x-0 bottom-0 z-[9998] h-[50vh] bg-black/95 backdrop-blur-2xl border-t border-white/10 flex flex-col font-mono text-[10px]"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            style={{ zIndex: 99999 }}
+            className="fixed inset-4 bottom-20 bg-black/95 backdrop-blur-2xl border border-white/10 rounded-[32px] flex flex-col font-mono text-[10px] overflow-hidden shadow-2xl"
           >
-            <div className="flex items-center justify-between p-3 border-b border-white/5 bg-white/5">
+            <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/5">
                 <span className="text-white/40 uppercase font-black tracking-widest flex items-center gap-2">
-                    <Terminal size={12} /> System Kernel Logs
+                    <Terminal size={12} /> System Kernel
                 </span>
                 <div className="flex items-center gap-4">
-                    <button onClick={() => setLogs([])} className="text-white/40 hover:text-white"><Trash2 size={14} /></button>
-                    <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white"><X size={14} /></button>
+                    <button onClick={() => setLogs([])} className="text-white/40 hover:text-white p-2"><Trash2 size={14} /></button>
+                    <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white p-2"><X size={14} /></button>
                 </div>
             </div>
             
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2">
-                {logs.length === 0 && <div className="text-white/20 italic">Listening for output...</div>}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
+                {logs.length === 0 && <div className="text-white/20 italic">Listening for system output...</div>}
                 {logs.map((l, i) => (
-                    <div key={i} className="flex gap-3 border-b border-white/5 pb-2">
+                    <div key={i} className="flex gap-3 border-b border-white/5 pb-2 last:border-0">
                         <span className="text-white/20 shrink-0">{l.ts}</span>
                         <span className={`shrink-0 font-bold uppercase ${
                             l.type === 'error' ? 'text-red-500' : 

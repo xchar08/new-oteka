@@ -19,7 +19,7 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-[#FF8C00]/5 pb-safe pt-2 px-6 z-50 shadow-[0_-10px_40px_rgba(255,140,0,0.05)]">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[var(--bg-surface)]/80 backdrop-blur-xl border-t border-[var(--primary)]/5 pb-safe pt-2 px-6 z-50 shadow-[0_-10px_40px_rgba(var(--ring),0.05)]">
       <div className="flex justify-around items-center h-16 max-w-md mx-auto">
         {navs.map((n) => {
           const isActive = pathname === n.href;
@@ -29,21 +29,21 @@ export function BottomNav() {
             <Link 
               key={n.label} 
               href={n.href} 
-              className={`flex flex-col items-center gap-1 transition-all duration-300 relative ${isActive ? 'text-[#FF8C00]' : 'text-gray-300'}`}
+              className={`flex flex-col items-center gap-1 transition-all duration-300 relative ${isActive ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]/40'}`}
             >
               <motion.div 
                 animate={isActive ? { y: -2, scale: 1.1 } : { y: 0, scale: 1 }}
-                className={`p-2 rounded-2xl transition-colors ${isActive ? 'bg-[#FF8C00]/10' : 'bg-transparent'}`}
+                className={`p-2 rounded-2xl transition-colors ${isActive ? 'bg-[var(--primary)]/10' : 'bg-transparent'}`}
               >
                 <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
               </motion.div>
-              <span className={`text-[8px] font-black uppercase tracking-[0.2em] transition-all ${isActive ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-1'}`}>
+              <span className={`text-[8px] font-black uppercase tracking-[0.2em] transition-all ${isActive ? 'opacity-100 translate-y-0' : 'opacity-100 translate-y-1'}`}>
                 {n.label}
               </span>
               {isActive && (
                 <motion.div 
                   layoutId="activeTab"
-                  className="absolute -top-2 w-8 h-1 bg-[#FF8C00] rounded-full"
+                  className="absolute -top-2 w-8 h-1 bg-[var(--primary)] rounded-full"
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 />
               )}

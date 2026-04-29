@@ -8,9 +8,6 @@ import {
   Shield, 
   ChevronRight,
   LogOut,
-  Menu,
-  Bell,
-  CheckCircle2,
   Sparkles,
   Zap,
   Flame,
@@ -55,8 +52,8 @@ export default function ProfilePage() {
 
   if (loading) {
      return (
-       <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center">
-         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#FF8C00] border-t-transparent" />
+       <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
+         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
        </div>
      );
   }
@@ -71,21 +68,21 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] text-[#2D241E] pb-32 font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] pb-32 font-sans overflow-x-hidden transition-colors duration-500">
       {/* Top App Bar */}
       <motion.header 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="px-6 pt-8 pb-4 flex justify-between items-center bg-[#FFFBF5]/80 backdrop-blur-md sticky top-0 z-40"
+        className="px-6 pt-8 pb-4 flex justify-between items-center bg-[var(--bg-app)]/80 backdrop-blur-md sticky top-0 z-40"
       >
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Profile</h1>
         </div>
         <motion.button 
           whileHover={{ scale: 1.1, rotate: 90 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => router.push('/settings')}
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-[#FF8C00]/10 text-[var(--text-secondary)]"
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--bg-surface)] shadow-sm border border-[var(--primary)]/10 text-[var(--text-secondary)]"
         >
           <Settings size={20} />
         </motion.button>
@@ -99,7 +96,7 @@ export default function ProfilePage() {
           transition={{ type: 'spring', damping: 12 }}
           className="relative"
         >
-          <div className="w-28 h-28 rounded-[32px] overflow-hidden border-4 border-white shadow-2xl relative z-10 bg-zinc-100 flex items-center justify-center">
+          <div className="w-28 h-28 rounded-[32px] overflow-hidden border-4 border-[var(--bg-surface)] shadow-2xl relative z-10 bg-[var(--bg-surface)] flex items-center justify-center">
             {user?.avatar_url ? (
               <img 
                 src={user.avatar_url} 
@@ -107,17 +104,17 @@ export default function ProfilePage() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <User size={48} className="text-zinc-300" />
+              <User size={48} className="text-[var(--text-secondary)] opacity-20" />
             )}
           </div>
           <motion.div 
             animate={{ rotate: 360 }}
             transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-            className="absolute -inset-2 bg-gradient-to-tr from-[#FF8C00] to-yellow-300 rounded-[40px] opacity-20 blur-sm"
+            className="absolute -inset-2 bg-gradient-to-tr from-[var(--primary)] to-yellow-300 rounded-[40px] opacity-20 blur-sm"
           />
           <motion.div 
             whileHover={{ scale: 1.2 }}
-            className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#FF8C00] text-white rounded-xl flex items-center justify-center shadow-lg z-20"
+            className="absolute -bottom-2 -right-2 w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center shadow-lg z-20"
           >
             <Sparkles size={18} />
           </motion.div>
@@ -126,14 +123,14 @@ export default function ProfilePage() {
         <motion.h2 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-2xl font-black text-[#2D241E] mt-6 text-center"
+          className="text-2xl font-black text-[var(--text-primary)] mt-6 text-center"
         >
           {user?.display_name || "Explorer"}
         </motion.h2>
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF8C00] mt-1"
+          className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--primary)] mt-1"
         >
           Metabolic Score: {user?.streak_count > 0 ? 88 + user.streak_count : 88} • {user?.streak_count > 5 ? 'ELITE' : 'ACTIVE'}
         </motion.p>
@@ -150,7 +147,7 @@ export default function ProfilePage() {
         <motion.div 
           variants={cardVariants}
           whileHover={{ y: -5 }}
-          className="bg-[#FF8C00] rounded-[32px] p-8 text-white relative overflow-hidden shadow-2xl shadow-[#FF8C00]/30"
+          className="bg-[var(--primary)] rounded-[32px] p-8 text-white relative overflow-hidden shadow-2xl shadow-[var(--primary)]/30"
         >
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Activity size={120} strokeWidth={1} />
@@ -201,7 +198,7 @@ export default function ProfilePage() {
         {/* Settings List */}
         <motion.div 
           variants={cardVariants}
-          className="bg-white rounded-[24px] overflow-hidden shadow-xl shadow-[#FF8C00]/5 border border-[#FF8C00]/5"
+          className="bg-[var(--bg-surface)] rounded-[24px] overflow-hidden shadow-xl shadow-[var(--primary)]/5 border border-[var(--primary)]/5"
         >
           <div className="px-6 py-2">
             {[
@@ -214,13 +211,13 @@ export default function ProfilePage() {
                 key={item.label}
                 onClick={item.onClick}
                 whileHover={{ x: 5 }}
-                className={`w-full flex items-center justify-between py-5 ${i !== arr.length - 1 ? 'border-b border-gray-50' : ''} group`}
+                className={`w-full flex items-center justify-between py-5 ${i !== arr.length - 1 ? 'border-b border-[var(--border)] opacity-20' : ''} group`}
               >
-                <div className={`flex items-center gap-4 ${item.danger ? 'text-red-500' : 'text-[#2D241E]'}`}>
+                <div className={`flex items-center gap-4 ${item.danger ? 'text-red-500' : 'text-[var(--text-primary)]'}`}>
                   <item.icon size={20} strokeWidth={item.danger ? 2.5 : 2} />
                   <span className="font-bold text-sm">{item.label}</span>
                 </div>
-                <ChevronRight size={18} className="text-gray-200 group-hover:text-[#FF8C00] transition-colors" />
+                <ChevronRight size={18} className="text-gray-200 group-hover:text-[var(--primary)] transition-colors" />
               </motion.button>
             ))}
           </div>
@@ -228,7 +225,7 @@ export default function ProfilePage() {
       </motion.div>
 
       <div className="px-6 mt-12 text-center">
-        <p className="text-[10px] font-bold uppercase text-gray-300 tracking-[0.4em]">Solar Core v3.0.1</p>
+        <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] opacity-30 tracking-[0.4em]">Solar Core v3.1.1</p>
       </div>
 
       <BottomNav />

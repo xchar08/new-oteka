@@ -2,29 +2,30 @@
 
 import React from 'react';
 
-export function HandOverlay({ status = 'idle', boundingBox }: { status?: 'idle' | 'scanning' | 'locked', boundingBox?: number[] }) {
+export function HandOverlay({ 
+    status = 'idle', 
+    boundingBox, 
+    show = true 
+}: { 
+    status?: 'idle' | 'scanning' | 'locked', 
+    boundingBox?: number[],
+    show?: boolean
+}) {
+    if (!show) return null;
+
     const isLocked = status === 'locked';
     const isScanning = status === 'scanning';
-    
-    // Dynamic styles
-    const borderColor = isLocked ? 'border-emerald-400' : 'border-white/50';
-    const shadowColor = isLocked ? 'shadow-[0_0_30px_rgb(52,211,153)]' : '';
-
-    // Calculate Box Position
-    // Default: Centered, Fixed Size (Top 50%, Left 50%, translate -50%)
-    // Locked + Box: Use percentages from [ymin, xmin, ymax, xmax] (0-1000 scale)
     
     let boxStyle: React.CSSProperties = {
         top: '50%',
         left: '50%',
-        width: '14rem', // 56
-        height: '18rem', // 72
+        width: '14rem', 
+        height: '18rem', 
         transform: 'translate(-50%, -50%)' 
     };
 
     if (isLocked && boundingBox && boundingBox.length === 4) {
         const [ymin, xmin, ymax, xmax] = boundingBox;
-        // Convert 1000-scale to percentage
         const top = (ymin / 1000) * 100;
         const left = (xmin / 1000) * 100;
         const height = ((ymax - ymin) / 1000) * 100;
@@ -35,7 +36,7 @@ export function HandOverlay({ status = 'idle', boundingBox }: { status?: 'idle' 
             left: `${left}%`,
             width: `${width}%`,
             height: `${height}%`,
-            transform: 'none' // Remove center transform
+            transform: 'none' 
         };
     }
 

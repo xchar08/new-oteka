@@ -6,7 +6,7 @@ import { Capacitor } from '@capacitor/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
-import { HandOverlay } from '@/components/vision/HandOverlay';
+import { NeuralScanOverlay } from '@/components/vision/NeuralScanOverlay';
 import { Loader2, RefreshCw, ChevronLeft, Check, Camera, Plus, Trash2, Edit2, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Camera as CapacitorCamera } from '@capacitor/camera';
@@ -23,6 +23,8 @@ interface PantryItemDraft {
 }
 
 export default function PantryScanPage() {
+  const supabase = createClient();
+  const router = useRouter();
   const [analyzing, setAnalyzing] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   
@@ -30,13 +32,9 @@ export default function PantryScanPage() {
   const [scannedItems, setScannedItems] = useState<PantryItemDraft[]>([]);
   const [showResults, setShowResults] = useState(false);
 
-  const [debugLog, setDebugLog] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const supabase = createClient();
-  const router = useRouter();
   const isMounted = useRef(true);
   const isProcessing = useRef(false);
 
@@ -74,7 +72,7 @@ export default function PantryScanPage() {
 
       if (error) throw error;
 
-      stopCamera();
+      await stopCamera();
       router.push('/pantry');
     } catch (err) {
       console.error("Save failed:", err);
@@ -109,14 +107,14 @@ export default function PantryScanPage() {
   // --- CAMERA LIFECYCLE ---
   useEffect(() => {
     isMounted.current = true;
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.isNativePlatform() && !showResults) {
       startCamera();
     }
     return () => {
       isMounted.current = false;
       stopCamera();
     };
-  }, []);
+  }, [showResults]);
 
   const startCamera = async () => {
     try {
@@ -181,10 +179,9 @@ export default function PantryScanPage() {
   };
 
   const processImage = async (base64: string) => {
-    const supabaseClient = createClient(); 
     try {
-      stopCamera(); 
-      const { data: { session } } = await supabaseClient.auth.getSession();
+      await stopCamera(); 
+      const { data: { session } } = await supabase.auth.getSession();
       
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -329,7 +326,7 @@ export default function PantryScanPage() {
             <ChevronLeft size={24} />
         </button>
 
-        <HandOverlay status={analyzing ? 'scanning' : 'idle'} />
+        <NeuralScanOverlay status={analyzing ? 'scanning' : 'idle'} show={!showResults} />
         {analyzing && <ScanningGrid />}
 
         <AnimatePresence>
