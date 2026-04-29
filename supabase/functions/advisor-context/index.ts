@@ -47,7 +47,7 @@ serve(async (req) => {
     const { body } = await req.json();
     const context = body?.context || "chat";
 
-    // 1. Fetch User Profile & Conditions
+    // 1. Fetch User Profile, Conditions & Metabolic Phenomena
     const { data: profile } = await supabase
       .from("users")
       .select("metabolic_state_json, display_name, streak_count")
@@ -65,6 +65,10 @@ serve(async (req) => {
         )
       `)
       .eq("user_id", user.id);
+
+    const { data: phenomena } = await supabase
+      .from("metabolic_phenomena")
+      .select("name, mechanism");
 
     // 2. Fetch Recent Logs (Last 24h)
     const yesterday = new Date();
@@ -106,14 +110,24 @@ serve(async (req) => {
       }).join("\n");
     }
 
+    // Format Phenomena
+    let phenomenaList = "Standard metabolic principles.";
+    if (phenomena && phenomena.length > 0) {
+        phenomenaList = phenomena.map(p => `- ${p.name}: ${p.mechanism}`).join("\n");
+    }
+
     // 4. Construct Prompt
     const systemPrompt = `
       You are OTEKA, an elite Metabolic Advisor.
       User Goal: ${goal}
-      Safety Protocols (CRITICAL):
+      
+      ## MEDICAL SAFETY PROTOCOLS (CRITICAL)
       ${safetyProtocols}
 
-      Recent Intake (24h):
+      ## METABOLIC KNOWLEDGE BASE (WEIGH EVERY RECOMMENDATION AGAINST THESE)
+      ${phenomenaList}
+
+      ## RECENT INTAKE (24h)
       ${logSummary}
 
       Current Context: ${context} (User triggers this from Dashboard).
@@ -131,8 +145,8 @@ serve(async (req) => {
 
     // A. Essential Config
     const NEBIUS_API_KEY = Deno.env.get("NEBIUS_API_KEY");
-    // Explicit Model ID verified via API checklist
-    const NEBIUS_MODEL = "deepseek-ai/DeepSeek-R1-0528";
+    // Explicit Model ID (Verified Working)
+    const NEBIUS_MODEL = "deepseek-ai/DeepSeek-V3.2";
 
     if (NEBIUS_API_KEY) {
       console.log(

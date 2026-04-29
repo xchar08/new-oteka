@@ -25,9 +25,12 @@ if (!API_KEY) {
     Deno.exit(1);
 }
 
-const MODEL_NAME = "gemini-3-flash-preview";
-// Also try a known working fallback to compare
-const CONTROL_MODEL = "gemini-2.5-flash";
+const MODELS_TO_TEST = [
+    "gemini-3-flash-preview",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash"
+];
 
 async function testModel(model: string) {
     console.log(`\n--- Testing Model: ${model} ---`);
@@ -61,4 +64,6 @@ async function testModel(model: string) {
     }
 }
 
-await testModel(CONTROL_MODEL);
+for (const model of MODELS_TO_TEST) {
+    await testModel(model);
+}

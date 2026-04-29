@@ -7,9 +7,12 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { createClient } from '@/lib/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { visionService } from '@/lib/services/vision.service';
-import { Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
+import { Sparkles, CheckCircle2, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { NeuralScanOverlay } from './NeuralScanOverlay';
+import { MetabolicBadge } from '../ui/MetabolicBadge';
+import { SafetyAlert } from '../ui/SafetyAlert';
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 export function OptimisticCapture({
@@ -19,6 +22,7 @@ export function OptimisticCapture({
   onCapture?: (blob: Blob) => Promise<any>;
 }) {
   const [status, setStatus] = useState<'idle' | 'uploading' | 'complete'>('idle');
+  const [scanResult, setScanResult] = useState<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -26,10 +30,8 @@ export function OptimisticCapture({
 
   const uploadMutation = useMutation({
     mutationFn: async ({ userId, blob }: { userId: string, blob: Blob }) => {
-      // 1. Upload to storage
       const { path } = await visionService.uploadScan(userId, blob);
 
-      // 2. Trigger Edge Function
       const { data, error } = await supabase.functions.invoke('vision-pipeline', {
         body: { 
           imagePath: path,
@@ -43,23 +45,14 @@ export function OptimisticCapture({
       }
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setScanResult(data);
       setStatus('complete');
       queryClient.invalidateQueries({ queryKey: ['daily-logs'] });
-
-      const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNative;
-      setTimeout(async () => {
-        if (isNative) {
-          await App.minimizeApp();
-        } else {
-          router.push('/dashboard');
-        }
-      }, 800);
     },
     onError: (error: any) => {
       console.error('Upload Process Failed:', error);
       setStatus('idle');
-      // Fix for stringifying empty error objects
       const msg = error.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
       toast.error('Scan Failed: ' + msg);
     }
@@ -85,12 +78,12 @@ export function OptimisticCapture({
       }
     }
 
-    startCamera();
+    if (status === 'idle') startCamera();
 
     return () => {
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [status]);
 
   const handleClick = async () => {
     if (!videoRef.current || status !== 'idle') return;
@@ -173,16 +166,81 @@ export function OptimisticCapture({
 
   if (status === 'complete') {
     return (
-      <div className="fixed inset-0 bg-[var(--primary)] flex items-center justify-center z-50 backdrop-blur-md animate-in fade-in duration-300">
-        <div className="text-center text-white space-y-4 scale-110 animate-in zoom-in-50 duration-500">
-          <div className="bg-white/20 p-6 rounded-[2rem] inline-block backdrop-blur-xl border border-white/20">
-            <CheckCircle2 className="w-16 h-16 text-white" />
+      <div className="fixed inset-0 bg-[var(--bg-app)] flex flex-col p-6 animate-in fade-in duration-500 overflow-y-auto pb-safe transition-colors">
+        <div className="text-center space-y-4 mb-8 pt-safe">
+          <div className="bg-emerald-500/10 p-6 rounded-[2.5rem] inline-block backdrop-blur-xl border border-emerald-500/20">
+            <CheckCircle2 className="w-16 h-16 text-emerald-500" />
           </div>
-          <div className="space-y-1">
-            <h2 className="text-4xl font-black tracking-tight uppercase italic">Linked</h2>
-            <p className="text-white/60 font-bold uppercase tracking-widest text-[10px]">Processing Signal...</p>
+          <div>
+            <h2 className="text-4xl font-black tracking-tight uppercase italic text-[var(--text-primary)]">Synced</h2>
+            <p className="text-[var(--text-secondary)] font-bold uppercase tracking-widest text-[10px] opacity-40">Metabolic Pattern Anchored</p>
           </div>
         </div>
+
+        {scanResult && (
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6"
+            >
+                {/* Safety Alerts at the top */}
+                {scanResult.safety_alerts?.map((alert: any, idx: number) => (
+                    <div key={idx} className="flex justify-center">
+                        <SafetyAlert reason={alert.reason} type={alert.type} />
+                    </div>
+                ))}
+
+                {/* Main Insight Card */}
+                <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[40px] p-8 shadow-sm space-y-6">
+                    <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0 pr-4">
+                            <h3 className="text-2xl font-black text-[var(--text-primary)] capitalize truncate">{scanResult.items?.[0]?.name || 'Analyzed Content'}</h3>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest">{scanResult.macros?.calories || 0} kcal</span>
+                                <div className="w-1 h-1 bg-[var(--border)] rounded-full" />
+                                <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">{scanResult.items?.[0]?.quantity}</span>
+                            </div>
+                        </div>
+                        <div className="h-12 w-12 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] shrink-0">
+                            <Sparkles size={24} />
+                        </div>
+                    </div>
+
+                    <div className="bg-[var(--bg-app)] border border-[var(--border)] p-6 rounded-3xl">
+                        <p className="text-sm text-[var(--text-primary)] font-medium leading-relaxed italic opacity-80">
+                            "{scanResult.metabolic_insight?.layman_explanation || "Meal signal successfully integrated into your metabolic history."}"
+                        </p>
+                    </div>
+
+                    {/* Triggered Phenomena Badges */}
+                    <div className="flex flex-wrap gap-2">
+                        {scanResult.metabolic_insight?.triggered_phenomena?.map((p: any) => (
+                            <MetabolicBadge key={p.id} name={p.name} why={p.why} />
+                        ))}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                    {[
+                        { label: 'Protein', val: scanResult.macros?.protein, unit: 'g' },
+                        { label: 'Carbs', val: scanResult.macros?.carbs, unit: 'g' },
+                        { label: 'Fats', val: scanResult.macros?.fat || scanResult.macros?.fats, unit: 'g' },
+                    ].map(m => (
+                        <div key={m.label} className="bg-[var(--bg-surface)] border border-[var(--border)] p-4 rounded-3xl text-center shadow-sm">
+                            <div className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-1 opacity-50">{m.label}</div>
+                            <div className="text-lg font-black text-[var(--text-primary)]">{Math.round(m.val || 0)}<span className="text-[10px] opacity-30 ml-0.5">{m.unit}</span></div>
+                        </div>
+                    ))}
+                </div>
+
+                <button 
+                    onClick={() => router.push('/dashboard')}
+                    className="w-full h-16 bg-[var(--primary)] text-white rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all mt-4"
+                >
+                    Return to Hub
+                </button>
+            </motion.div>
+        )}
       </div>
     );
   }

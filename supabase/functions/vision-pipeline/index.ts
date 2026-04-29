@@ -150,104 +150,13 @@ Deno.serve(async (req) => {
 
     // Environment Variables
     const NEBIUS_API_KEY = Deno.env.get("NEBIUS_API_KEY");
-    // Standardized DeepSeek Model ID (Verified)
-    const DEEPSEEK_MODEL_ID = "deepseek-ai/DeepSeek-R1-0528";
+    // Standardized DeepSeek Model ID (Verified Working)
+    const DEEPSEEK_MODEL_ID = "deepseek-ai/DeepSeek-V3.2";
     const DEEPSEEK_BASE_URL =
       "https://api.studio.nebius.ai/v1/chat/completions";
 
     // 4. Inject Knowledge Bases (Source of Truth)
-    // EMBEDDED PHENOMENA (Universal Principles - Can remain hardcoded for now)
-    const METABOLIC_PHENOMENA = [
-      {
-        id: "randle_cycle",
-        name: "Randle Cycle",
-        mechanism:
-          "Glucose/Fat competition; high fat suppresses glucose oxidation.",
-      },
-      {
-        id: "cori_cycle",
-        name: "Cori Cycle",
-        mechanism: "Lactate recycling to glucose in liver.",
-      },
-      {
-        id: "cahill_cycle",
-        name: "Cahill Cycle",
-        mechanism: "Muscle amino acids -> Alanine -> Glucose.",
-      },
-      {
-        id: "ketone_sparing",
-        name: "Ketone Sparing",
-        mechanism: "Ketones sparing glucose/muscle.",
-      },
-      {
-        id: "protein_sparing",
-        name: "Protein Sparing",
-        mechanism: "Carbs/Fats prevent muscle breakdown.",
-      },
-      {
-        id: "reverse_randle",
-        name: "Reverse Randle",
-        mechanism: "Lowering fat improves glucose uptake.",
-      },
-      {
-        id: "ffa_insulin_antagonism",
-        name: "FFA-Insulin Antagonism",
-        mechanism: "High FFAs block insulin signaling.",
-      },
-      {
-        id: "crabtree_effect",
-        name: "Crabtree Effect",
-        mechanism: "High glucose forces glycolysis over oxidation.",
-      },
-      {
-        id: "pasteur_effect",
-        name: "Pasteur Effect",
-        mechanism: "Oxygen shifts metabolism to efficiency.",
-      },
-      {
-        id: "warburg_effect",
-        name: "Warburg Effect",
-        mechanism: "Glycolysis despite oxygen (stress/growth).",
-      },
-      {
-        id: "citrate_inhibition",
-        name: "Citrate Inhibition",
-        mechanism: "Energy abundance blocks glycolysis.",
-      },
-      {
-        id: "ampk_mtor",
-        name: "AMPK-mTOR Axis",
-        mechanism: "Repair (AMPK) vs Growth (mTOR).",
-      },
-      {
-        id: "sirtuins",
-        name: "Sirtuins",
-        mechanism: "Energy deficit signals repair.",
-      },
-      {
-        id: "autophagy",
-        name: "Autophagy",
-        mechanism: "Cellular cleanup during fasting.",
-      },
-      {
-        id: "scfa_competition",
-        name: "SCFA Competition",
-        mechanism: "Gut fiber byproducts spare glucose.",
-      },
-      {
-        id: "anaplerosis",
-        name: "Anaplerosis",
-        mechanism: "Refilling the metabolic engine.",
-      },
-      {
-        id: "urea_cycle",
-        name: "Urea Cycle",
-        mechanism: "Nitrogen disposal from protein.",
-      },
-    ];
-
-    // 4b. Fetch User's Active Conditions (DYNAMICALLY)
-    // We join 'user_conditions' with 'conditions' to get the full rules.
+    // Fetch User's Active Conditions (DYNAMICALLY)
     const { data: medicalContext } = await supabase
       .from("user_conditions")
       .select(`
@@ -260,12 +169,16 @@ Deno.serve(async (req) => {
       `)
       .eq("user_id", user.id);
 
+    // Fetch Metabolic Phenomena (DYNAMICALLY)
+    const { data: phenomenaDB } = await supabase
+      .from("metabolic_phenomena")
+      .select("name, mechanism");
+
     // Construct Safety Protocol String
     let safetyContext = "None.";
     if (medicalContext && medicalContext.length > 0) {
       safetyContext = medicalContext.map((c: any) => {
         const cond = c.conditions;
-        // rules_json and never_recommend_json are typically arrays
         const rules = Array.isArray(cond.rules_json)
           ? cond.rules_json.join(", ")
           : JSON.stringify(cond.rules_json);
@@ -277,9 +190,12 @@ Deno.serve(async (req) => {
       }).join("\n");
     }
 
-    const phenomenaContext = METABOLIC_PHENOMENA.map((p) =>
-      `- ${p.name}: ${p.mechanism}`
-    ).join("\n");
+    let phenomenaContext = "Standard metabolic principles.";
+    if (phenomenaDB && phenomenaDB.length > 0) {
+        phenomenaContext = phenomenaDB.map((p) =>
+            `- ${p.name}: ${p.mechanism}`
+        ).join("\n");
+    }
 
     // 5. Node B: Identification (Gemini 3.0 Strict)
     // We use Gemini to "See" the image and extract tags/text.
@@ -518,8 +434,14 @@ Deno.serve(async (req) => {
             "metabolic_insight": {
                 "score": 0,
                 "impact_level": "neutral",
-                "layman_explanation": "string"
-            }
+                "layman_explanation": "string",
+                "triggered_phenomena": [
+                    { "id": "string", "name": "string", "why": "Why this specific meal triggers this specific cycle." }
+                ]
+            },
+            "safety_alerts": [
+                { "type": "warning" | "urgent", "condition_id": "string", "reason": "Specific medical reason why this is bad for you." }
+            ]
           }
 
           Metabolic Insight Logic:

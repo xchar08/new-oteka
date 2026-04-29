@@ -104,7 +104,7 @@ async function testNebius() {
                 "Authorization": `Bearer ${NEBIUS_KEY}`,
             },
             body: JSON.stringify({
-                model: "deepseek-ai/DeepSeek-R1-0528", // Verify model ID
+                model: "deepseek-ai/DeepSeek-V3.2", // Verified working version
                 messages: [
                     {
                         role: "system",

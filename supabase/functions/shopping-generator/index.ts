@@ -175,7 +175,8 @@ Deno.serve(async (req) => {
         // 4. Call Intelligence
         const NEBIUS_API_KEY = Deno.env.get("NEBIUS_API_KEY");
         const GEMINI_API_KEY = Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY");
-        const NEBIUS_MODEL = "deepseek-ai/DeepSeek-R1-0528";
+        // Standardized DeepSeek Model ID (Verified Working)
+        const NEBIUS_MODEL = "deepseek-ai/DeepSeek-V3.2";
 
         console.log(`[OTOKA_DEBUG] 🛒 Shopping Gen Start. User: ${user.id}`);
         console.log(
