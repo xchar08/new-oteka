@@ -7,8 +7,9 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { createClient } from '@/lib/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { visionService } from '@/lib/services/vision.service';
-import { Sparkles, CheckCircle2, Scan, Loader2 } from 'lucide-react';
+import { Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { NeuralScanOverlay } from './NeuralScanOverlay';
 
 
 export function OptimisticCapture({
@@ -21,13 +22,14 @@ export function OptimisticCapture({
   const videoRef = useRef<HTMLVideoElement>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const supabase = createClient();
 
   const uploadMutation = useMutation({
     mutationFn: async ({ userId, blob }: { userId: string, blob: Blob }) => {
+      // 1. Upload to storage
       const { path } = await visionService.uploadScan(userId, blob);
 
-      // ✅ TRIGGER EDGE FUNCTION (Modern Storage-First Path)
-      // We call the function with the path. The function downloads it and inserts the log.
+      // 2. Trigger Edge Function
       const { data, error } = await supabase.functions.invoke('vision-pipeline', {
         body: { 
           imagePath: path,
@@ -35,14 +37,16 @@ export function OptimisticCapture({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Neural Pipeline Error:", error);
+        throw new Error(error.message || "Failed to process image");
+      }
       return data;
     },
     onSuccess: () => {
       setStatus('complete');
       queryClient.invalidateQueries({ queryKey: ['daily-logs'] });
 
-      // Minimize app after a short delay
       const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNative;
       setTimeout(async () => {
         if (isNative) {
@@ -53,9 +57,11 @@ export function OptimisticCapture({
       }, 800);
     },
     onError: (error: any) => {
-      console.error('Upload Failed:', error);
+      console.error('Upload Process Failed:', error);
       setStatus('idle');
-      toast.error('Upload failed: ' + (error.message || 'Unknown error'));
+      // Fix for stringifying empty error objects
+      const msg = error.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+      toast.error('Scan Failed: ' + msg);
     }
   });
 
@@ -63,22 +69,23 @@ export function OptimisticCapture({
     let stream: MediaStream | null = null;
 
     async function startCamera() {
-      // Prioritize the environment (rear) camera
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1080 },
-          height: { ideal: 1920 } 
-        },
-        audio: false,
-      });
-      if (videoRef.current) videoRef.current.srcObject = stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+              facingMode: 'environment',
+              width: { ideal: 1080 },
+              height: { ideal: 1920 } 
+            },
+            audio: false,
+          });
+          if (videoRef.current) videoRef.current.srcObject = stream;
+      } catch (err) {
+        console.error("Camera Stream Error:", err);
+        alert('Camera access denied. Please enable permissions.');
+      }
     }
 
-    startCamera().catch((e) => {
-      console.error(e);
-      alert('Camera permission is required to log food.');
-    });
+    startCamera();
 
     return () => {
       stream?.getTracks().forEach((t) => t.stop());
@@ -86,14 +93,12 @@ export function OptimisticCapture({
   }, []);
 
   const handleClick = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || status !== 'idle') return;
 
     setStatus('uploading');
 
     try {
       const canvas = document.createElement('canvas');
-      
-      // ✅ MEMORY FIX: Downscale high-res camera feeds
       const MAX_DIMENSION = 1024;
       let width = videoRef.current.videoWidth;
       let height = videoRef.current.videoHeight;
@@ -119,55 +124,47 @@ export function OptimisticCapture({
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, 'image/jpeg', 0.8)
       );
-      if (!blob) throw new Error('capture_failed');
+      if (!blob) throw new Error('Could not capture frame');
 
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Please log in first');
-      }
+      if (!user) throw new Error('No authenticated user session');
 
-      // DIRECT UPLOAD (Storage-First)
       await uploadMutation.mutateAsync({ userId: user.id, blob });
 
-      // Schedule notification
       const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNative;
-
       if (isNative) {
         await LocalNotifications.requestPermissions();
-
         await LocalNotifications.schedule({
           notifications: [
             {
               id: Date.now(),
-              title: 'Oteka Analysis Started',
-              body: 'Your meal is being analyzed in the background.',
-              schedule: { at: new Date(Date.now() + 2000) },
-              smallIcon: "ic_stat_icon_config_sample",
-              sound: "beep.wav"
+              title: 'Neural Analysis Started',
+              body: 'Extracting metabolic signatures from your meal.',
+              schedule: { at: new Date(Date.now() + 1000) },
+              smallIcon: "ic_stat_icon_config_sample"
             },
           ],
         });
       }
     } catch (e: any) {
-      console.error('Capture/Upload Error:', e);
+      console.error('Capture Sequence Error:', e);
+      toast.error(e.message || "Capture Failed");
       setStatus('idle');
     }
   };
 
   if (status === 'uploading') {
     return (
-      <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50 backdrop-blur-md transition-all duration-300">
-        <div className="w-72 p-8 rounded-[2rem] bg-card border border-border shadow-2xl flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
-          <div className="relative w-20 h-20 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-[3px] border-primary/20"></div>
-            <div className="absolute inset-0 rounded-full border-[3px] border-primary border-t-transparent animate-spin"></div>
-            <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+      <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 backdrop-blur-xl transition-all duration-300">
+        <div className="w-72 p-10 rounded-[3rem] bg-[var(--bg-surface)] border border-[var(--border)] shadow-2xl flex flex-col items-center gap-8 animate-in zoom-in-95 duration-300">
+          <div className="relative w-24 h-24 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-[4px] border-[var(--primary)]/10"></div>
+            <div className="absolute inset-0 rounded-full border-[4px] border-[var(--primary)] border-t-transparent animate-spin"></div>
+            <Sparkles className="h-10 w-10 text-[var(--primary)] animate-pulse" />
           </div>
           <div className="space-y-2 text-center">
-            <h3 className="text-xl font-bold tracking-tight text-foreground">Analyzing Meal</h3>
-            <p className="text-sm text-muted-foreground font-medium">Extracting nutritional data...</p>
+            <h3 className="text-xl font-black uppercase tracking-tight text-[var(--text-primary)]">Syncing Core</h3>
+            <p className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-[0.2em]">Neural Pipeline Active</p>
           </div>
         </div>
       </div>
@@ -176,14 +173,14 @@ export function OptimisticCapture({
 
   if (status === 'complete') {
     return (
-      <div className="fixed inset-0 bg-emerald-500 flex items-center justify-center z-50 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="fixed inset-0 bg-[var(--primary)] flex items-center justify-center z-50 backdrop-blur-md animate-in fade-in duration-300">
         <div className="text-center text-white space-y-4 scale-110 animate-in zoom-in-50 duration-500">
-          <div className="bg-white/20 p-4 rounded-full inline-block backdrop-blur-xl">
+          <div className="bg-white/20 p-6 rounded-[2rem] inline-block backdrop-blur-xl border border-white/20">
             <CheckCircle2 className="w-16 h-16 text-white" />
           </div>
           <div className="space-y-1">
-            <h2 className="text-3xl font-bold tracking-tight">Logged!</h2>
-            <p className="text-white/80 font-medium text-sm">Processing in background...</p>
+            <h2 className="text-4xl font-black tracking-tight uppercase italic">Linked</h2>
+            <p className="text-white/60 font-bold uppercase tracking-widest text-[10px]">Processing Signal...</p>
           </div>
         </div>
       </div>
@@ -197,24 +194,26 @@ export function OptimisticCapture({
         autoPlay 
         playsInline 
         muted 
-        className="absolute inset-0 w-full h-full object-cover" 
+        className="absolute inset-0 w-full h-full object-cover opacity-60" 
       />
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-        <img 
-          src="/hand-overlay.svg" 
-          alt="Alignment Guide" 
-          className="w-72 h-auto opacity-70 drop-shadow-lg" 
-        />
-        <p className="absolute bottom-32 text-white/90 font-medium text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-md border border-white/10">
-          Align food within dashed area
-        </p>
-      </div>
-      <div className="absolute bottom-12 left-0 right-0 flex justify-center z-10">
+      
+      {/* High-Fidelity Design System Overlay */}
+      <NeuralScanOverlay status={status === 'idle' ? 'idle' : 'scanning'} />
+
+      <div className="absolute bottom-20 left-0 right-0 flex flex-col items-center gap-10 z-50 pb-safe">
+        <div className="text-center space-y-2">
+            <p className="text-white/40 font-black uppercase tracking-[0.4em] text-[8px]">Target Lock Required</p>
+            <div className="w-1 h-1 bg-[var(--primary)] rounded-full mx-auto animate-ping" />
+        </div>
+
         <button
           onClick={handleClick}
-          className="w-20 h-20 bg-white rounded-full border-4 border-gray-200/50 shadow-lg active:scale-95 transition-transform"
+          disabled={status !== 'idle'}
+          className="w-24 h-24 rounded-full border-[8px] border-white/20 bg-white/10 backdrop-blur-md flex items-center justify-center active:scale-90 transition-transform group"
           aria-label="Capture Photo"
-        />
+        >
+            <div className="w-16 h-16 rounded-full bg-white shadow-2xl group-hover:scale-95 transition-transform" />
+        </button>
       </div>
     </div>
   );

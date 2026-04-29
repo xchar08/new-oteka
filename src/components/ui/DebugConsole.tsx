@@ -72,20 +72,21 @@ export function DebugConsole() {
   return (
     <>
       <button 
+        id="debug-toggle-btn"
         onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            // alert("DEBUG CONSOLE TOGGLE"); // Temporary verification
             setIsOpen(!isOpen);
         }}
         style={{ 
-            zIndex: 999999,
+            zIndex: 1000000,
             position: 'fixed',
             top: '20px',
             right: '20px',
-            pointerEvents: 'auto'
+            pointerEvents: 'auto',
+            display: 'flex'
         }}
-        className="w-12 h-12 bg-[var(--primary)] text-white rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(var(--ring),0.4)] active:scale-95 transition-transform"
+        className="w-12 h-12 bg-zinc-900 border border-white/20 text-white rounded-full items-center justify-center shadow-2xl active:scale-95 transition-transform"
       >
         {isOpen ? <ChevronDown size={24} /> : <Terminal size={24} />}
       </button>

@@ -25,6 +25,7 @@ export default function ProfileOnboardingPage() {
   const router = useRouter();
 
   const handleContinue = async () => {
+    if (loading) return;
     if (!formData.displayName || !formData.age) {
         alert("Please fill in basic fields");
         return;

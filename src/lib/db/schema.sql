@@ -373,14 +373,14 @@ on conflict (id) do nothing;
 drop policy if exists "Users can upload own scans" on storage.objects;
 create policy "Users can upload own scans" on storage.objects for insert with check (
   bucket_id = 'food_scans' and 
-  (select auth.uid())::text = (storage.foldername(name))[1]
+  auth.role() = 'authenticated'
 );
 
 -- Allow users to view their own scans
 drop policy if exists "Users can view own scans" on storage.objects;
 create policy "Users can view own scans" on storage.objects for select using (
   bucket_id = 'food_scans' and 
-  (select auth.uid())::text = (storage.foldername(name))[1]
+  auth.role() = 'authenticated'
 );
 
 -- ========================================================

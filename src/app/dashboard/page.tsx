@@ -205,9 +205,9 @@ export default function DashboardPage() {
         {/* Quick Action Grid */}
         <div className="grid grid-cols-4 gap-3">
           {[
-            { onClick: () => router.push('/vision'), icon: Camera, label: 'Scan', color: 'bg-blue-50/50 text-blue-500 border-blue-100', pro: true },
-            { onClick: () => router.push('/planner'), icon: Target, label: 'Plan', color: 'bg-purple-50/50 text-purple-500 border-purple-100', pro: true },
-            { onClick: () => router.push('/shopping'), icon: ShoppingCart, label: 'Shop', color: 'bg-emerald-50/50 text-emerald-500 border-emerald-100', pro: true },
+            { onClick: () => router.push('/vision'), icon: Camera, label: 'Scan', color: 'bg-blue-50/50 text-blue-500 border-blue-100' },
+            { onClick: () => router.push('/planner'), icon: Target, label: 'Plan', color: 'bg-purple-50/50 text-purple-500 border-purple-100' },
+            { onClick: () => router.push('/shopping'), icon: ShoppingCart, label: 'Shop', color: 'bg-emerald-50/50 text-emerald-500 border-emerald-100' },
             { onClick: () => router.push('/coach'), icon: MessageSquare, label: 'Coach', color: 'bg-amber-50/50 text-amber-500 border-amber-100', pro: true },
           ].map((action) => (
             <motion.div key={action.label} variants={item}>

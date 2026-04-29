@@ -55,7 +55,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             .single();
 
           if (profileError) {
-             console.error("AuthGuard profile fetch error:", profileError);
+             // PGRST116 is "no rows found", which is fine for new users
+             if (profileError.code !== 'PGRST116') {
+                console.error("AuthGuard profile fetch error:", profileError);
+             }
           }
 
           const hasProfile = !!(profile?.metabolic_state_json && (profile.metabolic_state_json as any).age);
