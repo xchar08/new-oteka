@@ -1,30 +1,35 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Check, Sparkles, Zap, Flame, Crown } from 'lucide-react';
+import { ChevronLeft, Check, Sparkles, Zap, Flame, Crown, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import { subscriptionService } from '@/lib/services/subscription.service';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-import { useAppStore } from '@/lib/state/appStore';
 
 export default function PricingPage() {
   const router = useRouter();
   const { user, loading } = useDashboardData();
-  const queryClient = useQueryClient();
-  const setPlan = useAppStore((s: any) => s.setPlan);
+  const [upgrading, setUpgrading] = useState(false);
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (priceId: string) => {
     if (!user) return;
+    if (upgrading) return;
+    
+    setUpgrading(true);
     try {
-        await subscriptionService.upgradeToPro(user.id);
-        setPlan('pro');
-        toast.success("Welcome to Oteka Solar! Neural engine active.");
-        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+        const data = await subscriptionService.createCheckoutSession(user.id, priceId);
+        if (data?.url) {
+            window.location.href = data.url;
+        } else {
+            throw new Error("No checkout URL returned");
+        }
     } catch (err) {
-        toast.error("Upgrade failed. Check connection.");
+        console.error("Upgrade error:", err);
+        toast.error("Stripe Checkout failed. Please try again.");
+        setUpgrading(false);
     }
   };
 
@@ -33,6 +38,7 @@ export default function PricingPage() {
         name: "Oteka Core",
         price: "$0",
         period: "Forever",
+        priceId: null,
         desc: "Baseline metabolic tracking for dedicated explorers.",
         features: [
             "AI Meal Logging (10/day)",
@@ -47,6 +53,7 @@ export default function PricingPage() {
         name: "Oteka Solar",
         price: "$12",
         period: "per month",
+        priceId: "price_1OTeKaSolarMonth", // Replace with your actual Stripe Price ID
         desc: "The ultimate neural engine for peak human performance.",
         features: [
             "Unlimited AI Vision Scans",
@@ -94,7 +101,7 @@ export default function PricingPage() {
                 className={`relative p-8 rounded-[40px] border transition-all duration-500 shadow-sm ${
                     plan.premium 
                     ? 'bg-[var(--secondary)] border-[var(--primary)] text-white ring-2 ring-[var(--primary)] ring-offset-4 ring-offset-[var(--bg-app)]' 
-                    : 'bg-[var(--bg-surface)] border-[var(--border)] text-[var(--text-primary)]'
+                    : 'bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-primary)]'
                 }`}
             >
                 {plan.premium && (
@@ -125,14 +132,15 @@ export default function PricingPage() {
                 </div>
 
                 <button 
-                    disabled={plan.active}
+                    disabled={plan.active || (plan.premium && upgrading)}
                     onClick={() => {
-                        if (!plan.active) {
-                            if (plan.premium) handleUpgrade();
-                            else alert("You are already on the Core plan.");
+                        if (!plan.active && plan.priceId) {
+                            handleUpgrade(plan.priceId);
+                        } else if (!plan.active) {
+                            alert("You are already on the Core plan.");
                         }
                     }}
-                    className={`w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg ${
+                    className={`w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2 ${
                         plan.active 
                         ? plan.premium
                             ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--secondary)] cursor-default'
@@ -142,7 +150,9 @@ export default function PricingPage() {
                         : 'bg-[var(--text-primary)] text-white hover:bg-[var(--text-secondary)]'
                     }`}
                 >
-                    {plan.cta}
+                    {upgrading && plan.premium ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : plan.cta}
                 </button>
             </motion.div>
         ))}

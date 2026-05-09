@@ -35,10 +35,11 @@ Deno.serve(async (req) => {
             });
         }
 
+        const startTime = Date.now();
         console.log(`[OTOKA_DEBUG] 🛒 Shopping Gen Start. User: ${user.id}`);
 
         // 1. RUN THE DETERMINISTIC ALGORITHM FIRST
-        // We invoke the internal optimize-meals function to do the math.
+        // Using light-weight parameters for shopping gen to speed up response
         const optimizeRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/optimize-meals`, {
             method: "POST",
             headers: {
@@ -46,11 +47,18 @@ Deno.serve(async (req) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                constraints: { strictness: 1.0, use_preferences: true }
+                constraints: { 
+                    strictness: 1.0, 
+                    use_preferences: true,
+                    pop_size: 20,       // Faster population
+                    generations: 10     // Faster generations
+                }
             })
         });
 
         const optimizeData = await optimizeRes.json();
+        const algoTime = Date.now() - startTime;
+        console.log(`[OTOKA_DEBUG] 🧬 Algo finished in ${algoTime}ms. Status: ${optimizeRes.status}`);
         
         if (!optimizeData.success || !optimizeData.solutions || optimizeData.solutions.length === 0) {
             throw new Error("Optimization Algorithm failed to return meal suggestions.");
@@ -62,38 +70,12 @@ Deno.serve(async (req) => {
         const stats = topSolution.stats;
 
         // 3. PREPARE THE PROMPT FOR THE LLM (Explanation Only)
-        const systemPrompt = `
-      You are OTEKA, an elite Household Metabolic Logistics Engine.
-      
-      ## ALGORITHMIC RESULTS
-      The internal optimization algorithm has selected the following menu items to fill the user's nutritional gaps and minimize pantry waste:
-      [ ${menuItems} ]
-
-      ## TARGET ACHIEVED
-      - Calories: ${stats.calories}
-      - Protein: ${stats.protein}g
-      - Magnesium: ${stats.magnesium}mg
-      - Iron: ${stats.iron}mg
-
-      Task: Generate a shopping list based ON THESE EXACT ITEMS.
-      - Do not hallucinate new ingredients. Just extract the core ingredients needed for these meals.
-      - Provide a brief 1-sentence 'reason' explaining why these items are nutritionally optimal (e.g. 'Magnesium gap fill').
-
-      Return ONLY JSON:
-      {
-        "suggestions": [
-            {
-                "name": "Spinach",
-                "category": "Produce",
-                "reason": "Magnesium gap fill for sleep support.",
-                "priority": "high"
-            }
-        ],
-        "analysis": "Brief 1-sentence summary of why this specific menu fills the gaps."
-      }
-    `;
+        // Keep it punchy to reduce LLM tokens and time
+        const systemPrompt = `User gaps: ${stats.calories}kcal, ${stats.protein}g Prot, ${stats.magnesium}mg Mg, ${stats.iron}mg Fe. Algorithm selected: [${menuItems}]. Generate shopping list JSON only: { "suggestions": [{"name":string,"category":string,"reason":string,"priority":"high"|"medium"}], "analysis":string }`;
 
         // 4. Call Intelligence for Translation
+        const aiStartTime = Date.now();
+        // ... (rest of logic)
         const NEBIUS_API_KEY = Deno.env.get("NEBIUS_API_KEY");
         const GEMINI_API_KEY = Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY");
         const NEBIUS_MODEL = "deepseek-ai/DeepSeek-V3.2";

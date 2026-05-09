@@ -1,9 +1,12 @@
 // supabase/functions/stripe-webhook/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.0.0?target=deno&no-check";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const STRIPE_API_KEY = Deno.env.get("STRIPE_API_KEY") ?? "";           // ✅ NOT PUBLIC
-const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? ""; // ✅ NOT PUBLIC
+const STRIPE_API_KEY = Deno.env.get("STRIPE_API_KEY") ?? "";
+const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const stripe = new Stripe(STRIPE_API_KEY, {
   apiVersion: "2024-11-20",
@@ -19,7 +22,6 @@ serve(async (request: Request) => {
       return new Response("Missing Stripe-Signature header", { status: 400 });
     }
 
-    // Raw body is required for signature verification
     const body = await request.text();
 
     let event;
@@ -36,31 +38,93 @@ serve(async (request: Request) => {
       return new Response(`Webhook Error: ${err.message}`, { status: 400 });
     }
 
-    // Handle events
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.client_reference_id; // You set this when creating the Checkout Session
+        const userId = session.client_reference_id;
+        const subscriptionId = session.subscription as string;
+
+        if (userId) {
+          console.log("Checkout completed for user:", userId);
+          
+          // Get subscription details
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+          // Update user plan
+          await supabase
+            .from('users')
+            .update({ plan: 'pro' })
+            .eq('id', userId);
+
+          // Insert into subscriptions table
+          await supabase.from('subscriptions').insert({
+            id: subscriptionId,
+            user_id: userId,
+            status: subscription.status,
+            price_id: subscription.items.data[0].price.id,
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          });
+        }
+        break;
+      }
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log("Subscription updated:", subscription.id);
         
-        console.log("Checkout completed for user:", userId);
+        await supabase
+          .from('subscriptions')
+          .update({
+            status: subscription.status,
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          })
+          .eq('id', subscription.id);
         
-        // TODO: Write to Supabase (grant premium, etc.)
-        // Example:
-        /*
-        const supabase = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-          { global: { headers: {} } }
-        );
-        await supabase.from('subscriptions').insert({...});
-        */
+        // If subscription is no longer active, downgrade user
+        if (['canceled', 'incomplete_expired', 'past_due', 'unpaid'].includes(subscription.status)) {
+            const { data: subData } = await supabase
+                .from('subscriptions')
+                .select('user_id')
+                .eq('id', subscription.id)
+                .single();
+            
+            if (subData) {
+                await supabase
+                    .from('users')
+                    .update({ plan: 'free' })
+                    .eq('id', subData.user_id);
+            }
+        }
+        break;
+      }
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log("Subscription deleted:", subscription.id);
+        
+        const { data: subData } = await supabase
+            .from('subscriptions')
+            .select('user_id')
+            .eq('id', subscription.id)
+            .single();
+        
+        if (subData) {
+            await supabase
+                .from('users')
+                .update({ plan: 'free' })
+                .eq('id', subData.user_id);
+                
+            await supabase
+                .from('subscriptions')
+                .delete()
+                .eq('id', subscription.id);
+        }
         break;
       }
       default:
         console.log(`Unhandled event type ${event.type}`);
     }
 
-    // Stripe only needs a 2xx response
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

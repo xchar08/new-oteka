@@ -138,6 +138,12 @@ create table if not exists logs (
 create index if not exists idx_logs_user_date on logs(user_id, local_date);
 create index if not exists idx_logs_feedback on logs using gin (metabolic_tags_json);
 
+-- Performance indices for household sharing
+create index if not exists idx_pantry_household_id on pantry(household_id);
+create index if not exists idx_shopping_household_id on shopping_list(household_id);
+create index if not exists idx_users_household_id on users(household_id);
+create index if not exists idx_pantry_user_id on pantry(user_id);
+
 -- 11. CACHE ENTRIES
 create table if not exists cache_entries (
   key text primary key,

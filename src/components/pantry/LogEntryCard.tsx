@@ -26,8 +26,10 @@ interface LogEntryCardProps {
  */
 export function LogEntryCard({ log }: LogEntryCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const meta = (log.metabolic_tags_json || {}) as any;
-  const macros = meta.macros || meta || {};
+  // Smart intersection to handle both flattened (new) and wrapped (legacy) metadata
+  const meta = (log.metabolic_tags_json || {}) as LogMetadata & { macros?: any; feedback?: any; food_name?: string };
+  const macros = meta.macros || meta; 
+  
   const name = meta.food_name || meta.item || 'Unknown Food';
   const time = new Date(log.captured_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const ingredients = meta.ingredients || [];

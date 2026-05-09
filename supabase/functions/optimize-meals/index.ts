@@ -53,8 +53,8 @@ type Individual = {
 };
 
 function runTSOptimization(profile: any, constraints: any, pantry: Gene[], recentFeedback: any[]) {
-  const POPSIZE = 50;
-  const GENERATIONS = 25;
+  const POPSIZE = constraints.pop_size || 50;
+  const GENERATIONS = constraints.generations || 25;
   
   const targets = {
     calories: profile?.calorie_target || 2000,

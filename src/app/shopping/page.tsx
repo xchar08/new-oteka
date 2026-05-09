@@ -54,19 +54,14 @@ export default function ShoppingPage() {
     
     try {
       setAiPhase('Calibrating metabolic targets...');
-      await new Promise(r => setTimeout(r, 1000));
-      
-      setAiPhase('Analyzing household pantry expiration risks...');
-      await new Promise(r => setTimeout(r, 1000));
-
-      setAiPhase('Querying genetic planning optimization...');
-      await new Promise(r => setTimeout(r, 1000));
-
-      setAiPhase('Formatting nutrient supply requirements...');
       
       const supabase = createClient();
+      
+      setAiPhase('Querying genetic planning optimization...');
       const { data, error } = await supabase.functions.invoke('shopping-generator');
       
+      setAiPhase('Formatting nutrient supply requirements...');
+
       if (error || data?.failure) {
         throw new Error(error?.message || data?.error || 'Logistics engine failed.');
       }

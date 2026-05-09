@@ -5,20 +5,23 @@ const getSupabase = () => createClient();
 
 export const subscriptionService = {
   /**
-   * Mock upgrade for development/demonstration.
-   * In a real app, this would be handled via Stripe Webhooks.
+   * Creates a Stripe Checkout Session for upgrading to Pro.
    */
-  async upgradeToPro(userId: string) {
+  async createCheckoutSession(userId: string, priceId: string) {
     const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('users')
-      .update({ plan: 'pro' })
-      .eq('id', userId)
-      .select()
-      .single();
+    
+    // Call our Edge Function
+    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+      body: {
+        userId,
+        priceId,
+        successUrl: `${window.location.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/pricing`,
+      },
+    });
 
     if (error) throw normalizeError(error);
-    return data;
+    return data; // contains the checkout URL
   },
 
   async getSubscriptionStatus(userId: string) {

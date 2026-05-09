@@ -1,4 +1,32 @@
-import type { ScanResult, LogMetadata, NutrientEntry } from '../types/metabolic';
+import type { ScanResult, LogMetadata, NutrientEntry, LogEntry } from '../types/metabolic';
+
+/**
+ * Centrailized Metadata Extractor
+ * Safely resolves both modern (flattened) and legacy (wrapped in .macros) data.
+ */
+export function extractLogStats(log: LogEntry) {
+  const meta = (log.metabolic_tags_json || {}) as LogMetadata & { macros?: any; food_name?: string; feedback?: any };
+  const rawMacros = meta.macros || meta;
+  
+  return {
+    name: meta.food_name || meta.item || 'Unknown Food',
+    calories: Number(rawMacros.calories || 0),
+    protein: Number(rawMacros.protein || 0),
+    carbs: Number(rawMacros.carbs || 0),
+    fat: Number(rawMacros.fats || rawMacros.fat || 0),
+    fiber: Number(rawMacros.fiber || 0),
+    sugar: Number(rawMacros.sugar || 0),
+    sodium: Number(rawMacros.sodium || 0),
+    cholesterol: Number(rawMacros.cholesterol || 0),
+    vitamins: meta.vitamins || [],
+    minerals: meta.minerals || [],
+    micros: meta.micros || [],
+    ingredients: meta.ingredients || [],
+    feedback: meta.feedback,
+    imagePath: meta.image_path || log.image_url, // image_url is the resolved signed URL
+    capturedAt: log.captured_at
+  };
+}
 
 /**
  * Utility to build log metadata from a vision scan result.

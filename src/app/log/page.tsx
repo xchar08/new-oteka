@@ -14,8 +14,9 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import { useRouter } from 'next/navigation';
 import { LogEntryCard } from '@/components/pantry/LogEntryCard';
-import { aggregateNutrients } from '@/lib/utils/metabolic.utils';
-import type { LogEntry } from '@/lib/types/metabolic';
+import { aggregateNutrients, extractLogStats } from '@/lib/utils/metabolic.utils';
+import { NutrientInfoModal } from '@/components/ui/NutrientInfoModal';
+import type { LogEntry, LogMetadata } from '@/lib/types/metabolic';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -31,6 +32,7 @@ const containerVariants: Variants = {
 export default function LogPage() {
   const { user, dailyLogs, loading } = useDashboardData();
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedNutrient, setSelectedNutrient] = useState<string | null>(null);
   const router = useRouter();
   
   const calorieGoal = user?.calorie_target || 2000;
@@ -60,19 +62,20 @@ export default function LogPage() {
   // Aggregate Macros for filtered logs (Performance Optimization: useMemo)
   const filteredMacros = useMemo(() => {
     return filteredLogs.reduce((acc, log) => {
-      const meta = (log.metabolic_tags_json || {}) as any;
-      const m = meta.macros || meta || {};
+      // Use the Elite Central Utility
+      const stats = extractLogStats(log);
+
       return {
-        calories: acc.calories + (Number(m.calories) || 0),
-        protein: acc.protein + (Number(m.protein) || 0),
-        carbs: acc.carbs + (Number(m.carbs) || 0),
-        fats: acc.fats + (Number(m.fats || m.fat) || 0),
-        fiber: acc.fiber + (Number(m.fiber) || 0),
-        sugar: acc.sugar + (Number(m.sugar) || 0),
-        sodium: acc.sodium + (Number(m.sodium) || 0),
-        cholesterol: acc.cholesterol + (Number(m.cholesterol) || 0),
-        vitamins: aggregateNutrients(acc.vitamins || {}, meta.vitamins || []),
-        minerals: aggregateNutrients(acc.minerals || {}, meta.minerals || []),
+        calories: acc.calories + stats.calories,
+        protein: acc.protein + stats.protein,
+        carbs: acc.carbs + stats.carbs,
+        fats: acc.fats + stats.fat,
+        fiber: acc.fiber + stats.fiber,
+        sugar: acc.sugar + stats.sugar,
+        sodium: acc.sodium + stats.sodium,
+        cholesterol: acc.cholesterol + stats.cholesterol,
+        vitamins: aggregateNutrients(acc.vitamins || {}, stats.vitamins),
+        minerals: aggregateNutrients(acc.minerals || {}, stats.minerals),
       };
     }, { 
       calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, sodium: 0, cholesterol: 0,
@@ -195,15 +198,15 @@ export default function LogPage() {
           </div>
 
           <div className="grid grid-cols-3 w-full mt-10 gap-4">
-            <div className="text-center">
+            <div className="text-center cursor-pointer active:scale-95 transition-transform" onClick={() => setSelectedNutrient('Protein')}>
               <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] mb-1">Protein</p>
               <p className="font-bold text-[var(--text-primary)] font-mono">{filteredMacros.protein.toFixed(0)}g</p>
             </div>
-            <div className="text-center">
+            <div className="text-center cursor-pointer active:scale-95 transition-transform" onClick={() => setSelectedNutrient('Carbs')}>
               <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] mb-1">Carbs</p>
               <p className="font-bold text-[var(--text-primary)] font-mono">{filteredMacros.carbs.toFixed(0)}g</p>
             </div>
-            <div className="text-center">
+            <div className="text-center cursor-pointer active:scale-95 transition-transform" onClick={() => setSelectedNutrient('Fats')}>
               <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] mb-1">Fats</p>
               <p className="font-bold text-[var(--text-primary)] font-mono">{filteredMacros.fats.toFixed(0)}g</p>
             </div>
@@ -212,12 +215,12 @@ export default function LogPage() {
           {/* Aggregated Daily Micros Subbar */}
           <div className="flex justify-between items-center w-full mt-6 pt-4 border-t border-[var(--border)] gap-2">
             {[
-                { label: 'Fiber', val: filteredMacros.fiber, unit: 'g' },
-                { label: 'Sugar', val: filteredMacros.sugar, unit: 'g' },
-                { label: 'Sodium', val: filteredMacros.sodium, unit: 'mg' },
-                { label: 'Chol.', val: filteredMacros.cholesterol, unit: 'mg' },
+                { label: 'Fiber', val: filteredMacros.fiber, unit: 'g', name: 'Fiber' },
+                { label: 'Sugar', val: filteredMacros.sugar, unit: 'g', name: 'Sugar' },
+                { label: 'Sodium', val: filteredMacros.sodium, unit: 'mg', name: 'Sodium' },
+                { label: 'Chol.', val: filteredMacros.cholesterol, unit: 'mg', name: 'Cholesterol' },
             ].map(m => (
-                <div key={m.label} className="text-center flex-1">
+                <div key={m.label} className="text-center flex-1 cursor-pointer active:scale-95 transition-transform" onClick={() => setSelectedNutrient(m.name)}>
                   <div className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest opacity-40 mb-0.5">{m.label}</div>
                   <div className="text-xs font-bold text-[var(--text-primary)] font-mono">{Math.round(m.val)}<span className="text-[8px] opacity-30 ml-0.5">{m.unit}</span></div>
                 </div>
@@ -230,7 +233,7 @@ export default function LogPage() {
               <h4 className="text-[9px] uppercase tracking-widest font-black text-[var(--text-secondary)] mb-3 opacity-60">Daily Micronutrient Status</h4>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {Object.entries(filteredMacros.vitamins).slice(0, 4).map(([name, data]: [string, any]) => (
-                  <div key={name} className="flex justify-between items-center">
+                  <div key={name} className="flex justify-between items-center cursor-pointer active:scale-[0.98] transition-all" onClick={() => setSelectedNutrient(name)}>
                     <span className="text-[10px] font-medium text-[var(--text-primary)] truncate max-w-[80px]">{name}</span>
                     <div className="flex items-center gap-2">
                       <div className="w-12 h-1 bg-[var(--bg-app)] rounded-full overflow-hidden">
@@ -315,6 +318,13 @@ export default function LogPage() {
       >
         <Plus size={36} strokeWidth={3} />
       </motion.button>
+
+      {/* Nutrient Detail Modal */}
+      <NutrientInfoModal 
+        nutrientName={selectedNutrient || ''}
+        isOpen={!!selectedNutrient}
+        onClose={() => setSelectedNutrient(null)}
+      />
 
       <BottomNav />
     </div>
