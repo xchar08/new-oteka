@@ -49,10 +49,10 @@ export function SafetyAlert({
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-zinc-950 border-2 border-red-500/30 rounded-[40px] p-8 shadow-[0_0_50px_rgba(239,68,68,0.3)] overflow-hidden"
+              className="relative w-full max-w-sm bg-[var(--bg-surface)] border-2 border-red-500/30 rounded-[40px] p-8 shadow-[0_0_50px_rgba(239,68,68,0.3)] overflow-hidden"
             >
               <div className="absolute top-0 right-0 p-6">
-                <button onClick={() => setIsOpen(false)} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white">
+                <button onClick={() => setIsOpen(false)} className="w-10 h-10 rounded-full bg-[var(--bg-app)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                     <X size={20} />
                 </button>
               </div>
@@ -63,12 +63,12 @@ export function SafetyAlert({
                 </div>
                 
                 <div>
-                    <h3 className="text-2xl font-black tracking-tight text-white uppercase italic">Protocol Violation</h3>
+                    <h3 className="text-2xl font-black tracking-tight text-[var(--text-primary)] uppercase italic">Protocol Violation</h3>
                     <p className="text-[10px] font-bold text-red-500 uppercase tracking-[0.3em] mt-1">Biological Integrity Compromised</p>
                 </div>
                 
                 <div className="bg-red-500/5 border border-red-500/20 p-6 rounded-3xl w-full">
-                    <p className="text-sm text-red-100/90 leading-relaxed font-medium">
+                    <p className="text-sm text-[var(--text-primary)] leading-relaxed font-medium">
                         {reason}
                     </p>
                 </div>
@@ -80,7 +80,7 @@ export function SafetyAlert({
                     >
                         Override & Acknowledge
                     </button>
-                    <p className="text-[9px] text-white/20 font-bold uppercase tracking-widest">
+                    <p className="text-[9px] text-[var(--text-secondary)] opacity-40 font-bold uppercase tracking-widest">
                         Neural Core Safety Handlers Active
                     </p>
                 </div>

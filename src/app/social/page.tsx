@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Trophy, Flame, Users, Home, Globe, UserPlus, ChevronLeft, Search } from 'lucide-react';
+import { Trophy, Flame, Users, Home, Globe, UserPlus, ChevronLeft, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';

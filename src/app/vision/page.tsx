@@ -9,7 +9,7 @@ export default function VisionPage() {
   const router = useRouter();
 
   return (
-    <div className="h-screen w-full bg-palenight-bg">
+    <div className="h-screen w-full bg-black">
       <OptimisticCapture />
       <button
         onClick={() => router.back()}

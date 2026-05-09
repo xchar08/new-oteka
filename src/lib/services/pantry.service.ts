@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { normalizeError } from '@/lib/utils/errors';
 
 const getSupabase = () => createClient();
 
@@ -11,7 +12,7 @@ export const pantryService = {
       .eq('user_id', userId)
       .eq('status', 'active');
 
-    if (error) throw error;
+    if (error) throw normalizeError(error);
     return data;
   },
 
@@ -27,7 +28,7 @@ export const pantryService = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throw normalizeError(error);
     return data;
   }
 };

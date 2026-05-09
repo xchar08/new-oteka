@@ -12,15 +12,16 @@ import {
   Zap,
   Flame,
   Droplets,
-  Activity
+  Activity,
+  Ruler
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -30,7 +31,7 @@ const containerVariants = {
   }
 };
 
-const cardVariants = {
+const cardVariants: Variants = {
   hidden: { opacity: 0, scale: 0.9, y: 20 },
   visible: { 
     opacity: 1, 
@@ -64,7 +65,7 @@ export default function ProfilePage() {
     protein: meta.protein_target || 140,
     carbs: meta.carbs_target || 180,
     fats: meta.fats_target || 65,
-    calories: meta.bmr || 2100
+    calories: user?.calorie_target || 2000
   };
 
   return (
@@ -132,7 +133,7 @@ export default function ProfilePage() {
           animate={{ opacity: 1 }}
           className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--primary)] mt-1"
         >
-          Metabolic Score: {user?.streak_count > 0 ? 88 + user.streak_count : 88} • {user?.streak_count > 5 ? 'ELITE' : 'ACTIVE'}
+          Metabolic Score: {(user?.streak_count || 0) > 0 ? 88 + (user?.streak_count || 0) : 88} • {(user?.streak_count || 0) > 5 ? 'ELITE' : 'ACTIVE'}
         </motion.p>
       </section>
 
@@ -182,7 +183,7 @@ export default function ProfilePage() {
               <div className="p-2 bg-white/20 rounded-lg"><Droplets size={16} /></div>
               <div>
                 <p className="text-[10px] opacity-70 uppercase font-bold">Fats</p>
-                <p className="font-bold">{dailyMacros.fats.toFixed(0)}g<span className="text-[10px] opacity-50 ml-1">/{targets.fats}</span></p>
+                <p className="font-bold">{dailyMacros.fat.toFixed(0)}g<span className="text-[10px] opacity-50 ml-1">/{targets.fats}</span></p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -203,6 +204,7 @@ export default function ProfilePage() {
           <div className="px-6 py-2">
             {[
               { icon: Settings, label: 'Configuration', onClick: () => router.push('/settings') },
+              { icon: Ruler, label: 'Calibrate Hand Scan', onClick: () => router.push('/onboarding/calibration') },
               { icon: Target, label: 'Pricing & Plans', onClick: () => router.push('/pricing') },
               { icon: Shield, label: 'Privacy Policy', onClick: () => router.push('/privacy') },
               { icon: LogOut, label: 'Sign Out', danger: true, onClick: handleSignOut },
@@ -211,7 +213,7 @@ export default function ProfilePage() {
                 key={item.label}
                 onClick={item.onClick}
                 whileHover={{ x: 5 }}
-                className={`w-full flex items-center justify-between py-5 ${i !== arr.length - 1 ? 'border-b border-[var(--border)] opacity-20' : ''} group`}
+                className={`w-full flex items-center justify-between py-5 ${i !== arr.length - 1 ? 'border-b border-[var(--border)]' : ''} group`}
               >
                 <div className={`flex items-center gap-4 ${item.danger ? 'text-red-500' : 'text-[var(--text-primary)]'}`}>
                   <item.icon size={20} strokeWidth={item.danger ? 2.5 : 2} />

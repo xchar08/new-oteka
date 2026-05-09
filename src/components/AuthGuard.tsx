@@ -5,8 +5,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
-const PROTECTED_ROUTES = ['/pantry', '/planner', '/log', '/dashboard', '/analytics', '/coach', '/shopping', '/history'];
-const ONBOARDING_ROUTES = ['/onboarding', '/login'];
+const PROTECTED_ROUTES = ['/pantry', '/planner', '/log', '/dashboard', '/analytics', '/coach', '/shopping', '/history', '/profile', '/settings', '/pricing', '/vision'];
+const ONBOARDING_ROUTES = ['/login'];
+const EXEMPT_ROUTES = ['/about', '/privacy', '/terms'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -18,28 +19,36 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
 
     const checkAuth = async () => {
-      // Skip check for onboarding/login routes
-      if (ONBOARDING_ROUTES.some(route => pathname?.startsWith(route))) {
-        setLoading(false);
-        setAuthorized(true);
-        return;
-      }
-
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        if (sessionError) {
-          if (sessionError.message.includes('Refresh Token Not Found') || sessionError.message.includes('invalid refresh token')) {
-            console.warn("AuthGuard: Session refresh failed, redirecting to login.");
+        if (sessionError || !session) {
+          if (sessionError) console.error("AuthGuard: Session fetch error:", sessionError);
+          setAuthorized(false);
+          setLoading(false);
+          
+          // If we are on a route that is NOT login and NOT exempt, redirect to login
+          if (pathname !== '/login' && !EXEMPT_ROUTES.some(route => pathname?.startsWith(route))) {
             router.replace('/login');
-            setAuthorized(false);
-            setLoading(false);
-            return;
+          } else {
+            setAuthorized(true); // Allow login or exempt routes
           }
-          console.error("AuthGuard: Session fetch error:", sessionError);
+          return;
+        }
+
+        // We have a session, get fresh user data
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+           await supabase.auth.signOut();
+           router.replace('/login');
+           return;
         }
 
         const isProtectedRoute = PROTECTED_ROUTES.some(route => 
+          pathname?.startsWith(route)
+        );
+
+        const isExemptRoute = EXEMPT_ROUTES.some(route =>
           pathname?.startsWith(route)
         );
 
@@ -47,36 +56,60 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           router.replace('/login');
           setAuthorized(false);
         } else if (session) {
-          // Check if user has completed onboarding (has hand_width_mm set)
-          const { data: profile, error: profileError } = await supabase
-            .from('users')
-            .select('hand_width_mm, metabolic_state_json')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profileError) {
-             // PGRST116 is "no rows found", which is fine for new users
-             if (profileError.code !== 'PGRST116') {
-                console.error("AuthGuard profile fetch error:", profileError);
-             }
-          }
-
-          const hasProfile = !!(profile?.metabolic_state_json && (profile.metabolic_state_json as any).age);
-          const hasCalibration = !!(profile?.hand_width_mm);
-
-          if (!hasProfile || !hasCalibration) {
-            // If we are already on onboarding, don't keep replacing (prevents infinite loop in some edge cases)
-            if (pathname === '/onboarding' || pathname.startsWith('/onboarding/')) {
-               setAuthorized(true);
-               setLoading(false);
-               return;
-            }
-            router.replace('/onboarding');
-            setAuthorized(false);
+          // If they are on an exempt route, let them through
+          if (isExemptRoute) {
+            setAuthorized(true);
             setLoading(false);
             return;
           }
-          
+
+          // Check user profile
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('hand_width_mm, metabolic_state_json, plan')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profileError && profileError.code !== 'PGRST116') {
+             console.error("AuthGuard profile fetch error:", profileError);
+          }
+
+          // If no profile row exists, we need to create one or at least get them to onboarding
+          if (!profile && !pathname.startsWith('/onboarding')) {
+             router.replace('/onboarding/profile');
+             setAuthorized(false);
+             setLoading(false);
+             return;
+          }
+
+          const metabolic = (profile?.metabolic_state_json || {}) as any;
+          const hasProfile = !!(metabolic.age && metabolic.height_cm);
+          const hasMedical = !!metabolic.medical_verified;
+          const hasCalibration = !!(profile?.hand_width_mm);
+
+          console.log("[AuthGuard] Status Check:", { 
+            pathname, 
+            hasProfile, 
+            hasMedical,
+            hasCalibration, 
+            plan: profile?.plan,
+          });
+
+          // Redirect to onboarding if they haven't started at all
+          if (!hasProfile && !pathname.startsWith('/onboarding')) {
+             router.replace('/onboarding/profile');
+             setAuthorized(false);
+             setLoading(false);
+             return;
+          }
+
+          // If they are on an onboarding page, let them through
+          if (pathname.startsWith('/onboarding')) {
+            setAuthorized(true);
+            setLoading(false);
+            return;
+          }
+
           setAuthorized(true);
         } else {
           setAuthorized(true);
@@ -109,9 +142,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
       </div>
     );
+  }
+
+  if (!authorized && !ONBOARDING_ROUTES.some(r => pathname?.startsWith(r)) && !EXEMPT_ROUTES.some(r => pathname?.startsWith(r))) {
+    // Prevent rendering children while redirect is in progress
+    return null;
   }
 
   return <>{children}</>;

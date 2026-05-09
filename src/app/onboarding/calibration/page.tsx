@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Ruler, Camera, RotateCcw } from 'lucide-react';
+import { ChevronRight, Ruler, Camera, RotateCcw, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function CalibrationPage() {
@@ -13,6 +13,11 @@ export default function CalibrationPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const supabase = createClient();
   const router = useRouter();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.replace('/login');
+  };
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -164,6 +169,13 @@ export default function CalibrationPage() {
       >
         {loading ? 'Finalizing...' : 'Complete Setup'} <ChevronRight size={20} />
       </Button>
+
+      <button 
+        onClick={handleSignOut}
+        className="mt-6 flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-40 hover:opacity-100 transition-all mx-auto"
+      >
+        <LogOut size={12} /> Sign Out / Reset Session
+      </button>
     </div>
   );
 }

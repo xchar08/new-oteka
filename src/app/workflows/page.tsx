@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Play, Plus, Clock, Activity, MoreHorizontal, CheckCircle2, XCircle, Menu, Bell, Zap, Sparkles, ChevronLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useRouter } from 'next/navigation';
 
@@ -16,7 +16,7 @@ type Workflow = {
     last_run_at: string | null;
 };
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -24,7 +24,7 @@ const containerVariants = {
   }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
   visible: { 
     opacity: 1, 

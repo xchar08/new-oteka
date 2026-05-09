@@ -1,27 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Plus, 
-  Search, 
   Bell, 
-  ChevronRight,
   Barcode,
-  Flame,
-  Zap,
-  Droplets,
-  Menu,
-  Clock,
   Camera,
   Utensils,
   User
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import { useRouter } from 'next/navigation';
+import { LogEntryCard } from '@/components/pantry/LogEntryCard';
+import { aggregateNutrients } from '@/lib/utils/metabolic.utils';
+import type { LogEntry } from '@/lib/types/metabolic';
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -32,21 +28,12 @@ const containerVariants = {
   }
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { type: 'spring', stiffness: 100 }
-  }
-};
-
 export default function LogPage() {
   const { user, dailyLogs, loading } = useDashboardData();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const router = useRouter();
   
-  const calorieGoal = user?.metabolic_state_json?.bmr || 2100;
+  const calorieGoal = user?.calorie_target || 2000;
 
   // Generate current week dates
   const today = new Date();
@@ -63,24 +50,36 @@ export default function LogPage() {
     };
   });
 
-  // Filter logs by selected date
-  const filteredLogs = dailyLogs.filter((log: any) => {
-      const logDate = new Date(log.captured_at);
-      return logDate.getDate() === selectedDate.getDate() && 
-             logDate.getMonth() === selectedDate.getMonth() &&
-             logDate.getFullYear() === selectedDate.getFullYear();
-  });
+  // Filter logs by selected date (YYYY-MM-DD)
+  const selectedDateString = selectedDate.toLocaleDateString('en-CA');
+  
+  const filteredLogs = useMemo(() => {
+    return (dailyLogs as LogEntry[]).filter((log) => log.local_date === selectedDateString);
+  }, [dailyLogs, selectedDateString]);
 
-  // Aggregate Macros for filtered logs
-  const filteredMacros = filteredLogs.reduce((acc, log) => {
-    const m = log.metabolic_tags_json || {};
-    return {
-      calories: acc.calories + (Number(m.calories) || 0),
-      protein: acc.protein + (Number(m.protein) || 0),
-      carbs: acc.carbs + (Number(m.carbs) || 0),
-      fats: acc.fats + (Number(m.fats || m.fat) || 0),
-    };
-  }, { calories: 0, protein: 0, carbs: 0, fats: 0 });
+  // Aggregate Macros for filtered logs (Performance Optimization: useMemo)
+  const filteredMacros = useMemo(() => {
+    return filteredLogs.reduce((acc, log) => {
+      const meta = (log.metabolic_tags_json || {}) as any;
+      const m = meta.macros || meta || {};
+      return {
+        calories: acc.calories + (Number(m.calories) || 0),
+        protein: acc.protein + (Number(m.protein) || 0),
+        carbs: acc.carbs + (Number(m.carbs) || 0),
+        fats: acc.fats + (Number(m.fats || m.fat) || 0),
+        fiber: acc.fiber + (Number(m.fiber) || 0),
+        sugar: acc.sugar + (Number(m.sugar) || 0),
+        sodium: acc.sodium + (Number(m.sodium) || 0),
+        cholesterol: acc.cholesterol + (Number(m.cholesterol) || 0),
+        vitamins: aggregateNutrients(acc.vitamins || {}, meta.vitamins || []),
+        minerals: aggregateNutrients(acc.minerals || {}, meta.minerals || []),
+      };
+    }, { 
+      calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, sodium: 0, cholesterol: 0,
+      vitamins: {} as Record<string, any>,
+      minerals: {} as Record<string, any>
+    });
+  }, [filteredLogs]);
 
   const caloriesLeft = Math.max(0, calorieGoal - filteredMacros.calories);
 
@@ -184,13 +183,13 @@ export default function LogPage() {
                 r="88"
                 stroke="currentColor"
                 strokeWidth="12"
-                strokeDashcap="round"
+                strokeLinecap="round"
                 fill="transparent"
                 className="text-[var(--primary)]"
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-4xl font-black text-[var(--text-primary)]">{caloriesLeft.toLocaleString()}</span>
+              <span className="text-4xl font-black text-[var(--text-primary)] font-mono">{caloriesLeft.toLocaleString()}</span>
               <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--primary)]">kcal left</span>
             </div>
           </div>
@@ -198,17 +197,56 @@ export default function LogPage() {
           <div className="grid grid-cols-3 w-full mt-10 gap-4">
             <div className="text-center">
               <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] mb-1">Protein</p>
-              <p className="font-bold text-[var(--text-primary)]">{filteredMacros.protein.toFixed(0)}g</p>
+              <p className="font-bold text-[var(--text-primary)] font-mono">{filteredMacros.protein.toFixed(0)}g</p>
             </div>
             <div className="text-center">
               <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] mb-1">Carbs</p>
-              <p className="font-bold text-[var(--text-primary)]">{filteredMacros.carbs.toFixed(0)}g</p>
+              <p className="font-bold text-[var(--text-primary)] font-mono">{filteredMacros.carbs.toFixed(0)}g</p>
             </div>
             <div className="text-center">
               <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] mb-1">Fats</p>
-              <p className="font-bold text-[var(--text-primary)]">{filteredMacros.fats.toFixed(0)}g</p>
+              <p className="font-bold text-[var(--text-primary)] font-mono">{filteredMacros.fats.toFixed(0)}g</p>
             </div>
           </div>
+
+          {/* Aggregated Daily Micros Subbar */}
+          <div className="flex justify-between items-center w-full mt-6 pt-4 border-t border-[var(--border)] gap-2">
+            {[
+                { label: 'Fiber', val: filteredMacros.fiber, unit: 'g' },
+                { label: 'Sugar', val: filteredMacros.sugar, unit: 'g' },
+                { label: 'Sodium', val: filteredMacros.sodium, unit: 'mg' },
+                { label: 'Chol.', val: filteredMacros.cholesterol, unit: 'mg' },
+            ].map(m => (
+                <div key={m.label} className="text-center flex-1">
+                  <div className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest opacity-40 mb-0.5">{m.label}</div>
+                  <div className="text-xs font-bold text-[var(--text-primary)] font-mono">{Math.round(m.val)}<span className="text-[8px] opacity-30 ml-0.5">{m.unit}</span></div>
+                </div>
+            ))}
+          </div>
+
+          {/* Daily Micronutrient Progress Summary */}
+          {Object.keys(filteredMacros.vitamins || {}).length > 0 && (
+            <div className="w-full mt-6 pt-4 border-t border-[var(--border)]">
+              <h4 className="text-[9px] uppercase tracking-widest font-black text-[var(--text-secondary)] mb-3 opacity-60">Daily Micronutrient Status</h4>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                {Object.entries(filteredMacros.vitamins).slice(0, 4).map(([name, data]: [string, any]) => (
+                  <div key={name} className="flex justify-between items-center">
+                    <span className="text-[10px] font-medium text-[var(--text-primary)] truncate max-w-[80px]">{name}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-12 h-1 bg-[var(--bg-app)] rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(data.daily_value_pct, 100)}%` }}
+                          className={`h-full ${data.daily_value_pct >= 100 ? 'bg-green-500' : 'bg-[var(--primary)]'}`}
+                        />
+                      </div>
+                      <span className="text-[9px] font-bold tabular-nums w-6 text-right font-mono">{Math.round(data.daily_value_pct)}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </motion.div>
       </section>
 
@@ -258,53 +296,9 @@ export default function LogPage() {
                 <p className="text-sm text-[var(--text-secondary)] opacity-50 font-medium">No meals logged for this day</p>
             </motion.div>
             ) : (
-            filteredLogs.map((log: any) => {
-                const meta = log.metabolic_tags_json || {};
-                const macros = meta.macros || meta || {};
-                const name = meta.food_name || meta.item || 'Unknown Food';
-                const time = new Date(log.captured_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                return (
-                <motion.div key={log.id} layout variants={itemVariants} className="bg-[var(--bg-surface)] rounded-[24px] p-4 shadow-sm border border-[var(--border)]">
-                    <div className="flex gap-4">
-                    <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-inner bg-[var(--bg-app)] flex items-center justify-center border border-[var(--border)]">
-                        {log.image_url ? (
-                        <img src={log.image_url} alt={name} className="w-full h-full object-cover" />
-                        ) : (
-                        <Utensils size={32} className="text-[var(--text-secondary)] opacity-10" />
-                        )}
-                    </div>
-                    <div className="flex-1 py-1 flex flex-col justify-between min-w-0">
-                        <div>
-                        <div className="flex justify-between items-start">
-                            <h4 className="font-bold text-[var(--text-primary)] leading-tight capitalize truncate w-[80%]">{name}</h4>
-                            <Clock size={14} className="text-[var(--text-secondary)] opacity-30" />
-                        </div>
-                        <p className="text-[10px] font-bold uppercase text-[var(--primary)] mt-1 tracking-wider">{time}</p>
-                        </div>
-                        <div className="flex gap-4">
-                        <div className="text-[10px] font-bold text-[var(--text-primary)] flex flex-col">
-                            <span className="text-[var(--text-secondary)] opacity-40">P</span>
-                            <span>{Number(macros.protein || 0).toFixed(0)}g</span>
-                        </div>
-                        <div className="text-[10px] font-bold text-[var(--text-primary)] flex flex-col">
-                            <span className="text-[var(--text-secondary)] opacity-40">C</span>
-                            <span>{Number(macros.carbs || 0).toFixed(0)}g</span>
-                        </div>
-                        <div className="text-[10px] font-bold text-[var(--text-primary)] flex flex-col">
-                            <span className="text-[var(--text-secondary)] opacity-40">F</span>
-                            <span>{Number(macros.fats || macros.fat || 0).toFixed(0)}g</span>
-                        </div>
-                        <div className="ml-auto text-right">
-                            <span className="text-xs font-black text-[var(--text-primary)]">{Number(macros.calories || 0).toFixed(0)}</span>
-                            <span className="text-[8px] font-bold text-[var(--text-secondary)] opacity-40 block uppercase">kcal</span>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-                </motion.div>
-                );
-            })
+            filteredLogs.map((log: LogEntry) => (
+                <LogEntryCard key={log.id} log={log} />
+            ))
             )}
         </AnimatePresence>
       </motion.section>

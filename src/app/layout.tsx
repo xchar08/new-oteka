@@ -29,11 +29,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} text-white bg-[var(--bg-app)]`}>
+      <body className={`${inter.className} bg-[var(--bg-app)]`}>
         <ClientProviders>
           {children}
         </ClientProviders>
-        <Toaster />
+        <Toaster 
+          position="bottom-center"
+          expand={false}
+          richColors
+          toastOptions={{
+            style: { bottom: '80px' }
+          }}
+        />
         <DebugConsole />
       </body>
     </html>

@@ -7,42 +7,45 @@ import { ChevronLeft, Zap, Activity, Battery, Flame, Moon, Sun } from 'lucide-re
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useAppStore, ColorTheme } from '@/lib/state/appStore';
+import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { userService } from '@/lib/services/user.service';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 export default function SettingsPage() {
   const [goal, setGoal] = useState('maintenance');
   const [loading, setLoading] = useState(false);
   const { theme, setTheme } = useTheme();
   const { colorTheme, setColorTheme } = useAppStore();
+  const { user, loading: dataLoading } = useDashboardData();
+  const queryClient = useQueryClient();
   
   const supabase = createClient();
   const router = useRouter();
 
-  // Load existing settings
+  // Update local state when user data loads
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      const { data } = await supabase.from('users').select('metabolic_state_json').eq('id', user.id).single();
-      if (data?.metabolic_state_json?.current_goal) {
-        setGoal(data.metabolic_state_json.current_goal);
-      }
+    if (user?.metabolic_state_json?.current_goal) {
+      setGoal(user.metabolic_state_json.current_goal);
     }
-    load();
-  }, [supabase]);
+  }, [user]);
 
   const saveSettings = async () => {
-    setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setLoading(true);
 
-    // Merge with existing JSON
-    const { data: existing } = await supabase.from('users').select('metabolic_state_json').eq('id', user.id).single();
-    const newState = { ...existing?.metabolic_state_json, current_goal: goal };
-
-    await supabase.from('users').update({ metabolic_state_json: newState }).eq('id', user.id);
-    setLoading(false);
-    alert("Settings updated successfully.");
+    try {
+      await userService.updateProfile(user.id, {
+          metabolic_state_json: { current_goal: goal }
+      });
+      
+      await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      toast.success("Settings updated successfully.");
+    } catch (err) {
+      toast.error("Failed to update settings.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const strategies = [

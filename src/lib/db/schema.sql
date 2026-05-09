@@ -34,10 +34,13 @@ create table if not exists households (
 create table if not exists users (
   id uuid references auth.users not null primary key,
   display_name text,
+  avatar_url text,
   metabolic_state_json jsonb default '{"current_goal": "maintenance"}'::jsonb,
   hand_width_mm numeric,
   streak_count integer default 0,
+  calorie_target integer default 2000,
   household_id uuid references households(id),
+  plan text default 'free',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -126,9 +129,14 @@ create table if not exists logs (
   user_id uuid references users(id) on delete cascade not null,
   workflow_id uuid references workflows(id),
   grams numeric,
-  metabolic_tags_json jsonb default '[]'::jsonb,
+  metabolic_tags_json jsonb default '{}'::jsonb,
+  local_date text not null default to_char(now() at time zone 'UTC', 'YYYY-MM-DD'),
   captured_at timestamptz default now()
 );
+
+-- Performance indices for logs
+create index if not exists idx_logs_user_date on logs(user_id, local_date);
+create index if not exists idx_logs_feedback on logs using gin (metabolic_tags_json);
 
 -- 11. CACHE ENTRIES
 create table if not exists cache_entries (
@@ -303,12 +311,14 @@ begin
   returning id into new_household_id;
 
   -- Create user linked to household
-  insert into public.users (id, display_name, metabolic_state_json, streak_count, household_id)
+  insert into public.users (id, display_name, avatar_url, metabolic_state_json, streak_count, calorie_target, household_id)
   values (
     new.id,
     split_part(new.email, '@', 1),
+    null,
     '{"current_goal":"maintenance"}',
     0,
+    2000,
     new_household_id
   );
   return new;

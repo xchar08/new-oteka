@@ -418,6 +418,11 @@ Deno.serve(async (req) => {
           - Identify ALL distinct items.
           - Extract Brand, Name, Quantity, and Expiry for each.
           
+          ## PRIORITY MICRONUTRIENTS (Always attempt to estimate if relevant to the food):
+          - Vitamins: A, C, D, E, K, B6, B12, Folate, Thiamin, Riboflavin, Niacin.
+          - Minerals: Magnesium, Iron, Zinc, Potassium, Calcium, Phosphorus, Selenium, Iodine.
+          - Other: Omega-3, Choline, Caffeine, Alcohol.
+
           Return ONLY JSON in this format:
           { 
             "pantry_items": [
@@ -427,7 +432,9 @@ Deno.serve(async (req) => {
                 { "name": "string", "quantity": "string (e.g., 2 medium, 150g)", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
             ], 
             "ingredients": [{"name": "string", "ratio": 0.0}], 
-            "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }, 
+            "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0, "sugar": 0, "sodium": 0, "cholesterol": 0 }, 
+            "vitamins": [{"name": "Vitamin X", "amount": "string (e.g. 2.5mg)", "daily_value_pct": 0}],
+            "minerals": [{"name": "Mineral X", "amount": "string (e.g. 150mg)", "daily_value_pct": 0}],
             "micros": [{"name": "string", "amount": "string", "daily_value_pct": 0}], 
             "volume_cm3": 0, 
             "reasoning_trace": "Brief explanation of how the total macros were summed",
@@ -574,8 +581,21 @@ Deno.serve(async (req) => {
     // Fallback Prompt (Gemini 2.5/3.0)
     if (!finalResult) {
       console.log(`[OTOKA_DEBUG] 🛡️ Physics Core: Falling back to Gemini...`);
+      
+      // Ensure safetyContext is robust for fallback
+      let safetyProtocols = "None.";
+      if (medicalContext && medicalContext.length > 0) {
+        safetyProtocols = medicalContext.map((c: any) => {
+          const cond = c.conditions;
+          const avoid = Array.isArray(cond.never_recommend_json)
+            ? cond.never_recommend_json.join(", ")
+            : "";
+          return `- **${cond.name}**: Rules [${JSON.stringify(cond.rules_json)}]. NEGATIVE INGREDIENTS: [${avoid}]`;
+        }).join("\n");
+      }
+
       const fallbackPrompt = `Identify food. Mode: ${mode}.
-            Safety: ${safetyContext}
+            Safety Protocols: ${safetyProtocols}
             Phenomena: ${phenomenaContext}
 
             Input Description: ${sceneDescription}
@@ -583,6 +603,11 @@ Deno.serve(async (req) => {
             If pantry: Identify ALL items with Quantity/Expiry.
             If food: List EVERY item in \`items\` array. The \`macros\` MUST be the SUM TOTAL of all items combined.
             
+            ## PRIORITY MICRONUTRIENTS (Always attempt to estimate if relevant to the food):
+            - Vitamins: A, C, D, E, K, B6, B12, Folate, Thiamin, Riboflavin, Niacin.
+            - Minerals: Magnesium, Iron, Zinc, Potassium, Calcium, Phosphorus, Selenium, Iodine.
+            - Other: Omega-3, Choline, Caffeine, Alcohol.
+
             Return ONLY JSON key/value:
             { 
                 "pantry_items": [{ "name": "string", "quantity": "string", "expiry": "string" }],
@@ -590,7 +615,9 @@ Deno.serve(async (req) => {
                     { "name": "string", "quantity": "string", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
                 ], 
                 "ingredients": [{"name": "string", "ratio": 0.0}], 
-                "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }, 
+                "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0, "sugar": 0, "sodium": 0, "cholesterol": 0 }, 
+                "vitamins": [{"name": "Vitamin X", "amount": "string", "daily_value_pct": 0}],
+                "minerals": [{"name": "Mineral X", "amount": "string", "daily_value_pct": 0}],
                 "micros": [{"name": "string", "amount": "string", "daily_value_pct": 0}], 
                 "volume_cm3": 0,
                 "metabolic_insight": { "score": 0, "impact_level": "neutral", "layman_explanation": "string" }
@@ -770,39 +797,62 @@ Deno.serve(async (req) => {
     }
 
     // 6. Final Processing & Database Insertion
-    if (mode === 'log' && finalResult && !finalResult.pantry_items) {
-      console.log(`[Vision] Persisting log to database for user ${user.id}`);
+    let persisted = false;
+    console.log(`[Vision DEBUG] Mode: ${mode}, Has Result: ${!!finalResult}`);
+    if (finalResult) {
+      const keys = Object.keys(finalResult);
+      console.log(`[Vision DEBUG] FinalResult Keys: ${keys.join(', ')}`);
+      const hasPantryItems = Array.isArray(finalResult.pantry_items) && finalResult.pantry_items.length > 0;
       
-      const logEntry = {
-        user_id: user.id,
-        grams: finalResult.volume_cm3 || 0,
-        metabolic_tags_json: {
-          item: finalResult.items?.[0]?.name || 'Unknown Food',
-          calories: finalResult.macros?.calories || 0,
-          protein: finalResult.macros?.protein || 0,
-          carbs: finalResult.macros?.carbs || 0,
-          fats: finalResult.macros?.fat || 0,
-          micros: finalResult.micros || [],
-          ingredients: finalResult.ingredients || [],
-          reasoning: finalResult.reasoning_trace,
-          metabolic_insight: finalResult.metabolic_insight,
-          image_path: imagePath || null
-        },
-        captured_at: new Date().toISOString()
-      };
+      if (mode === 'log' && !hasPantryItems) {
+        console.log(`[Vision] Persisting log to database for user ${user.id}`);
+        
+        const localDate = new Date().toLocaleDateString('en-CA');
+        const logEntry = {
+          user_id: user.id,
+          grams: finalResult.volume_cm3 || 0,
+          local_date: localDate,
+          metabolic_tags_json: {
+            item: finalResult.items?.[0]?.name || 'Unknown Food',
+            calories: finalResult.macros?.calories || 0,
+            protein: finalResult.macros?.protein || 0,
+            carbs: finalResult.macros?.carbs || 0,
+            fats: finalResult.macros?.fats || finalResult.macros?.fat || 0,
+            fiber: finalResult.macros?.fiber || 0,
+            sugar: finalResult.macros?.sugar || 0,
+            sodium: finalResult.macros?.sodium || 0,
+            cholesterol: finalResult.macros?.cholesterol || 0,
+            vitamins: finalResult.vitamins || [],
+            minerals: finalResult.minerals || [],
+            micros: finalResult.micros || [],
+            ingredients: finalResult.ingredients || [],
+            reasoning: finalResult.reasoning_trace,
+            metabolic_insight: finalResult.metabolic_insight,
+            image_path: imagePath || null
+          },
+          captured_at: new Date().toISOString()
+        };
 
-      const { error: insertError } = await supabase
-        .from('logs')
-        .insert(logEntry);
+        console.log(`[Vision] Inserting Log Entry:`, JSON.stringify(logEntry));
+        const { error: insertError } = await supabase
+          .from('logs')
+          .insert(logEntry);
 
-      if (insertError) {
-        console.error('[Vision] DB Insert Failed:', insertError);
+        if (insertError) {
+          console.error('[Vision] DB Insert Failed:', insertError);
+        } else {
+          console.log('[Vision] ✅ Log persisted successfully');
+          persisted = true;
+        }
+      } else if (mode === 'log' && hasPantryItems) {
+        console.log(`[Vision] Skipping log persistence: pantry_items detected (${finalResult.pantry_items.length} items)`);
       }
     }
 
     // 7. Return Result with Debug Trace
     const responseBody = {
       ...finalResult,
+      persisted,
       debug_trace: {
         gemini_description: sceneDescription,
         deepseek_raw: deepseekRaw || "No Output",

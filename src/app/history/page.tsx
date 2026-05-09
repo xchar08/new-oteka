@@ -2,10 +2,13 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, ChevronRight, UtensilsCrossed, ChevronLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { visionService } from '@/lib/services/vision.service';
+import { Loader2, UtensilsCrossed, ChevronLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { LogEntryCard } from '@/components/pantry/LogEntryCard';
+import type { LogEntry } from '@/lib/types/metabolic';
 
 export default function HistoryPage() {
   const supabase = createClient();
@@ -28,13 +31,20 @@ export default function HistoryPage() {
         .order('captured_at', { ascending: false })
         .limit(50);
       
-      return data || [];
+      return visionService.resolveLogImages(data || []) as Promise<LogEntry[]>;
     }
   });
 
   // Group logs by date
-  const groupedLogs = mounted ? logs.reduce((acc: Record<string, any[]>, log) => {
-    const dateKey = new Date(log.captured_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const groupedLogs = mounted ? logs.reduce((acc: Record<string, LogEntry[]>, log) => {
+    // Split local_date to prevent JS from assuming UTC midnight
+    const localDate = log.local_date || new Date().toLocaleDateString('en-CA');
+    const [y, m, d] = localDate.split('-');
+    const dateKey = new Date(Number(y), Number(m) - 1, Number(d)).toLocaleDateString(undefined, { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric' 
+    });
     if (!acc[dateKey]) acc[dateKey] = [];
     acc[dateKey].push(log);
     return acc;
@@ -91,8 +101,8 @@ export default function HistoryPage() {
                 <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-secondary)]">{date}</h3>
               </div>
               <div className="space-y-3">
-                {dateLogs.map((log: any) => (
-                  <LogItem key={log.id} log={log} />
+                {dateLogs.map((log: LogEntry) => (
+                  <LogEntryCard key={log.id} log={log} />
                 ))}
               </div>
             </section>
@@ -103,80 +113,4 @@ export default function HistoryPage() {
       <BottomNav />
     </div>
   );
-}
-
-function LogItem({ log }: { log: any }) {
-    const [expanded, setExpanded] = useState(false);
-    const meta = log.metabolic_tags_json || {};
-    const macros = meta.macros || meta || {};
-    const name = meta.food_name || meta.item || 'Unknown Food';
-    const ingredients = meta.ingredients || [];
-
-    return (
-        <motion.div 
-            layout
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onClick={() => setExpanded(!expanded)}
-            className={`bg-[var(--bg-surface)] border border-[var(--border)] rounded-[28px] overflow-hidden transition-all duration-300 active:scale-[0.99] cursor-pointer shadow-sm`}
-        >
-            <div className="p-4 flex items-center justify-between">
-                <div className="flex-1 min-w-0 pr-4">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-[var(--text-primary)] capitalize truncate block">{name}</span>
-                    </div>
-                    <div className="text-[10px] text-[var(--text-secondary)] flex items-center gap-2 font-bold uppercase tracking-wider">
-                        <span>{Number(macros.calories || 0).toFixed(0)} kcal</span>
-                        <div className="w-1 h-1 bg-[var(--border)] rounded-full" />
-                        <span>{Number(macros.protein || 0).toFixed(0)}g protein</span>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="text-xl font-black text-[var(--primary)] tabular-nums">
-                        {Number(macros.calories || 0).toFixed(0)}
-                    </div>
-                    <div className={`p-1.5 rounded-full bg-[var(--bg-app)] border border-[var(--border)] transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`}>
-                        <ChevronRight className="h-4 w-4 text-[var(--text-secondary)]" />
-                    </div>
-                </div>
-            </div>
-            
-            <AnimatePresence>
-                {expanded && (
-                    <motion.div 
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="border-t border-[var(--border)]"
-                    >
-                        <div className="p-5 bg-[var(--bg-app)]/50 space-y-5">
-                            <div className="grid grid-cols-3 gap-3">
-                                {[
-                                    { label: 'Protein', val: macros.protein },
-                                    { label: 'Carbs', val: macros.carbs },
-                                    { label: 'Fat', val: macros.fats || macros.fat },
-                                ].map(m => (
-                                    <div key={m.label} className={`bg-[var(--bg-surface)] border border-[var(--border)] p-3 rounded-2xl`}>
-                                        <div className="text-[9px] text-[var(--text-secondary)] uppercase tracking-widest font-black mb-1">{m.label}</div>
-                                        <div className={`text-base font-black text-[var(--text-primary)]`}>{Number(m.val || 0).toFixed(0)}<span className="text-[10px] text-[var(--text-secondary)] ml-1 font-bold">g</span></div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {ingredients.length > 0 && (
-                                <div>
-                                    <h4 className="text-[9px] uppercase tracking-widest font-black text-[var(--text-secondary)] mb-3 ml-1">Key Components</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {ingredients.map((ing: any, i: number) => (
-                                            <span key={i} className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl text-xs text-[var(--text-primary)] font-medium capitalize shadow-sm">{ing.name || ing}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
 }

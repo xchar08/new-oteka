@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Users, UserPlus, Copy, Check, LogOut, ChevronLeft, Home } from 'lucide-react';
+import { Users, UserPlus, Copy, Check, LogOut, ChevronLeft, Home, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';

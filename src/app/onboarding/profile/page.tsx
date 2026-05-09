@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Ruler, Weight, Calendar, User } from 'lucide-react';
+import { ChevronRight, Ruler, Weight, Calendar, User, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function ProfileOnboardingPage() {
@@ -23,6 +23,11 @@ export default function ProfileOnboardingPage() {
 
   const supabase = createClient();
   const router = useRouter();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.replace('/login');
+  };
 
   const handleContinue = async () => {
     if (loading) return;
@@ -97,8 +102,17 @@ export default function ProfileOnboardingPage() {
       
       <div className="space-y-6 flex-1">
         <header className="pt-safe space-y-2">
-            <div className="w-12 h-1 bg-[var(--border)] rounded-full mb-6">
-                <div className="w-1/3 h-full bg-[var(--primary)] rounded-full" />
+            <div className="flex justify-between items-center mb-6">
+              <div className="w-12 h-1 bg-[var(--border)] rounded-full">
+                  <div className="w-1/3 h-full bg-[var(--primary)] rounded-full" />
+              </div>
+              <button 
+                onClick={handleSignOut}
+                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all py-1.5 px-3 bg-[var(--bg-surface)] border border-[var(--border)] rounded-lg shadow-sm"
+              >
+                <LogOut size={11} />
+                Sign Out / Reset Session
+              </button>
             </div>
             <h1 className="text-3xl font-black tracking-tight text-[var(--text-primary)]">Basic Info</h1>
             <p className="text-[var(--text-secondary)] text-sm font-medium">Configure your biological baseline.</p>

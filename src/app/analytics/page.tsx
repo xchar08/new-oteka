@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, TrendingUp, Calendar, Target, Flame, Zap, Droplets, ChevronLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useRouter } from 'next/navigation';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { PricingGuard } from '@/components/ui/PricingGuard';
 
 type WeeklyStats = {
   protein_avg: number;
@@ -19,7 +20,7 @@ type WeeklyStats = {
   fats_total: number;
 };
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -27,7 +28,7 @@ const containerVariants = {
   }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { 
     opacity: 1, 
@@ -59,7 +60,7 @@ export default function AnalyticsPage() {
       .from('logs')
       .select('grams, metabolic_tags_json')
       .eq('user_id', user.id)
-      .gte('captured_at', startDate.toISOString());
+      .gte('local_date', startDate.toLocaleDateString('en-CA'));
 
     if (error || !logs) {
       console.error("Analytics Load Error", error);
@@ -102,7 +103,7 @@ export default function AnalyticsPage() {
   );
 
   const targets = {
-    calories: user?.metabolic_state_json?.bmr || 2100,
+    calories: user?.calorie_target || 2000,
     protein: user?.metabolic_state_json?.protein_target || 140,
     carbs: user?.metabolic_state_json?.carbs_target || 180,
     fats: user?.metabolic_state_json?.fats_target || 65
@@ -252,3 +253,4 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+

@@ -12,5 +12,5 @@ export const deepseekProvider = createOpenAI({
   apiKey: process.env.NEBIUS_API_KEY,           // Changed from DEEPSEEK_API_KEY
 });
 
-export const MODEL_VISION = 'gemini-3.0-flash';
-export const MODEL_REASONING = 'deepseek-ai/DeepSeek-R1'; // Nebius Model ID
+export const MODEL_VISION = 'gemini-3-flash-preview';
+export const MODEL_REASONING = 'deepseek-ai/DeepSeek-V3.2'; // Nebius Model ID

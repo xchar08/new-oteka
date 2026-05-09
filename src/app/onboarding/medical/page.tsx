@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Check, HeartPulse, ShieldAlert, Activity } from 'lucide-react';
+import { ChevronRight, Check, HeartPulse, ShieldAlert, Activity, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -24,6 +24,11 @@ export default function MedicalOnboardingPage() {
   const [saving, setSaving] = useState(false);
   const supabase = createClient();
   const router = useRouter();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.replace('/login');
+  };
 
   useEffect(() => {
     // We can still try to sync with DB if needed, but we have the bundled fallback
@@ -48,31 +53,37 @@ export default function MedicalOnboardingPage() {
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
   };
+const handleContinue = async () => {
+  if (saving) return;
+  setSaving(true);
 
-  const handleContinue = async () => {
-    if (saving) return;
-    setSaving(true);
-    
-    try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          // 1. Wipe existing
-          await supabase.from('user_conditions').delete().eq('user_id', user.id);
-          
-          // 2. Insert new
-          if (selected.length > 0) {
-            const payload = selected.map(cid => ({
-              user_id: user.id,
-              condition_id: cid
-            }));
-            await supabase.from('user_conditions').insert(payload);
-          }
+  try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      if (authUser) {
+        // 1. Wipe existing
+        await supabase.from('user_conditions').delete().eq('user_id', authUser.id);
+
+        // 2. Insert new
+        if (selected.length > 0) {
+          const payload = selected.map(cid => ({
+            user_id: authUser.id,
+            condition_id: cid
+          }));
+          await supabase.from('user_conditions').insert(payload);
         }
-        
-        // Use a hard redirect if possible or router.push
-        router.push('/onboarding/calibration');
-    } catch (err) {
+
+        // 3. Mark step as verified in metabolic_state_json (used by AuthGuard)
+        const { data: profile } = await supabase.from('users').select('metabolic_state_json').eq('id', authUser.id).single();
+        const meta = profile?.metabolic_state_json || {};
+        await supabase.from('users').upsert({
+          id: authUser.id,
+          metabolic_state_json: { ...meta, medical_verified: true }
+        });
+      }
+
+      router.push('/onboarding/calibration');
+  } catch (err) {
         console.error(err);
     } finally {
         setSaving(false);
@@ -152,6 +163,12 @@ export default function MedicalOnboardingPage() {
         >
           {saving ? 'Syncing...' : 'Finalize Constraints'} <ChevronRight size={20} />
         </Button>
+        <button 
+          onClick={handleSignOut}
+          className="flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-40 hover:opacity-100 transition-all mx-auto"
+        >
+          <LogOut size={12} /> Sign Out / Reset Session
+        </button>
       </div>
     </div>
   );

@@ -4,9 +4,29 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, Check, Sparkles, Zap, Flame, Crown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { subscriptionService } from '@/lib/services/subscription.service';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAppStore } from '@/lib/state/appStore';
 
 export default function PricingPage() {
   const router = useRouter();
+  const { user, loading } = useDashboardData();
+  const queryClient = useQueryClient();
+  const setPlan = useAppStore((s: any) => s.setPlan);
+
+  const handleUpgrade = async () => {
+    if (!user) return;
+    try {
+        await subscriptionService.upgradeToPro(user.id);
+        setPlan('pro');
+        toast.success("Welcome to Oteka Solar! Neural engine active.");
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+    } catch (err) {
+        toast.error("Upgrade failed. Check connection.");
+    }
+  };
 
   const plans = [
     {
@@ -21,7 +41,7 @@ export default function PricingPage() {
             "Standard Pantry Management"
         ],
         cta: "Current Plan",
-        active: true
+        active: !user || user.plan === 'free'
     },
     {
         name: "Oteka Solar",
@@ -35,11 +55,17 @@ export default function PricingPage() {
             "Priority AI Coach Access",
             "Travel Menu Parser"
         ],
-        cta: "Upgrade to Solar",
-        active: false,
+        cta: user?.plan === 'pro' ? "Current Plan" : "Upgrade to Solar",
+        active: user?.plan === 'pro',
         premium: true
     }
   ];
+
+  if (loading) return (
+    <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] p-6 pb-32 transition-colors duration-500 font-sans">
@@ -100,13 +126,20 @@ export default function PricingPage() {
 
                 <button 
                     disabled={plan.active}
-                    onClick={() => !plan.active && alert("Stripe checkout would open here.")}
+                    onClick={() => {
+                        if (!plan.active) {
+                            if (plan.premium) handleUpgrade();
+                            else alert("You are already on the Core plan.");
+                        }
+                    }}
                     className={`w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg ${
                         plan.active 
-                        ? 'bg-[var(--bg-app)] border border-[var(--border)] text-[var(--text-secondary)] opacity-50 cursor-default' 
+                        ? plan.premium
+                            ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--secondary)] cursor-default'
+                            : 'bg-[var(--bg-app)] border border-[var(--border)] text-[var(--text-secondary)] opacity-50 cursor-default'
                         : plan.premium 
-                        ? 'bg-[var(--primary)] text-white' 
-                        : 'bg-[var(--text-primary)] text-white'
+                        ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]' 
+                        : 'bg-[var(--text-primary)] text-white hover:bg-[var(--text-secondary)]'
                     }`}
                 >
                     {plan.cta}

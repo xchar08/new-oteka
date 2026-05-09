@@ -1,8 +1,13 @@
 diff --git a/node_modules/@capacitor/browser/android/build.gradle b/node_modules/@capacitor/browser/android/build.gradle
-index 1fad7dc..092b3bf 100644
+index 1fad7dc..dae50b9 100644
 --- a/node_modules/@capacitor/browser/android/build.gradle
 +++ b/node_modules/@capacitor/browser/android/build.gradle
-@@ -43,7 +43,7 @@ android {
+@@ -1,3 +1,4 @@
++
+ ext {
+     capacitorVersion = System.getenv('CAPACITOR_VERSION')
+     junitVersion = project.hasProperty('junitVersion') ? rootProject.ext.junitVersion : '4.13.2'
+@@ -43,7 +44,7 @@ android {
      buildTypes {
          release {
              minifyEnabled false

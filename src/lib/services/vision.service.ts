@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { normalizeError } from '@/lib/utils/errors';
 
 const getSupabase = () => createClient();
 
@@ -18,26 +19,114 @@ export const visionService = {
         upsert: false,
       });
 
-    if (error) throw error;
+    if (error) throw normalizeError(error);
     return { path: data.path, fileName };
   },
 
   /**
-   * Fetches the latest logs for the user.
+   * Helper to resolve raw image paths into secure signed URLs.
+   */
+  async resolveLogImages(logs: any[]) {
+      if (!logs || logs.length === 0) return logs;
+      const supabase = getSupabase();
+      
+      // 1. Collect all paths from metabolic_tags_json
+      const paths = logs
+        .map(log => log.metabolic_tags_json?.image_path)
+        .filter(Boolean);
+
+      if (paths.length === 0) return logs;
+
+      // 2. Generate signed URLs for all paths at once (valid for 24 hours)
+      const { data: signedData, error } = await supabase.storage
+        .from('food_scans')
+        .createSignedUrls(paths, 60 * 60 * 24);
+
+      if (error) {
+          console.error('[Vision Service] Signed URL Generation Failed:', error.message);
+          return logs;
+      }
+
+      // 3. Map signed URLs back to log objects as top-level image_url
+      return logs.map(log => {
+          const path = log.metabolic_tags_json?.image_path;
+          if (!path) return log;
+          
+          const signedMatch = signedData.find(s => s.path === path);
+          return {
+              ...log,
+              image_url: signedMatch?.signedUrl || null
+          };
+      });
+  },
+
+  /**
+   * Fetches the latest logs for the user with resolved image URLs.
    */
   async getDailyLogs(userId: string) {
     const supabase = getSupabase();
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // Use strictly the local date string (YYYY-MM-DD)
+    const localDate = new Date().toLocaleDateString('en-CA');
 
     const { data, error } = await supabase
       .from('logs')
-      .select('*')
+      .select('id, user_id, grams, metabolic_tags_json, captured_at, local_date')
       .eq('user_id', userId)
-      .gte('captured_at', startOfDay.toISOString())
+      .eq('local_date', localDate)
       .order('captured_at', { ascending: false });
 
-    if (error) throw error;
-    return data;
+    if (error) throw normalizeError(error);
+    
+    // Pass through image resolver
+    return this.resolveLogImages(data || []);
+  },
+
+  /**
+   * Logs a meal/food item to the metabolic history.
+   */
+  async logMeal(userId: string, data: {
+    grams: number;
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fats: number;
+    ingredients?: string[];
+  }) {
+    const supabase = getSupabase();
+    const localDate = new Date().toLocaleDateString('en-CA');
+    const { error } = await supabase.from('logs').insert({
+      user_id: userId,
+      grams: data.grams,
+      local_date: localDate,
+      metabolic_tags_json: {
+        food_name: data.name,
+        calories: data.calories,
+        protein: data.protein,
+        carbs: data.carbs,
+        fats: data.fats,
+        ingredients: data.ingredients || []
+      }
+    });
+
+    if (error) throw normalizeError(error);
+    return true;
+  },
+
+  /**
+   * Updates a specific log entry with user feedback (Taste, Satiety, Digestion).
+   * This data is used by the NSGA-II Optimization Algorithm.
+   */
+  async updateLogFeedback(logId: string, currentTags: any, feedback: { taste: number, satiety: number, digestion: number }) {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('logs').update({
+      metabolic_tags_json: {
+        ...currentTags,
+        feedback
+      }
+    }).eq('id', logId);
+
+    if (error) throw normalizeError(error);
+    return true;
   }
 };

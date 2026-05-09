@@ -12,14 +12,14 @@ import {
   UtensilsCrossed,
   User
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -30,7 +30,7 @@ const containerVariants = {
   }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, x: -20 },
   visible: { 
     opacity: 1, 
@@ -41,38 +41,35 @@ const itemVariants = {
 
 const pantryCategories = ['All', 'Grains', 'Proteins', 'Produce', 'Dairy', 'Snacks'];
 
+import { visionService } from '@/lib/services/vision.service';
 export default function PantryPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const { pantryItems, user, loading } = useDashboardData();
   const router = useRouter();
-  const supabase = createClient();
 
   const handleAddMeal = async (item: any) => {
+    if (!user) return;
     const food = item.foods || {};
     const meta = item.metadata_json || {};
-    
-    const { error } = await supabase.from('logs').insert({
-        user_id: user.id,
-        grams: 100, // Default portion
-        metabolic_tags_json: {
-            food_name: item.name || food.name,
-            calories: (food.nutritional_info?.calories || 0),
-            protein: (food.nutritional_info?.protein || 0),
-            carbs: (food.nutritional_info?.carbs || 0),
-            fats: (food.nutritional_info?.fats || 0),
-            ingredients: meta.ingredients || []
-        }
-    });
 
-    if (!error) {
-        toast.success(`Logged 100g of ${item.name || food.name}`);
-        router.push('/log');
-    } else {
-        toast.error("Failed to log meal");
+    try {
+      await visionService.logMeal(user.id, {
+        grams: 100, // Default portion
+        name: item.name || food.name,
+        calories: food.nutritional_info?.calories || 0,
+        protein: food.nutritional_info?.protein || 0,
+        carbs: food.nutritional_info?.carbs || 0,
+        fats: food.nutritional_info?.fats || 0,
+        ingredients: meta.ingredients || []
+      });
+
+      toast.success(`Logged 100g of ${item.name || food.name}`);
+      router.push('/log');
+    } catch (err) {
+      toast.error("Failed to log meal");
     }
   };
-
   const filteredItems = pantryItems.filter(item => {
     const itemCat = item.metadata_json?.category || 'Grocery';
     const matchesCategory = activeCategory === 'All' || itemCat === activeCategory;
@@ -216,10 +213,12 @@ export default function PantryPage() {
         </AnimatePresence>
       </motion.section>
 
-      {/* Bottom Action Card */}
       <section className="px-6 mt-12 mb-8">
         <motion.div 
-          onClick={() => router.push('/shopping')}
+          onClick={() => {
+            toast.loading("Oteka AI analyzing pantry stock...", { duration: 1500 });
+            setTimeout(() => router.push('/shopping'), 600);
+          }}
           whileHover={{ y: -5 }}
           className="bg-[var(--secondary)] rounded-[32px] p-8 text-white relative overflow-hidden shadow-2xl cursor-pointer"
         >

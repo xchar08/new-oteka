@@ -145,7 +145,7 @@ export default function PantryScanPage() {
   const stopCamera = async () => {
     try {
       await CameraPreview.stop();
-    } catch (e) {} 
+    } catch (e) { console.warn('[Camera] Stop failed:', e); } 
     finally {
         document.body.classList.remove('camera-active');
         document.documentElement.classList.remove('camera-active');
