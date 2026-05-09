@@ -203,8 +203,10 @@ export default function ProfilePage() {
         >
           <div className="px-6 py-2">
             {[
-              { icon: Settings, label: 'Configuration', onClick: () => router.push('/settings') },
-              { icon: Ruler, label: 'Calibrate Hand Scan', onClick: () => router.push('/onboarding/calibration') },
+              { icon: User, label: 'Biological Profile', onClick: () => router.push('/onboarding/profile') },
+              { icon: Activity, label: 'Medical Conditions', onClick: () => router.push('/onboarding/medical') },
+              { icon: Ruler, label: 'Hand Calibration', onClick: () => router.push('/onboarding/calibration') },
+              { icon: Settings, label: 'App Configuration', onClick: () => router.push('/settings') },
               { icon: Target, label: 'Pricing & Plans', onClick: () => router.push('/pricing') },
               { icon: Shield, label: 'Privacy Policy', onClick: () => router.push('/privacy') },
               { icon: LogOut, label: 'Sign Out', danger: true, onClick: handleSignOut },

@@ -52,6 +52,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           pathname?.startsWith(route)
         );
 
+        const isOnboardingRoute = pathname.startsWith('/onboarding');
+
         if (isProtectedRoute && !session) {
           router.replace('/login');
           setAuthorized(false);
@@ -74,38 +76,50 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
              console.error("AuthGuard profile fetch error:", profileError);
           }
 
-          // If no profile row exists, we need to create one or at least get them to onboarding
-          if (!profile && !pathname.startsWith('/onboarding')) {
-             router.replace('/onboarding/profile');
-             setAuthorized(false);
-             setLoading(false);
-             return;
-          }
-
           const metabolic = (profile?.metabolic_state_json || {}) as any;
           const hasProfile = !!(metabolic.age && metabolic.height_cm);
           const hasMedical = !!metabolic.medical_verified;
           const hasCalibration = !!(profile?.hand_width_mm);
 
-          console.log("[AuthGuard] Status Check:", { 
+          console.log("[AuthGuard] Sequential Check:", { 
             pathname, 
             hasProfile, 
             hasMedical,
-            hasCalibration, 
-            plan: profile?.plan,
+            hasCalibration 
           });
 
-          // Redirect to onboarding if they haven't started at all
-          if (!hasProfile && !pathname.startsWith('/onboarding')) {
-             router.replace('/onboarding/profile');
-             setAuthorized(false);
-             setLoading(false);
-             return;
+          // ENFORCE SEQUENTIAL ONBOARDING
+          // 1. Profile Step
+          if (!hasProfile) {
+            if (pathname !== '/onboarding/profile') {
+              router.replace('/onboarding/profile');
+              setAuthorized(false);
+              setLoading(false);
+              return;
+            }
+          } 
+          // 2. Medical Step
+          else if (!hasMedical) {
+            if (pathname !== '/onboarding/medical') {
+              router.replace('/onboarding/medical');
+              setAuthorized(false);
+              setLoading(false);
+              return;
+            }
           }
-
-          // If they are on an onboarding page, let them through
-          if (pathname.startsWith('/onboarding')) {
-            setAuthorized(true);
+          // 3. Calibration Step
+          else if (!hasCalibration) {
+            if (pathname !== '/onboarding/calibration') {
+              router.replace('/onboarding/calibration');
+              setAuthorized(false);
+              setLoading(false);
+              return;
+            }
+          }
+          // 4. Completed - but if they are still on onboarding, kick them to dashboard
+          else if (isOnboardingRoute) {
+            router.replace('/dashboard');
+            setAuthorized(false);
             setLoading(false);
             return;
           }
@@ -147,8 +161,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!authorized && !ONBOARDING_ROUTES.some(r => pathname?.startsWith(r)) && !EXEMPT_ROUTES.some(r => pathname?.startsWith(r))) {
-    // Prevent rendering children while redirect is in progress
+  // Final catch-all for unauthorized access during redirect
+  if (!authorized && 
+      !pathname.startsWith('/onboarding') && 
+      pathname !== '/login' && 
+      !EXEMPT_ROUTES.some(r => pathname?.startsWith(r))) {
     return null;
   }
 

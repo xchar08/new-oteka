@@ -81,6 +81,7 @@ export interface ScanResult {
 
 export interface LogMetadata {
   item: string;
+  food_name?: string;
   calories: number;
   protein: number;
   carbs: number;
@@ -92,10 +93,15 @@ export interface LogMetadata {
   vitamins: NutrientEntry[];
   minerals: NutrientEntry[];
   micros: NutrientEntry[];
-  ingredients: Ingredient[];
+  ingredients: string[];
   reasoning?: string;
-  metabolic_insight?: MetabolicInsight;
-  image_path?: string | null;
+  metabolic_insight?: string;
+  image_path: string | null;
+  feedback?: {
+    taste: number;
+    satiety: number;
+    digestion: number;
+  };
 }
 
 export interface LogEntry {

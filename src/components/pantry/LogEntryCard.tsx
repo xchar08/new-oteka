@@ -5,7 +5,7 @@ import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { ChevronDown, Flame, Utensils } from 'lucide-react';
 import { visionService } from '@/lib/services/vision.service';
 import { NutrientSection } from '@/components/ui/NutrientSection';
-import type { LogEntry } from '@/lib/types/metabolic';
+import type { LogEntry, LogMetadata } from '@/lib/types/metabolic';
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },

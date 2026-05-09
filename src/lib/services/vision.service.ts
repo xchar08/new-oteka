@@ -37,22 +37,32 @@ export const visionService = {
 
       if (paths.length === 0) return logs;
 
-      // 2. Generate signed URLs for all paths at once (valid for 24 hours)
-      const { data: signedData, error } = await supabase.storage
-        .from('food_scans')
-        .createSignedUrls(paths, 60 * 60 * 24);
-
-      if (error) {
-          console.error('[Vision Service] Signed URL Generation Failed:', error.message);
-          return logs;
-      }
+      // 2. Generate signed URLs in parallel with transform options for CDN-side optimization
+      const signedResults = await Promise.all(
+        paths.map(async (path) => {
+          const { data, error } = await supabase.storage
+            .from('food_scans')
+            .createSignedUrl(path, 60 * 60 * 24, {
+              transform: {
+                width: 300,
+                height: 300,
+                resize: 'cover',
+                format: 'origin'
+              }
+            });
+          if (error) {
+            console.error(`[Vision Service] Failed to sign path "${path}":`, error.message);
+          }
+          return { path, signedUrl: data?.signedUrl || null };
+        })
+      );
 
       // 3. Map signed URLs back to log objects as top-level image_url
       return logs.map(log => {
           const path = log.metabolic_tags_json?.image_path;
           if (!path) return log;
           
-          const signedMatch = signedData.find(s => s.path === path);
+          const signedMatch = signedResults.find(s => s.path === path);
           return {
               ...log,
               image_url: signedMatch?.signedUrl || null

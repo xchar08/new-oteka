@@ -5,12 +5,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { shoppingService } from '@/lib/services/shopping.service';
 import { pantryService } from '@/lib/services/pantry.service';
-import { CheckCircle, Loader2, Plus, ShoppingCart, ChevronLeft, Trash2, ArrowRight, Sparkles, Zap, Clock, Activity, ChevronDown, Flame, BookOpen, Microscope } from 'lucide-react';
+import { CheckCircle, Loader2, Plus, ShoppingCart, ChevronLeft, Trash2, ArrowRight, Sparkles, Zap, Clock, Activity, BookOpen, Microscope } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { MetabolicRecipeCard, MetabolicRecipe } from '@/components/shopping/MetabolicRecipeCard';
 
 type ShoppingItem = {
   id: string;
@@ -21,14 +22,6 @@ type ShoppingItem = {
   reason: string;
   added_by_name?: string;
   priority?: string;
-};
-
-type MetabolicRecipe = {
-    title: string;
-    ingredients: string[];
-    instructions: string[];
-    bio_reason: string;
-    prep_time: string;
 };
 
 export default function ShoppingPage() {
@@ -231,6 +224,7 @@ export default function ShoppingPage() {
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[2rem] p-8 text-center shadow-md flex flex-col items-center justify-center gap-4 min-h-[160px] relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 h-1 bg-[var(--primary)] w-full">
@@ -333,64 +327,12 @@ export default function ShoppingPage() {
                         </div>
                         <div className="space-y-3">
                             {aiRecipes.map((recipe, i) => (
-                                <motion.div 
+                                <MetabolicRecipeCard 
                                     key={i}
-                                    onClick={() => setExpandedRecipe(expandedRecipe === recipe.title ? null : recipe.title)}
-                                    className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[2rem] overflow-hidden cursor-pointer active:scale-[0.99] transition-all shadow-sm"
-                                >
-                                    <div className="p-6 flex items-center justify-between">
-                                        <div className="flex items-center gap-4 flex-1 min-w-0">
-                                            <div className="w-12 h-12 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center border border-[var(--primary)]/20 shrink-0">
-                                                <Flame size={24} className="text-[var(--primary)]" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h4 className="font-bold text-[var(--text-primary)] truncate text-base">{recipe.title}</h4>
-                                                <div className="flex items-center gap-2 text-[var(--text-secondary)] font-mono text-[9px] font-bold uppercase">
-                                                    <Clock size={10} /> {recipe.prep_time}
-                                                    <div className="w-1 h-1 bg-[var(--border)] rounded-full" />
-                                                    <Microscope size={10} /> Bio-Aligned
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ChevronDown className={`text-[var(--text-secondary)] transition-transform duration-300 ${expandedRecipe === recipe.title ? 'rotate-180' : ''}`} />
-                                    </div>
-                                    <AnimatePresence>
-                                        {expandedRecipe === recipe.title && (
-                                            <motion.div
-                                                initial={{ height: 0 }}
-                                                animate={{ height: 'auto' }}
-                                                exit={{ height: 0 }}
-                                                className="border-t border-[var(--border)] bg-black/5"
-                                            >
-                                                <div className="p-6 space-y-6">
-                                                    <div className="p-4 rounded-2xl bg-[var(--primary)]/5 border border-[var(--primary)]/10 italic text-xs text-[var(--text-primary)] opacity-90 leading-relaxed">
-                                                        "{recipe.bio_reason}"
-                                                    </div>
-                                                    
-                                                    <div>
-                                                        <h5 className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] mb-3">Target Synthesis Protocols</h5>
-                                                        <div className="space-y-3">
-                                                            {recipe.instructions.map((step, idx) => (
-                                                                <div key={idx} className="flex gap-4">
-                                                                    <span className="font-mono text-[10px] font-black text-[var(--primary)] opacity-40">{idx + 1}.</span>
-                                                                    <p className="text-sm font-medium text-[var(--text-primary)] leading-tight">{step}</p>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {recipe.ingredients.map((ing, idx) => (
-                                                            <span key={idx} className="px-3 py-1.5 bg-[var(--bg-app)] border border-[var(--border)] rounded-full text-[10px] font-bold text-[var(--text-secondary)]">
-                                                                {ing}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </motion.div>
+                                    recipe={recipe}
+                                    isExpanded={expandedRecipe === recipe.title}
+                                    onToggle={() => setExpandedRecipe(expandedRecipe === recipe.title ? null : recipe.title)}
+                                />
                             ))}
                         </div>
                     </motion.div>

@@ -7,20 +7,23 @@ const corsHeaders = {
 };
 
 /**
- * WASM ON EDGE LOADER
+ * WASM ON EDGE LOADER - GLOBAL CACHE
+ * We store the instance in the global scope to prevent repeated binary fetching
+ * and recompilation during the lifecycle of the Edge Function instance.
  */
 let wasmInstance: any = null;
 
 async function getWasmInstance() {
   if (wasmInstance) return wasmInstance;
   try {
+      console.log("[WASM] Initializing binary from storage...");
       const wasmPath = new URL('./planner_wasm_bg.wasm', import.meta.url);
       const wasmCode = await Deno.readFile(wasmPath.pathname);
       const wasmModule = new WebAssembly.Module(wasmCode);
       wasmInstance = new WebAssembly.Instance(wasmModule, {});
       return wasmInstance;
   } catch (e) {
-      console.warn("[WASM] Failed to load binary. Falling back to High-Performance TS logic.");
+      console.warn("[WASM] Global load failed. Reverting to TS fallback.");
       return null;
   }
 }
@@ -246,6 +249,13 @@ serve(async (req) => {
 
     let solutions: any[] = [];
     let method = "TS_FALLBACK";
+
+    // TRY WASM FIRST
+    const wasm = await getWasmInstance();
+    if (wasm) {
+        // Future Elite WASM logic here
+        // method = "WASM_ON_EDGE";
+    }
 
     let iteration = 0;
     while (solutions.length === 0 && iteration < 3) {
