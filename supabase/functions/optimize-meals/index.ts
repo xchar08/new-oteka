@@ -8,18 +8,12 @@ const corsHeaders = {
 
 /**
  * WASM ON EDGE LOADER
- * This module dynamically loads the Planner WASM binary for elite-speed optimization.
  */
 let wasmInstance: any = null;
 
 async function getWasmInstance() {
   if (wasmInstance) return wasmInstance;
-  
-  // Load the WASM binary from the storage bucket or a local path in the bundle
-  // In a real Supabase deploy, you would either bundle this or fetch from Storage.
-  // For this environment, we'll try to fetch it or mock the speed.
   try {
-      // Logic for loading .wasm in Deno
       const wasmPath = new URL('./planner_wasm_bg.wasm', import.meta.url);
       const wasmCode = await Deno.readFile(wasmPath.pathname);
       const wasmModule = new WebAssembly.Module(wasmCode);
@@ -31,7 +25,7 @@ async function getWasmInstance() {
   }
 }
 
-// DETERMINISTIC TS LOGIC (The fallback if WASM isn't bundled yet)
+// DETERMINISTIC TS LOGIC
 type Gene = {
   name: string;
   calories: number;
@@ -45,6 +39,8 @@ type Gene = {
   expiry?: string;
   decay_coefficient?: number;
   logged_at?: string;
+  sodium?: number;
+  sugar?: number;
 };
 
 type Individual = {
@@ -52,7 +48,7 @@ type Individual = {
   fitness: number;
 };
 
-function runTSOptimization(profile: any, constraints: any, pantry: Gene[], recentFeedback: any[]) {
+function runTSOptimization(profile: any, constraints: any, pantry: Gene[], recentFeedback: any[], userConditions: any[]) {
   const POPSIZE = constraints.pop_size || 50;
   const GENERATIONS = constraints.generations || 25;
   
@@ -70,7 +66,7 @@ function runTSOptimization(profile: any, constraints: any, pantry: Gene[], recen
   }));
 
   for (let g = 0; g < GENERATIONS; g++) {
-    population.forEach(ind => evaluate(ind, targets, constraints, recentFeedback));
+    population.forEach(ind => evaluateWithMedical(ind, targets, constraints, recentFeedback, userConditions));
     population.sort((a, b) => a.fitness - b.fitness);
 
     const nextGen = population.slice(0, 10);
@@ -85,12 +81,29 @@ function runTSOptimization(profile: any, constraints: any, pantry: Gene[], recen
   }
 
   return population
-    .filter(ind => ind.fitness < (constraints.strictness ? 150 : 600))
+    .filter(ind => ind.fitness < 20000) // Filter out medical violations (penalty is 10k+)
     .map(ind => ({
       menu: ind.chromosome.map(g => g.name),
       stats: calculateTotals(ind.chromosome),
       score: ind.fitness
     }));
+}
+
+function evaluateWithMedical(ind: Individual, targets: any, constraints: any, feedback: any[], userConditions: any[]) {
+  const totals = calculateTotals(ind.chromosome);
+  let medicalPenalty = 0;
+
+  userConditions.forEach(cond => {
+    const rules = cond.rules_json || {};
+    // Strict Medical Blocking
+    if (rules.max_sodium && totals.sodium > rules.max_sodium) medicalPenalty += 50000;
+    if (rules.max_sugar && totals.sugar > rules.max_sugar) medicalPenalty += 50000;
+    if (rules.min_protein && totals.protein < rules.min_protein) medicalPenalty += 10000;
+  });
+
+  // Standard multi-objective sum
+  evaluate(ind, targets, constraints, feedback); 
+  ind.fitness += medicalPenalty;
 }
 
 function evaluate(ind: Individual, targets: any, constraints: any, feedback: any[]) {
@@ -106,12 +119,12 @@ function evaluate(ind: Individual, targets: any, constraints: any, feedback: any
   ind.chromosome.forEach(gene => {
     if (gene.expiry) {
       const daysLeft = (new Date(gene.expiry).getTime() - now) / (1000 * 60 * 60 * 24);
-      if (daysLeft <= 2 && daysLeft > 0) wastePenalty += 2500; // MASSIVE bonus to force selection
+      if (daysLeft <= 2 && daysLeft > 0) wastePenalty += 2500; 
       if (daysLeft <= 0) wastePenalty -= 2000;
     } else if (gene.decay_coefficient && gene.logged_at) {
       const daysSinceLog = (now - new Date(gene.logged_at).getTime()) / (1000 * 60 * 60 * 24);
       const freshness = Math.exp(-gene.decay_coefficient * daysSinceLog);
-      if (freshness < 0.3 && freshness > 0.05) wastePenalty += 1000; // Use before it goes bad!
+      if (freshness < 0.3 && freshness > 0.05) wastePenalty += 1000; 
     }
   });
 
@@ -135,7 +148,9 @@ function calculateTotals(genes: Gene[]) {
     fats: acc.fats + (g.fats || 0),
     magnesium: (acc.magnesium || 0) + (g.magnesium || 0),
     iron: (acc.iron || 0) + (g.iron || 0),
-  }), { calories: 0, protein: 0, carbs: 0, fats: 0, magnesium: 0, iron: 0 });
+    sodium: (acc.sodium || 0) + (g.sodium || 0),
+    sugar: (acc.sugar || 0) + (g.sugar || 0),
+  }), { calories: 0, protein: 0, carbs: 0, fats: 0, magnesium: 0, iron: 0, sodium: 0, sugar: 0 });
 }
 
 function getRandomGenes(pool: Gene[], count: number): Gene[] {
@@ -166,23 +181,34 @@ serve(async (req) => {
     const reqBody = await req.json();
     let constraints = reqBody.constraints || { strictness: 1.0, use_preferences: true };
 
+    // 1. Fetch Profile & Medical
     const { data: profile } = await supabase
       .from("users")
       .select("metabolic_state_json, calorie_target, protein_target")
       .eq("id", user.id)
       .single();
 
-    const { data: pantryRaw } = await supabase
-      .from("pantry")
-      .select("foods(name, metadata_json), quantity, expiry, created_at")
+    const { data: userConditions } = await supabase
+      .from("user_conditions")
+      .select("condition_id, conditions(name, rules_json)")
       .eq("user_id", user.id);
 
-    const pantry: Gene[] = (pantryRaw || []).map((p: any) => ({
+    const conditions = (userConditions || []).map((uc: any) => uc.conditions);
+
+    // 2. Fetch Pantry Pool
+    const { data: pantryRaw } = await supabase
+      .from("pantry")
+      .select("foods(id, name, metadata_json), quantity, expiry, created_at")
+      .eq("user_id", user.id);
+
+    let pantryPool: Gene[] = (pantryRaw || []).map((p: any) => ({
       name: p.foods?.name || "Unknown",
       calories: p.foods?.metadata_json?.macros?.calories || 100,
       protein: p.foods?.metadata_json?.macros?.protein || 5,
       carbs: p.foods?.metadata_json?.macros?.carbs || 10,
       fats: p.foods?.metadata_json?.macros?.fats || 2,
+      sodium: p.foods?.metadata_json?.macros?.sodium || 0,
+      sugar: p.foods?.metadata_json?.macros?.sugar || 0,
       magnesium: 10,
       iron: 2,
       inPantry: true,
@@ -190,6 +216,21 @@ serve(async (req) => {
       decay_coefficient: p.foods?.metadata_json?.decay_k || 0.05,
       logged_at: p.created_at
     }));
+
+    if (pantryPool.length === 0) {
+      const { data: globalFoods } = await supabase.from("foods").select("name, metadata_json").limit(40);
+      pantryPool = (globalFoods || []).map((f: any) => ({
+        name: f.name,
+        calories: f.metadata_json?.macros?.calories || 100,
+        protein: f.metadata_json?.macros?.protein || 5,
+        carbs: f.metadata_json?.macros?.carbs || 10,
+        fats: f.metadata_json?.macros?.fats || 2,
+        sodium: f.metadata_json?.macros?.sodium || 0,
+        sugar: f.metadata_json?.macros?.sugar || 0,
+        inPantry: false,
+        decay_coefficient: 0.05
+      }));
+    }
 
     const { data: logsRaw } = await supabase
       .from("logs")
@@ -203,21 +244,12 @@ serve(async (req) => {
       return { item: l.metabolic_tags_json.item, score: avgScore };
     });
 
-    // TRY WASM FIRST
-    const wasm = await getWasmInstance();
     let solutions: any[] = [];
     let method = "TS_FALLBACK";
 
-    if (wasm) {
-        // Elite WASM Execution Path
-        // const result = wasm.exports.optimize_meal_plan(...);
-        // method = "WASM_ON_EDGE";
-    }
-
-    // FALLBACK / CURRENT PRIMARY
     let iteration = 0;
     while (solutions.length === 0 && iteration < 3) {
-      solutions = runTSOptimization(profile, constraints, pantry, recentFeedback);
+      solutions = runTSOptimization(profile, constraints, pantryPool, recentFeedback, conditions);
       if (solutions.length === 0) {
         if (iteration === 0) constraints.strictness *= 0.9;
         else if (iteration === 1) constraints.use_preferences = false;
@@ -229,7 +261,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
         success: true, 
         solutions: solutions.slice(0, 3),
-        meta: { method, iterations: iteration, pantry_size: pantry.length }
+        meta: { method, iterations: iteration, pantry_size: pantryPool.length }
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error: any) {

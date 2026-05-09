@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { shoppingService } from '@/lib/services/shopping.service';
 import { pantryService } from '@/lib/services/pantry.service';
-import { CheckCircle, Loader2, Plus, ShoppingCart, ChevronLeft, Trash2, ArrowRight, Sparkles, Zap, Clock, Activity } from 'lucide-react';
+import { CheckCircle, Loader2, Plus, ShoppingCart, ChevronLeft, Trash2, ArrowRight, Sparkles, Zap, Clock, Activity, ChevronDown, Flame, BookOpen, Microscope } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -23,20 +23,28 @@ type ShoppingItem = {
   priority?: string;
 };
 
+type MetabolicRecipe = {
+    title: string;
+    ingredients: string[];
+    instructions: string[];
+    bio_reason: string;
+    prep_time: string;
+};
+
 export default function ShoppingPage() {
   const queryClient = useQueryClient();
   const [manualInput, setManualInput] = useState('');
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [aiRecipes, setAiRecipes] = useState<MetabolicRecipe[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPhase, setAiPhase] = useState('');
+  const [expandedRecipe, setExpandedRecipe] = useState<string | null>(null);
   const router = useRouter();
 
-  // 1. Fetch User Data from Dashboard (Consolidated Source)
   const { user: userProfile, loading: isUserLoading } = useDashboardData();
   const householdId = userProfile?.household_id;
 
-  // 2. Fetch Shopping List via Consolidated Service
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['shopping-list', userProfile?.id, householdId],
     queryFn: async () => {
@@ -50,23 +58,24 @@ export default function ShoppingPage() {
     if (aiLoading || !userProfile?.id || !householdId) return;
     setAiLoading(true);
     setAiSuggestions([]);
+    setAiRecipes([]);
     setAiAnalysis('');
     
     try {
       setAiPhase('Calibrating metabolic targets...');
-      
       const supabase = createClient();
       
       setAiPhase('Querying genetic planning optimization...');
       const { data, error } = await supabase.functions.invoke('shopping-generator');
       
-      setAiPhase('Formatting nutrient supply requirements...');
+      setAiPhase('Synthesizing Bio-Aligned Recipe Pool...');
 
       if (error || data?.failure) {
         throw new Error(error?.message || data?.error || 'Logistics engine failed.');
       }
 
       setAiSuggestions(data.suggestions || []);
+      setAiRecipes(data.recipes || []);
       setAiAnalysis(data.analysis || 'Optimal household metabolic supply.');
       toast.success("AI logistics optimization compiled successfully!");
     } catch (err: any) {
@@ -80,15 +89,12 @@ export default function ShoppingPage() {
 
   const handleAcceptSuggestion = async (suggestion: any) => {
     if (!userProfile?.id || !householdId) return;
-    
     try {
       await shoppingService.upsertItem({
         household_id: householdId,
         name: suggestion.name,
         added_by: userProfile.id,
       });
-      
-      // Filter out of local suggestions array with a nice exit animation
       setAiSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
       queryClient.invalidateQueries({ queryKey: ['shopping-list'] });
       toast.success(`Added ${suggestion.name} to shared list!`);
@@ -97,14 +103,11 @@ export default function ShoppingPage() {
     }
   };
 
-  // 3. Mutations
   const actionMutation = useMutation({
     mutationFn: async (item: ShoppingItem) => {
       if (!userProfile) throw new Error('Not logged in');
-
       if (item.type === 'db_list' && item.db_id) {
           await shoppingService.deleteItem(item.db_id);
-          // Add to pantry (Quick insert is fine here as it's a direct transition)
           const supabase = createClient();
           await supabase.from('pantry').insert({
             user_id: userProfile.id,
@@ -134,7 +137,6 @@ export default function ShoppingPage() {
 
   const handleManualAdd = async () => {
     if (!manualInput.trim() || !userProfile?.id || !householdId) return;
-    
     actionMutation.mutate({
       id: `manual-${Date.now()}`,
       type: 'suggestion',
@@ -169,7 +171,7 @@ export default function ShoppingPage() {
             <ChevronLeft size={24} />
         </button>
         <div>
-           <h1 className="text-3xl font-light tracking-tight mb-1">Shopping</h1>
+           <h1 className="text-3xl font-light tracking-tight mb-1">Logistics</h1>
            <p className="text-[var(--text-secondary)] text-sm">Managed household supply.</p>
         </div>
       </header>
@@ -177,7 +179,7 @@ export default function ShoppingPage() {
       <div className="relative z-10">
           <input 
             type="text" 
-            placeholder="Add to shared list..."
+            placeholder="Add to supply chain..."
             value={manualInput}
             onChange={(e) => setManualInput(e.target.value)}
             onKeyDown={(e) => {
@@ -197,12 +199,10 @@ export default function ShoppingPage() {
       {/* AI Smart Logistics Control */}
       <div className="relative z-10">
         <AnimatePresence mode="popLayout">
-          {/* State 1: Run button card */}
           {!aiLoading && aiSuggestions.length === 0 && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
               className="bg-gradient-to-r from-[var(--primary)]/10 to-transparent border border-[var(--border)] rounded-[2rem] p-6 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4"
             >
               <div className="flex items-center gap-4 text-left mr-auto">
@@ -210,9 +210,9 @@ export default function ShoppingPage() {
                   <Sparkles size={22} className="animate-pulse" />
                 </div>
                 <div>
-                  <h4 className="font-black text-sm uppercase tracking-wider text-[var(--text-primary)]">AI Logistics Supply Engine</h4>
+                  <h4 className="font-black text-sm uppercase tracking-wider text-[var(--text-primary)]">Neural Supply Engine</h4>
                   <p className="text-[10px] text-[var(--text-secondary)] font-bold mt-1 leading-normal max-w-xs">
-                    Analyze user deficiencies, pantry decay coefficients, and preference feedback in real-time.
+                    Synthesize shopping lists and recipe pools aligned with your medical conditions and deficiency gaps.
                   </p>
                 </div>
               </div>
@@ -222,18 +222,15 @@ export default function ShoppingPage() {
                 onClick={runAiOptimization}
                 className="w-full sm:w-auto h-12 px-6 bg-[var(--primary)] text-white font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2 shadow-md shadow-[var(--primary)]/10 shrink-0"
               >
-                <Sparkles size={14} fill="currentColor" />
-                Run AI Restock
+                Run AI Optimization
               </motion.button>
             </motion.div>
           )}
 
-          {/* State 2: Progress loader spinner */}
           {aiLoading && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
               className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[2rem] p-8 text-center shadow-md flex flex-col items-center justify-center gap-4 min-h-[160px] relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 h-1 bg-[var(--primary)] w-full">
@@ -247,84 +244,158 @@ export default function ShoppingPage() {
               <Loader2 className="animate-spin text-[var(--primary)] h-8 w-8" />
               <div>
                 <h4 className="font-black text-xs uppercase tracking-[0.2em] text-[var(--primary)] animate-pulse">{aiPhase}</h4>
-                <p className="text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-1.5 opacity-40">Oteka genetic modeling engine active</p>
+                <p className="text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-1.5 opacity-40">Oteka Bio-Synthesis engine active</p>
               </div>
             </motion.div>
           )}
 
-          {/* State 3: Display AI recommendations panel */}
           {!aiLoading && aiSuggestions.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-[var(--bg-surface)] border border-[var(--primary)]/20 rounded-[2.5rem] p-6 shadow-xl shadow-[var(--primary)]/5 space-y-5"
-            >
-              <div className="flex justify-between items-start border-b border-[var(--border)] pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center">
-                    <Sparkles size={20} fill="currentColor" />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-sm uppercase tracking-wider text-[var(--text-primary)]">AI Smart Logistics suggestions</h4>
-                    <p className="text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-0.5">Biochemical Nutrient Gap Fill</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => {
-                    setAiSuggestions([]);
-                    setAiAnalysis('');
-                  }}
-                  className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors py-1.5 px-3 bg-[var(--bg-app)] border border-[var(--border)] rounded-lg"
+            <div className="space-y-6">
+                {/* Shopping Suggestions */}
+                <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-[var(--bg-surface)] border border-[var(--primary)]/20 rounded-[2.5rem] p-6 shadow-xl shadow-[var(--primary)]/5 space-y-5"
                 >
-                  Clear
-                </button>
-              </div>
-
-              <div className="bg-[var(--bg-app)] border border-[var(--border)]/60 rounded-2xl p-4">
-                <p className="text-xs leading-relaxed text-[var(--text-primary)] italic opacity-90 font-medium">
-                  "{aiAnalysis}"
-                </p>
-              </div>
-
-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                {aiSuggestions.map((suggestion, index) => (
-                  <motion.div 
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    key={`${suggestion.name}-${index}`}
-                    className="flex items-center justify-between p-4 rounded-2xl border bg-[var(--bg-surface-2)] border-[var(--border)] shadow-sm group"
-                  >
-                    <div className="flex-1 min-w-0 mr-4">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-[var(--text-primary)] text-base truncate capitalize">{suggestion.name}</span>
-                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                          suggestion.priority === 'high' 
-                            ? 'bg-[var(--error)]/10 text-[var(--error)] border border-[var(--error)]/20' 
-                            : 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20'
-                        }`}>
-                          {suggestion.priority || 'medium'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="text-[9px] text-[var(--primary)] uppercase tracking-wider font-bold shrink-0">{suggestion.category || 'Grocery'}</div>
-                        <div className="w-1 h-1 bg-[var(--border)] rounded-full shrink-0" />
-                        <div className="text-[9px] text-[var(--text-secondary)] font-semibold truncate">{suggestion.reason}</div>
-                      </div>
+                    <div className="flex justify-between items-start border-b border-[var(--border)] pb-4">
+                        <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center">
+                            <Sparkles size={20} fill="currentColor" />
+                        </div>
+                        <div>
+                            <h4 className="font-black text-sm uppercase tracking-wider text-[var(--text-primary)]">AI Logistics Suggestions</h4>
+                            <p className="text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-0.5">Metabolic Gap Fill</p>
+                        </div>
+                        </div>
+                        <button 
+                        onClick={() => { setAiSuggestions([]); setAiAnalysis(''); setAiRecipes([]); }}
+                        className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors py-1.5 px-3 bg-[var(--bg-app)] border border-[var(--border)] rounded-lg"
+                        >
+                        Clear
+                        </button>
                     </div>
-                    <motion.button 
-                      whileHover={{ scale: 1.1, backgroundColor: 'var(--primary)', color: '#fff' }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleAcceptSuggestion(suggestion)}
-                      className="w-10 h-10 rounded-xl bg-[var(--bg-app)] border border-[var(--border)] flex items-center justify-center text-[var(--primary)] transition-colors shadow-sm shrink-0"
+
+                    <div className="bg-[var(--bg-app)] border border-[var(--border)]/60 rounded-2xl p-4">
+                        <p className="text-xs leading-relaxed text-[var(--text-primary)] italic opacity-90 font-medium font-serif">
+                        "{aiAnalysis}"
+                        </p>
+                    </div>
+
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 scrollbar-hide">
+                        {aiSuggestions.map((suggestion, index) => (
+                        <motion.div 
+                            layout
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            key={`${suggestion.name}-${index}`}
+                            className="flex items-center justify-between p-4 rounded-2xl border bg-[var(--bg-surface-2)] border-[var(--border)] shadow-sm group"
+                        >
+                            <div className="flex-1 min-w-0 mr-4">
+                            <div className="flex items-center gap-2">
+                                <span className="font-black text-[var(--text-primary)] text-base truncate capitalize">{suggestion.name}</span>
+                                <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                                suggestion.priority === 'high' 
+                                    ? 'bg-[var(--error)]/10 text-[var(--error)] border border-[var(--error)]/20' 
+                                    : 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20'
+                                }`}>
+                                {suggestion.priority || 'medium'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                                <div className="text-[9px] text-[var(--primary)] uppercase tracking-wider font-bold shrink-0">{suggestion.category || 'Grocery'}</div>
+                                <div className="w-1 h-1 bg-[var(--border)] rounded-full shrink-0" />
+                                <div className="text-[9px] text-[var(--text-secondary)] font-semibold truncate">{suggestion.reason}</div>
+                            </div>
+                            </div>
+                            <motion.button 
+                            whileHover={{ scale: 1.1, backgroundColor: 'var(--primary)', color: '#fff' }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => handleAcceptSuggestion(suggestion)}
+                            className="w-10 h-10 rounded-xl bg-[var(--bg-app)] border border-[var(--border)] flex items-center justify-center text-[var(--primary)] transition-colors shadow-sm shrink-0"
+                            >
+                            <Plus size={20} strokeWidth={2.5} />
+                            </motion.button>
+                        </motion.div>
+                        ))}
+                    </div>
+                </motion.div>
+
+                {/* Recipe Pool Section */}
+                {aiRecipes.length > 0 && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-4"
                     >
-                      <Plus size={20} strokeWidth={2.5} />
-                    </motion.button>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+                        <div className="flex items-center gap-2 px-2">
+                            <BookOpen size={16} className="text-[var(--primary)]" />
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)]">Metabolic Recipe Pool</h3>
+                        </div>
+                        <div className="space-y-3">
+                            {aiRecipes.map((recipe, i) => (
+                                <motion.div 
+                                    key={i}
+                                    onClick={() => setExpandedRecipe(expandedRecipe === recipe.title ? null : recipe.title)}
+                                    className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[2rem] overflow-hidden cursor-pointer active:scale-[0.99] transition-all shadow-sm"
+                                >
+                                    <div className="p-6 flex items-center justify-between">
+                                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                                            <div className="w-12 h-12 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center border border-[var(--primary)]/20 shrink-0">
+                                                <Flame size={24} className="text-[var(--primary)]" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h4 className="font-bold text-[var(--text-primary)] truncate text-base">{recipe.title}</h4>
+                                                <div className="flex items-center gap-2 text-[var(--text-secondary)] font-mono text-[9px] font-bold uppercase">
+                                                    <Clock size={10} /> {recipe.prep_time}
+                                                    <div className="w-1 h-1 bg-[var(--border)] rounded-full" />
+                                                    <Microscope size={10} /> Bio-Aligned
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <ChevronDown className={`text-[var(--text-secondary)] transition-transform duration-300 ${expandedRecipe === recipe.title ? 'rotate-180' : ''}`} />
+                                    </div>
+                                    <AnimatePresence>
+                                        {expandedRecipe === recipe.title && (
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                animate={{ height: 'auto' }}
+                                                exit={{ height: 0 }}
+                                                className="border-t border-[var(--border)] bg-black/5"
+                                            >
+                                                <div className="p-6 space-y-6">
+                                                    <div className="p-4 rounded-2xl bg-[var(--primary)]/5 border border-[var(--primary)]/10 italic text-xs text-[var(--text-primary)] opacity-90 leading-relaxed">
+                                                        "{recipe.bio_reason}"
+                                                    </div>
+                                                    
+                                                    <div>
+                                                        <h5 className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] mb-3">Target Synthesis Protocols</h5>
+                                                        <div className="space-y-3">
+                                                            {recipe.instructions.map((step, idx) => (
+                                                                <div key={idx} className="flex gap-4">
+                                                                    <span className="font-mono text-[10px] font-black text-[var(--primary)] opacity-40">{idx + 1}.</span>
+                                                                    <p className="text-sm font-medium text-[var(--text-primary)] leading-tight">{step}</p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {recipe.ingredients.map((ing, idx) => (
+                                                            <span key={idx} className="px-3 py-1.5 bg-[var(--bg-app)] border border-[var(--border)] rounded-full text-[10px] font-bold text-[var(--text-secondary)]">
+                                                                {ing}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </div>
           )}
         </AnimatePresence>
       </div>
@@ -333,13 +404,13 @@ export default function ShoppingPage() {
         {items.length === 0 ? (
           <div className="text-center py-20 bg-[var(--bg-surface)] border border-dashed border-[var(--border)] rounded-[32px]">
             <CheckCircle className="h-10 w-10 mx-auto mb-4 text-[var(--primary)] opacity-20" />
-            <p className="text-[var(--text-secondary)] font-medium">Everything is stocked up.</p>
+            <p className="text-[var(--text-secondary)] font-medium">Global metabolic supply optimal.</p>
           </div>
         ) : (
             <>
                 {groupedItems.shared.length > 0 && (
                     <section>
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4 ml-1">Shared Household List</h3>
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4 ml-1">Household Supply Chain</h3>
                         <div className="space-y-3">
                             {groupedItems.shared.map(item => (
                                 <ShoppingItemRow key={item.id} item={item} onAction={() => actionMutation.mutate(item)} isProcessing={actionMutation.isPending && (actionMutation.variables as any)?.id === item.id} />
@@ -350,7 +421,7 @@ export default function ShoppingPage() {
 
                 {groupedItems.pantry.length > 0 && (
                     <section>
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--error)] mb-4 ml-1">Pantry Restock Required</h3>
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--error)] mb-4 ml-1">Critical Pantry Deficiencies</h3>
                         <div className="space-y-3">
                             {groupedItems.pantry.map(item => (
                                 <ShoppingItemRow key={item.id} item={item} onAction={() => actionMutation.mutate(item)} isProcessing={actionMutation.isPending && (actionMutation.variables as any)?.id === item.id} />
