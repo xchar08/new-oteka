@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -45,8 +45,13 @@ import { visionService } from '@/lib/services/vision.service';
 export default function PantryPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [mounted, setMounted] = useState(false);
   const { pantryItems, user, loading } = useDashboardData();
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleAddMeal = async (item: any) => {
     if (!user) return;
@@ -77,7 +82,7 @@ export default function PantryPage() {
     return matchesCategory && matchesSearch;
   });
 
-  if (loading) {
+  if (loading || !mounted) {
     return (
       <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Plus, 
   Bell, 
@@ -33,27 +33,35 @@ export default function LogPage() {
   const { user, dailyLogs, loading } = useDashboardData();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedNutrient, setSelectedNutrient] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const calorieGoal = user?.calorie_target || 2000;
 
   // Generate current week dates
   const today = new Date();
-  const weekDates = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    // Start from Monday of current week
-    const day = today.getDay();
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
-    d.setDate(diff + i);
-    return {
-      fullDate: new Date(d),
-      day: d.toLocaleDateString('en-US', { weekday: 'short' }),
-      date: d.getDate().toString(),
-    };
-  });
+  const weekDates = useMemo(() => {
+    if (!mounted) return [];
+    return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        // Start from Monday of current week
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
+        d.setDate(diff + i);
+        return {
+          fullDate: new Date(d),
+          day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+          date: d.getDate().toString(),
+        };
+      });
+  }, [mounted, today]);
 
   // Filter logs by selected date (YYYY-MM-DD)
-  const selectedDateString = selectedDate.toLocaleDateString('en-CA');
+  const selectedDateString = mounted ? selectedDate.toLocaleDateString('en-CA') : '';
   
   const filteredLogs = useMemo(() => {
     return (dailyLogs as LogEntry[]).filter((log) => log.local_date === selectedDateString);
@@ -100,7 +108,7 @@ export default function LogPage() {
       <motion.header 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="px-6 pt-8 pb-4 flex justify-between items-center bg-[var(--bg-app)]/80 backdrop-blur-md sticky top-0 z-40"
+        className="px-6 pt-8 pb-4 flex justify-between items-center bg-[var(--bg-app)]/80 backdrop-blur-md sticky top-0 z-40 border-b border-[var(--border)]"
       >
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold tracking-tight">Daily Log</h1>
@@ -268,7 +276,7 @@ export default function LogPage() {
           onClick={() => router.push('/vision')}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="flex-1 bg-[var(--secondary)] text-white rounded-2xl py-4 flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-xs shadow-lg"
+          className="flex-1 bg-blue-600 text-white rounded-2xl py-4 flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-xs shadow-lg"
         >
           <Camera size={20} />
           AI Vision

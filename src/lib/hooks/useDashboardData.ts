@@ -1,11 +1,13 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { visionService } from '@/lib/services/vision.service';
 import { useAppStore } from '@/lib/state/appStore';
 import { normalizeError } from '@/lib/utils/errors';
 import { aggregateNutrients } from '@/lib/utils/metabolic.utils';
+import { STORAGE_KEYS } from '@/lib/utils/storage';
 import type { DashboardMacros, LogEntry } from '@/lib/types/metabolic';
 
 export type { DashboardMacros };
@@ -13,6 +15,7 @@ export type { DashboardMacros };
 export function useDashboardData() {
   const supabase = createClient();
   const isOnline = useAppStore((s) => s.isOnline);
+  const queryClient = useQueryClient();
 
   // 0. Fetch Auth User
   const { data: authUser, isLoading: isAuthLoading } = useQuery({
@@ -25,7 +28,28 @@ export function useDashboardData() {
 
   // 1. Fetch Profile
   const setPlan = useAppStore((s) => s.setPlan);
-  const { data: user, isLoading: isUserLoading } = useQuery({
+
+  // TRIGGER ENTROPY CYCLE (Free Tier Cron Alternative)
+  // Optimization: Throttled by date in localStorage to avoid redundant calls
+  useEffect(() => {
+    if (authUser?.id) {
+      const storageKey = STORAGE_KEYS.LAST_ENTROPY_RUN(authUser.id);
+      const lastRun = localStorage.getItem(storageKey);
+      const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+      if (lastRun !== today) {
+        supabase.rpc('run_entropy_cycle', { p_user_id: authUser.id }).then(({ error }) => {   
+          if (!error) {
+            localStorage.setItem(storageKey, today);
+            // Invalidate pantry items if the cycle ran
+            queryClient.invalidateQueries({ queryKey: ['pantry-items', authUser.id] });       
+          }
+        });
+      }
+    }
+  }, [authUser?.id, supabase, queryClient]);
+
+  const { data: user, isLoading: isUserLoading, refetch: refetchProfile } = useQuery({
     queryKey: ['user-profile', authUser?.id],
     queryFn: async () => {
       if (!authUser) return null;
@@ -35,14 +59,31 @@ export function useDashboardData() {
         .select('id, display_name, hand_width_mm, metabolic_state_json, streak_count, avatar_url, calorie_target, plan, household_id, created_at')
         .eq('id', authUser.id)
         .single();
-      
-      if (data?.plan) {
-        setPlan(data.plan as any);
-      }
+
       return data;
     },
     enabled: !!authUser,
   });
+
+  // Aggressive post-upgrade sync: If session_id is in URL, force a refetch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('session_id') && authUser) {
+            console.log("[useDashboardData] Upgrade detected, forcing profile sync...");
+            refetchProfile();
+            // Clean up the URL to avoid continuous refetches
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
+        }
+    }
+  }, [authUser, refetchProfile]);
+  // Sync plan state to store via useEffect
+  useEffect(() => {
+    if (user?.plan) {
+      setPlan(user.plan as any);
+    }
+  }, [user?.plan, setPlan]);
 
   // 2. Fetch Active Conditions
   const { data: activeConditions = [], isLoading: isConditionsLoading } = useQuery({

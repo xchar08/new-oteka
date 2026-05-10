@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { useAppStore } from '@/lib/state/appStore';
+import dynamic from 'next/dynamic';
 
 const PROTECTED_ROUTES = ['/pantry', '/planner', '/log', '/dashboard', '/analytics', '/coach', '/shopping', '/history', '/profile', '/settings', '/pricing', '/vision'];
+const PREMIUM_ROUTES = ['/planner', '/analytics', '/coach', '/travel/menu', '/shopping'];
 const ONBOARDING_ROUTES = ['/login'];
 const EXEMPT_ROUTES = ['/about', '/privacy', '/terms'];
 
@@ -23,20 +26,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !session) {
-          if (sessionError) console.error("AuthGuard: Session fetch error:", sessionError);
           setAuthorized(false);
           setLoading(false);
           
-          // If we are on a route that is NOT login and NOT exempt, redirect to login
           if (pathname !== '/login' && !EXEMPT_ROUTES.some(route => pathname?.startsWith(route))) {
             router.replace('/login');
           } else {
-            setAuthorized(true); // Allow login or exempt routes
+            setAuthorized(true);
           }
           return;
         }
 
-        // We have a session, get fresh user data
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
            await supabase.auth.signOut();
@@ -44,36 +44,32 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
            return;
         }
 
-        const isProtectedRoute = PROTECTED_ROUTES.some(route => 
-          pathname?.startsWith(route)
-        );
-
-        const isExemptRoute = EXEMPT_ROUTES.some(route =>
-          pathname?.startsWith(route)
-        );
-
+        const isPremiumRoute = PREMIUM_ROUTES.some(route => pathname === route || pathname?.startsWith(`${route}/`));
+        const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname === route || pathname?.startsWith(`${route}/`));
+        const isExemptRoute = EXEMPT_ROUTES.some(route => pathname?.startsWith(route));
         const isOnboardingRoute = pathname.startsWith('/onboarding');
 
-        if (isProtectedRoute && !session) {
-          router.replace('/login');
-          setAuthorized(false);
-        } else if (session) {
-          // If they are on an exempt route, let them through
+        if (session) {
           if (isExemptRoute) {
             setAuthorized(true);
             setLoading(false);
             return;
           }
 
-          // Check user profile
-          const { data: profile, error: profileError } = await supabase
+          const { data: profile } = await supabase
             .from('users')
             .select('hand_width_mm, metabolic_state_json, plan')
             .eq('id', session.user.id)
             .single();
 
-          if (profileError && profileError.code !== 'PGRST116') {
-             console.error("AuthGuard profile fetch error:", profileError);
+          const currentPlan = profile?.plan || 'free';
+          const isPro = currentPlan === 'pro';
+
+          if (isPremiumRoute && !isPro) {
+            router.replace('/pricing');
+            setAuthorized(false);
+            setLoading(false);
+            return;
           }
 
           const metabolic = (profile?.metabolic_state_json || {}) as any;
@@ -81,69 +77,43 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           const hasMedical = !!metabolic.medical_verified;
           const hasCalibration = !!(profile?.hand_width_mm);
 
-          console.log("[AuthGuard] Sequential Check:", { 
-            pathname, 
-            hasProfile, 
-            hasMedical,
-            hasCalibration 
-          });
-
-          // ENFORCE SEQUENTIAL ONBOARDING
-          // 1. Profile Step
-          if (!hasProfile) {
-            if (pathname !== '/onboarding/profile') {
-              router.replace('/onboarding/profile');
-              setAuthorized(false);
-              setLoading(false);
-              return;
-            }
-          } 
-          // 2. Medical Step
-          else if (!hasMedical) {
-            if (pathname !== '/onboarding/medical') {
-              router.replace('/onboarding/medical');
-              setAuthorized(false);
-              setLoading(false);
-              return;
-            }
-          }
-          // 3. Calibration Step
-          else if (!hasCalibration) {
-            if (pathname !== '/onboarding/calibration') {
-              router.replace('/onboarding/calibration');
-              setAuthorized(false);
-              setLoading(false);
-              return;
-            }
-          }
-          // 4. Completed - but if they are still on onboarding, kick them to dashboard
-          else if (isOnboardingRoute) {
-            router.replace('/dashboard');
-            setAuthorized(false);
+          if (isOnboardingRoute) {
+            setAuthorized(true);
             setLoading(false);
             return;
           }
 
-          setAuthorized(true);
+          if (!hasProfile && pathname !== '/onboarding/profile') {
+            router.replace('/onboarding/profile');
+            setAuthorized(false);
+          } else if (hasProfile && !hasMedical && pathname !== '/onboarding/medical') {
+            router.replace('/onboarding/medical');
+            setAuthorized(false);
+          } else if (hasProfile && hasMedical && !hasCalibration && pathname !== '/onboarding/calibration') {
+            router.replace('/onboarding/calibration');
+            setAuthorized(false);
+          } else {
+            setAuthorized(true);
+          }
         } else {
           setAuthorized(true);
         }
       } catch (err) {
-        console.error("AuthGuard: Unhandled exception during auth check:", err);
+        console.error("AuthGuard Exception:", err);
       } finally {
         setLoading(false);
       }
     };
 
+    setLoading(true);
     checkAuth();
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, _session: Session | null) => {
         if (event === 'SIGNED_OUT') {
-          const isProtectedRoute = PROTECTED_ROUTES.some(route => 
-            window.location.pathname.startsWith(route)
-          );
-          if (isProtectedRoute) router.replace('/login');
+          router.replace('/login');
+        } else if (event === 'SIGNED_IN') {
+          checkAuth();
         }
       }
     );
@@ -155,13 +125,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950">
+      <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
       </div>
     );
   }
 
-  // Final catch-all for unauthorized access during redirect
+  // Prevent unauthorized access during redirect
   if (!authorized && 
       !pathname.startsWith('/onboarding') && 
       pathname !== '/login' && 

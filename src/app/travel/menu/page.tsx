@@ -1,211 +1,206 @@
 'use client';
 
-import { useState } from 'react';
-import { Camera as LucideCamera, AlertCircle, RefreshCw, ChevronLeft, Sparkles, ChefHat } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Camera as LucideCamera, AlertCircle, RefreshCw, ChevronLeft, Sparkles, ChefHat, Loader2, Zap } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Camera, CameraResultType } from '@capacitor/camera';
-import { Capacitor } from '@capacitor/core';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { PricingGuard } from '@/components/ui/PricingGuard';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
 
 export default function MenuScannerPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [mounted, setMounted] = React.useState(false);
   const router = useRouter();
   const supabase = createClient();
   const { user } = useDashboardData();
+  const isPro = user?.plan === 'pro';
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleNativeCamera = async () => {
-    if (!Capacitor.isNativePlatform()) return;
     try {
+      setAnalyzing(true);
+      setError(null);
+
       const image = await Camera.getPhoto({
         quality: 90,
         allowEditing: false,
-        resultType: CameraResultType.Base64
+        resultType: CameraResultType.Base64,
       });
+
       if (image.base64String) {
-          setAnalyzing(true);
-          const { data, error } = await supabase.functions.invoke('vision-menu', {
-            body: { image: image.base64String, goal: 'travel' }, 
-          });
-          if (error) throw new Error(error.message);
-          setResult(data);
-          setAnalyzing(false);
-      }
-    } catch (e) {
-        console.error("Camera failed", e);
-    }
-  };
-
-  const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setAnalyzing(true);
-    setError(null);
-
-    try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        const { data, error } = await supabase.functions.invoke('vision-menu', {
-            body: { image: base64, goal: 'travel' },
+        const { data, error: functionError } = await supabase.functions.invoke('vision-menu', {
+          body: { image: image.base64String, goal: user?.metabolic_state_json?.current_goal || 'maintenance' },
         });
-        if (error) throw error;
+
+        if (functionError) throw functionError;
         setResult(data);
-        setAnalyzing(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (err: any) {
-      setError('Could not read menu. Please try again.');
+      }
+    } catch (e: any) {
+      console.error('Menu Scan Failed:', e);
+      setError(e.message || 'Optical analysis failed. Check neural link.');
+    } finally {
       setAnalyzing(false);
     }
   };
 
+  if (!mounted) return null;
+
   return (
-    <div className="min-h-screen bg-[var(--bg-app)] p-6 pb-32 text-[var(--text-primary)] transition-colors duration-500">
-      <header className="flex items-center justify-between pt-safe mb-8">
-        <div className="flex items-center gap-4">
-            <button onClick={() => router.back()} className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-secondary)] shadow-sm">
+    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${isPro ? 'theme-solar dark bg-[var(--bg-app)] text-white' : 'bg-[var(--bg-app)] text-[var(--text-primary)]'}`}>
+      
+      {/* Header */}
+      <header className={`px-6 pt-safe pb-4 backdrop-blur-md sticky top-0 z-40 border-b ${isPro ? 'bg-[var(--bg-app)]/80 border-white/5' : 'bg-[var(--bg-app)]/80 border-[var(--border)]'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button 
+                onClick={() => router.back()}
+                className={`p-2 -ml-2 rounded-full transition-colors ${isPro ? 'hover:bg-white/10 text-white/40' : 'hover:bg-black/5 text-[var(--text-secondary)]'}`}
+            >
                 <ChevronLeft size={24} />
             </button>
-            <div>
-                <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">Menu Parser</h1>
-                <p className="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest">Travel Optimization</p>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPro ? 'bg-[var(--primary)] text-black' : 'bg-[var(--primary)]/10 text-[var(--primary)]'}`}>
+              <LucideCamera size={20} />
             </div>
-        </div>
-        <div className="w-12 h-12 bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl flex items-center justify-center text-[var(--primary)] shadow-sm">
-            <LucideCamera size={24} />
+            <div>
+              <h1 className="text-lg font-black tracking-tight">{isPro ? 'Neural Menu Decoder' : 'Menu Scanner'}</h1>
+              <p className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 mt-0.5 ${isPro ? 'text-[var(--primary)]' : 'text-[var(--primary)]'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isPro ? 'bg-[var(--primary)] shadow-[0_0_8px_var(--primary)]' : 'bg-[var(--primary)]'}`} />
+                {isPro ? 'Priority Vision Active' : 'Standard Optical Core'}
+              </p>
+            </div>
+          </div>
         </div>
       </header>
 
-      <PricingGuard plan={user?.plan} featureName="Travel Menu Parser">
-        {error && (
-          <div className="bg-[var(--error)]/10 text-[var(--error)] border border-[var(--error)]/20 p-4 rounded-2xl flex items-center gap-3 mb-6 font-medium text-sm">
-            <AlertCircle size={20} />
-            <p>{error}</p>
-          </div>
-        )}
-
+      <main className="flex-1 px-6 py-8 pb-32">
         <AnimatePresence mode="wait">
           {!result && !analyzing && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                onClick={handleNativeCamera}
-                className="relative border-2 border-dashed border-[var(--border)] h-80 flex items-center justify-center rounded-[40px] bg-[var(--bg-surface)] hover:border-[var(--primary)] transition-all cursor-pointer group active:scale-[0.98] shadow-sm"
-              >
-                <div className="flex flex-col items-center justify-center w-full h-full z-10 p-8 text-center space-y-4">
-                    <div className="w-20 h-20 bg-[var(--primary)]/10 rounded-full flex items-center justify-center text-[var(--primary)] group-hover:scale-110 group-hover:bg-[var(--primary)]/20 transition-all">
-                      <LucideCamera size={40} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                      <span className="block text-[var(--text-primary)] font-black text-xl tracking-tight">Scan Restaurant Menu</span>
-                      <p className="text-[var(--text-secondary)] text-sm mt-2 leading-relaxed">Point your camera at a menu to extract metabolic high-value options.</p>
-                    </div>
-                    <span className="inline-block px-6 py-2 bg-[var(--bg-app)] border border-[var(--border)] rounded-full text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">
-                      {Capacitor.isNativePlatform() ? "Tap to Launch" : "Select Image"}
-                    </span>
-                  
-                  {!Capacitor.isNativePlatform() && (
-                    <input type="file" accept="image/*" onChange={handleCapture} className="opacity-0 absolute inset-0 cursor-pointer" />
-                  )}
+            <motion.div 
+              key="start"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="flex flex-col items-center justify-center h-full text-center space-y-8"
+            >
+              <div className="relative">
+                <div className={`w-32 h-32 rounded-[40px] flex items-center justify-center relative z-10 ${isPro ? 'bg-white/5 border border-white/10 shadow-2xl' : 'bg-[var(--bg-surface)] shadow-xl border border-[var(--border)]'}`}>
+                  <LucideCamera size={48} className={isPro ? 'text-[var(--primary)]' : 'text-[var(--primary)]'} />
                 </div>
-              </motion.div>
+                {isPro && (
+                  <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    className="absolute -inset-4 bg-gradient-to-tr from-[var(--primary)] to-transparent rounded-[48px] opacity-20 blur-md"
+                  />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-xl font-black">Ready for Acquisition</h2>
+                <p className={`text-sm max-w-xs mx-auto ${isPro ? 'text-white/40' : 'text-[var(--text-secondary)] opacity-80'}`}>
+                  Position the menu clearly in frame for high-fidelity metabolic breakdown.
+                </p>
+              </div>
+
+              <button
+                onClick={handleNativeCamera}
+                className={`w-full max-w-xs h-16 rounded-[24px] font-black uppercase tracking-[0.2em] text-sm shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 ${isPro ? 'bg-[var(--primary)] text-black' : 'bg-[var(--primary)] text-white'}`}
+              >
+                Launch Scanner
+                <Sparkles size={18} />
+              </button>
+            </motion.div>
           )}
 
           {analyzing && (
-              <motion.div 
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="py-20 text-center space-y-6"
-              >
-                  <div className="relative w-20 h-20 mx-auto">
-                      <div className="absolute inset-0 border-4 border-[var(--primary)]/20 rounded-full" />
-                      <div className="absolute inset-0 border-4 border-t-[var(--primary)] rounded-full animate-spin" />
-                  </div>
-                  <div>
-                      <h3 className="font-black text-xl tracking-tight text-[var(--text-primary)]">Analyzing Selections...</h3>
-                      <p className="text-[var(--text-secondary)] text-sm font-medium uppercase tracking-[0.2em] mt-1">Cross-referencing BMR</p>
-                  </div>
-              </motion.div>
+            <motion.div 
+              key="analyzing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center h-full space-y-6"
+            >
+               <div className="relative">
+                    <Loader2 className={`h-16 w-16 animate-spin ${isPro ? 'text-[var(--primary)]' : 'text-[var(--primary)]'}`} />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <Zap size={20} className={isPro ? 'text-[var(--primary)]' : 'text-[var(--primary)]'} />
+                    </div>
+               </div>
+               <div className="space-y-1 text-center">
+                    <p className={`text-xs font-black uppercase tracking-[0.3em] animate-pulse ${isPro ? 'text-[var(--primary)]' : 'text-[var(--primary)]'}`}>
+                        Analyzing Optical Data
+                    </p>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest opacity-60 ${isPro ? 'text-white/40' : 'text-[var(--text-secondary)]'}`}>
+                        Synthesizing metabolic matches...
+                    </p>
+               </div>
+            </motion.div>
           )}
 
           {result && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
-              >
-                <div className="flex justify-between items-center px-1">
-                  <div>
-                      <h2 className="text-xl font-black text-[var(--text-primary)]">{result.restaurant_name || 'Extracted Menu'}</h2>
-                      <p className="text-[10px] text-[var(--primary)] font-black uppercase tracking-widest mt-1">Optimized Recommendations</p>
-                  </div>
-                  <button onClick={() => setResult(null)} className="p-3 rounded-full bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all">
-                    <RefreshCw size={18} />
-                  </button>
+            <motion.div 
+              key="result"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="space-y-6"
+            >
+              <div className={`p-6 rounded-[32px] border ${isPro ? 'bg-white/5 border-white/10' : 'bg-[var(--bg-surface)] border-[var(--border)] shadow-sm'}`}>
+                <div className="flex items-center gap-3 mb-4">
+                  <ChefHat size={20} className="text-[var(--primary)]" />
+                  <h3 className="text-lg font-black tracking-tight">
+                    {result.restaurant_name || 'Detected Node'}
+                  </h3>
                 </div>
-
+                
                 <div className="space-y-4">
-                  {result.items?.map((item: any, idx: number) => (
-                    <div key={idx} className="bg-[var(--bg-surface)] border border-[var(--border)] p-5 rounded-[28px] shadow-sm space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1 min-w-0 pr-4">
-                          <span className="font-black text-[var(--text-primary)] text-lg leading-tight block truncate">
-                            {item.name}
-                          </span>
-                          <div className="flex items-center gap-2 mt-1">
-                              <div className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${item.health_score >= 8 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-[var(--primary)]/10 text-[var(--primary)]'}`}>
-                                  Score: {item.health_score}/10
-                              </div>
-                              <span className="text-[10px] font-bold text-[var(--text-secondary)] tabular-nums">{item.estimated_calories} kcal</span>
-                          </div>
+                  {result.items?.map((item: any, i: number) => (
+                    <div key={i} className={`p-4 rounded-2xl border ${isPro ? 'bg-black/40 border-white/5' : 'bg-[var(--bg-surface-2)] border-[var(--border)]'}`}>
+                        <div className="flex justify-between items-start mb-1">
+                            <span className="font-black text-sm">{item.name}</span>
+                            <span className="text-[var(--primary)] font-black text-xs font-mono">{item.estimated_calories} kcal</span>
                         </div>
-                        <div className="h-10 w-10 bg-[var(--bg-app)] border border-[var(--border)] rounded-xl flex items-center justify-center text-[var(--text-secondary)]">
-                          <ChefHat size={18} />
+                        <p className={`text-[10px] leading-relaxed mb-3 ${isPro ? 'text-white/40' : 'text-[var(--text-secondary)] opacity-80'}`}>{item.description}</p>
+                        <div className="flex flex-wrap gap-2">
+                            {item.tags?.map((t: string) => (
+                                <span key={t} className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${isPro ? 'bg-white/5 text-white/40 border-white/5' : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border)]'}`}>
+                                    {t}
+                                </span>
+                            ))}
                         </div>
-                      </div>
-
-                      <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-medium">
-                        {item.description}
-                      </p>
-
-                      <div className="flex flex-wrap gap-1.5">
-                        {item.tags?.map((tag: string) => (
-                          <span key={tag} className="px-3 py-1 bg-[var(--bg-app)] border border-[var(--border)] text-[var(--text-secondary)] text-[9px] font-black uppercase tracking-tight rounded-lg">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="bg-[var(--primary)]/5 border border-[var(--primary)]/10 p-5 rounded-[32px] space-y-2">
-                  <div className="flex items-center gap-2 text-[var(--primary)]">
-                      <Sparkles size={16} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Metabolic Strategy</span>
-                  </div>
-                  <p className="text-xs text-[var(--text-primary)] opacity-80 leading-relaxed font-medium italic">
-                      {result.dietary_warnings?.join(', ') || 'Your current metabolic alignment supports all detected options.'}
-                  </p>
-                </div>
-
                 <button 
-                  onClick={() => setResult(null)} 
-                  className="w-full h-14 bg-[var(--primary)] text-white rounded-[24px] font-black uppercase tracking-widest text-xs shadow-lg active:scale-95 transition-all"
+                  onClick={() => setResult(null)}
+                  className={`w-full mt-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] border transition-all active:scale-95 ${isPro ? 'border-white/10 text-white/60 hover:bg-white/5' : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-2)]'}`}
                 >
                   Scan Another Menu
                 </button>
-              </motion.div>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
-      </PricingGuard>
+      </main>
+
+      {error && (
+        <div className="px-6 pb-24">
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500">
+                <AlertCircle size={20} />
+                <p className="text-[10px] font-black uppercase tracking-widest">{error}</p>
+                <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-red-500/10 rounded-lg">
+                    <RefreshCw size={14} />
+                </button>
+            </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fromFileUrl } from "https://deno.land/std@0.168.0/path/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import init, { optimize_meal_plan } from "./planner_wasm.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,13 +19,13 @@ async function getWasmInstance() {
   if (wasmInstance) return wasmInstance;
   try {
       console.log("[WASM] Initializing binary from storage...");
-      const wasmPath = new URL('./planner_wasm_bg.wasm', import.meta.url);
-      const wasmCode = await Deno.readFile(wasmPath.pathname);
-      const wasmModule = new WebAssembly.Module(wasmCode);
-      wasmInstance = new WebAssembly.Instance(wasmModule, {});
+      const wasmUrl = new URL('./planner_wasm_bg.wasm', import.meta.url);
+      const wasmCode = await Deno.readFile(fromFileUrl(wasmUrl));
+      await init(wasmCode);
+      wasmInstance = true;
       return wasmInstance;
   } catch (e) {
-      console.warn("[WASM] Global load failed. Reverting to TS fallback.");
+      console.warn("[WASM] Global load failed. Reverting to TS fallback.", e);
       return null;
   }
 }
@@ -253,8 +255,40 @@ serve(async (req) => {
     // TRY WASM FIRST
     const wasm = await getWasmInstance();
     if (wasm) {
-        // Future Elite WASM logic here
-        // method = "WASM_ON_EDGE";
+        console.log("[WASM] Executing optimization...");
+        try {
+            const wasmReq = {
+                profile: {
+                    calorie_target: profile?.calorie_target || 2000,
+                    protein_target: profile?.protein_target || 150,
+                    magnesium_target: 400,
+                    iron_target: 18
+                },
+                available_foods: pantryPool,
+                recent_feedback: recentFeedback.map(f => ({ item_name: f.item, score: f.score })),
+                strictness: constraints.strictness || 1.0
+            };
+            const result = optimize_meal_plan(wasmReq);
+            if (result && result.selected_foods && result.selected_foods.length > 0) {
+                 solutions = [{
+                     menu: result.selected_foods.map((f: any) => f.name),
+                     stats: {
+                         calories: result.total_calories,
+                         protein: result.total_protein,
+                         magnesium: result.total_magnesium,
+                         iron: result.total_iron,
+                         carbs: result.selected_foods.reduce((acc: number, f: any) => acc + (f.carbs||0), 0),
+                         fats: result.selected_foods.reduce((acc: number, f: any) => acc + (f.fats||0), 0),
+                         sodium: result.selected_foods.reduce((acc: number, f: any) => acc + (f.sodium||0), 0),
+                         sugar: result.selected_foods.reduce((acc: number, f: any) => acc + (f.sugar||0), 0),
+                     },
+                     score: result.fitness_score
+                 }];
+                 method = "WASM_ON_EDGE";
+            }
+        } catch (e) {
+            console.warn("[WASM] Execution failed, falling back to TS", e);
+        }
     }
 
     let iteration = 0;

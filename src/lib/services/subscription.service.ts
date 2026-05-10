@@ -11,17 +11,27 @@ export const subscriptionService = {
     const supabase = getSupabase();
     
     // Call our Edge Function
-    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-      body: {
-        userId,
-        priceId,
-        successUrl: `${window.location.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}/pricing`,
-      },
-    });
+    try {
+        console.log("[SubscriptionService] Invoking create-checkout-session with:", { priceId });
+        const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+          body: {
+            priceId,
+            successUrl: `${window.location.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+            cancelUrl: `${window.location.origin}/pricing`,
+          },
+        });
 
-    if (error) throw normalizeError(error);
-    return data; // contains the checkout URL
+        if (error) {
+            console.error("[SubscriptionService] Edge Function Error:", error);
+            throw error;
+        }
+        
+        console.log("[SubscriptionService] Checkout URL created:", data?.url);
+        return data; // contains the checkout URL
+    } catch (e) {
+        console.error("[SubscriptionService] Full Exception:", e);
+        throw normalizeError(e);
+    }
   },
 
   async getSubscriptionStatus(userId: string) {

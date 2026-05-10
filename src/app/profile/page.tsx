@@ -196,6 +196,44 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
+        {/* Biological Configuration Section */}
+        <div className="space-y-4">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-40 px-2">Biological Core</h3>
+            <div className="grid grid-cols-2 gap-4">
+                <motion.button 
+                    variants={cardVariants}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => router.push('/onboarding/profile')}
+                    className="bg-[var(--bg-surface)] border border-[var(--border)] p-6 rounded-[28px] text-left relative overflow-hidden group shadow-sm"
+                >
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <User size={40} />
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center mb-4 text-[var(--primary)] border border-[var(--primary)]/10">
+                        <User size={20} />
+                    </div>
+                    <span className="text-sm font-bold text-[var(--text-primary)] block">Vital Stats</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">Height, Weight, Age</span>
+                </motion.button>
+
+                <motion.button 
+                    variants={cardVariants}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => router.push('/onboarding/medical')}
+                    className="bg-[var(--bg-surface)] border border-[var(--border)] p-6 rounded-[28px] text-left relative overflow-hidden group shadow-sm"
+                >
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Activity size={40} />
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center mb-4 text-red-500 border border-red-500/10">
+                        <Activity size={20} />
+                    </div>
+                    <span className="text-sm font-bold text-[var(--text-primary)] block">Medical Mask</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">Allergies & Conditions</span>
+                </motion.button>
+            </div>
+        </div>
+
         {/* Settings List */}
         <motion.div 
           variants={cardVariants}
@@ -203,8 +241,6 @@ export default function ProfilePage() {
         >
           <div className="px-6 py-2">
             {[
-              { icon: User, label: 'Biological Profile', onClick: () => router.push('/onboarding/profile') },
-              { icon: Activity, label: 'Medical Conditions', onClick: () => router.push('/onboarding/medical') },
               { icon: Ruler, label: 'Hand Calibration', onClick: () => router.push('/onboarding/calibration') },
               { icon: Settings, label: 'App Configuration', onClick: () => router.push('/settings') },
               { icon: Target, label: 'Pricing & Plans', onClick: () => router.push('/pricing') },

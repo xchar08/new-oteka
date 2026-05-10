@@ -19,8 +19,6 @@ export function ReviewNeededCard(props: ReviewNeededCardProps) {
       setBusy(true);
       await fn();
     } finally {
-      // In optimistic UIs, the card might disappear before this runs, 
-      // which is fine (React handles unmount cleanup).
       setBusy(false);
     }
   };
@@ -30,43 +28,46 @@ export function ReviewNeededCard(props: ReviewNeededCardProps) {
 
   return (
     <div className={`
-      relative bg-white border border-orange-200 rounded-lg p-4 shadow-sm 
-      flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 
-      animate-in slide-in-from-right-2 fade-in duration-300
+      relative bg-[var(--bg-surface)] border border-[var(--primary)]/20 rounded-[28px] p-6 shadow-sm 
+      flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 
+      animate-in slide-in-from-right-2 fade-in duration-300 overflow-hidden
       ${busy ? 'opacity-50 pointer-events-none' : ''}
     `}>
-      <div className="flex-1">
+      {/* Background Pulse */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="flex-1 relative z-10">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-          <span className="text-xs font-semibold text-orange-700 uppercase tracking-wide">
-            Review Needed
+          <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shadow-[0_0_8px_var(--primary)] animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">
+            Biological Review Protocol
           </span>
         </div>
         
-        <div className="text-lg font-semibold text-gray-900 mt-1">
+        <div className="text-xl font-black text-[var(--text-primary)] mt-2 tracking-tight">
           {props.name}
         </div>
         
-        <div className="text-xs text-orange-600 mt-1">
-          {spoilageChance}% calculated risk of spoilage
+        <div className="text-[10px] font-bold text-[var(--text-secondary)] mt-1 uppercase tracking-widest opacity-60">
+          <span className="text-[var(--primary)]">{spoilageChance}%</span> Probability of Depletion
         </div>
       </div>
 
-      <div className="flex gap-3 w-full sm:w-auto">
+      <div className="flex gap-3 w-full sm:w-auto relative z-10">
         <button
           disabled={busy}
           onClick={() => handleClick(props.onConfirmSpoiled)}
-          className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium bg-red-50 text-red-700 rounded-md hover:bg-red-100 border border-red-200 transition-colors"
+          className="flex-1 sm:flex-none px-6 py-3 text-[10px] font-black uppercase tracking-widest bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20 transition-all active:scale-95"
         >
-          Spoiled / Used
+          Depleted
         </button>
         
         <button
           disabled={busy}
           onClick={() => handleClick(props.onConfirmGood)}
-          className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium bg-green-50 text-green-700 rounded-md hover:bg-green-100 border border-green-200 transition-colors"
+          className="flex-1 sm:flex-none px-6 py-3 text-[10px] font-black uppercase tracking-widest bg-[var(--primary)] text-white rounded-2xl shadow-lg shadow-[var(--primary)]/20 transition-all active:scale-95"
         >
-          Still Have It
+          Verify Stock
         </button>
       </div>
     </div>

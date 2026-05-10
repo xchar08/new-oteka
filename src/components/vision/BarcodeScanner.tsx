@@ -37,10 +37,23 @@ export function BarcodeScanner({ onScan }: { onScan: (data: any) => void }) {
     <div className="p-4 bg-white rounded-xl border space-y-4">
       <h3 className="font-semibold text-gray-700">Scan Barcode</h3>
       
-      {/* Placeholder Camera View */}
-      <div className="aspect-video bg-black rounded-lg flex items-center justify-center relative overflow-hidden">
-        <div className="w-full h-0.5 bg-red-500 absolute top-1/2 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-        <p className="text-gray-400 text-xs">Camera Feed Placeholder</p>
+      {/* Scanning Interface */}
+      <div className="aspect-video bg-zinc-950 rounded-2xl flex items-center justify-center relative overflow-hidden border border-white/5 shadow-inner">
+        {/* Scanner Radar Line */}
+        <div className="w-full h-[1px] bg-[var(--primary)] absolute top-1/2 animate-scan shadow-[0_0_15px_var(--primary)] z-10" />
+        
+        {/* Corner Brackets */}
+        <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-[var(--primary)] opacity-50" />
+        <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-[var(--primary)] opacity-50" />
+        <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-[var(--primary)] opacity-50" />
+        <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-[var(--primary)] opacity-50" />
+
+        <div className="flex flex-col items-center gap-2 opacity-20">
+            <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse" />
+            </div>
+            <p className="text-white text-[8px] font-black uppercase tracking-[0.4em]">Awaiting Optical Lock</p>
+        </div>
       </div>
 
       <div className="flex gap-2">

@@ -1,5 +1,5 @@
 -- Oteka Unified Database Schema (Idempotent)
--- Last Updated: 2026-02-03
+-- Last Updated: 2026-05-09
 
 /* 
   UNCOMMENT FOR FULL RESET (WARNING: DELETES ALL DATA):
@@ -17,11 +17,13 @@
   drop table if exists households cascade;
   drop table if exists cache_entries cascade;
   drop table if exists metabolic_phenomena cascade;
+  drop table if exists subscriptions cascade;
+  drop table if exists vouchers cascade;
+  drop table if exists shopping_list cascade;
 */
 
 -- Enable Extensions
 create extension if not exists vector;
-create extension if not exists pg_cron;
 
 create table if not exists households (
   id uuid default gen_random_uuid() primary key,
@@ -41,9 +43,13 @@ create table if not exists users (
   calorie_target integer default 2000,
   household_id uuid references households(id),
   plan text default 'free',
+  stripe_customer_id text,
+  last_entropy_run date default (to_char(now() at time zone 'UTC', 'YYYY-MM-DD'))::date,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+create index if not exists idx_users_stripe_customer_id on users(stripe_customer_id);
+create index if not exists idx_users_household_id on users(household_id);
 
 -- 3. FOODS
 create table if not exists foods (
@@ -69,6 +75,8 @@ create table if not exists pantry (
   metadata_json jsonb default '{}'::jsonb, -- Stores ingredients, micros, packaging info
   created_at timestamptz default now()
 );
+create index if not exists idx_pantry_household_id on pantry(household_id);
+create index if not exists idx_pantry_user_id on pantry(user_id);
 
 -- 5. FRIENDSHIPS
 create table if not exists friendships (
@@ -138,12 +146,6 @@ create table if not exists logs (
 create index if not exists idx_logs_user_date on logs(user_id, local_date);
 create index if not exists idx_logs_feedback on logs using gin (metabolic_tags_json);
 
--- Performance indices for household sharing
-create index if not exists idx_pantry_household_id on pantry(household_id);
-create index if not exists idx_shopping_household_id on shopping_list(household_id);
-create index if not exists idx_users_household_id on users(household_id);
-create index if not exists idx_pantry_user_id on pantry(user_id);
-
 -- 11. CACHE ENTRIES
 create table if not exists cache_entries (
   key text primary key,
@@ -156,37 +158,51 @@ create index if not exists idx_cache_expires on cache_entries(expires_at);
 -- ENTROPY LOGIC (Daily Probability Decay)
 -- ========================================================
 
--- Function to run the decay cycle
-create or replace function run_entropy_cycle()
+-- Function to run the decay cycle for a specific user
+-- This is designed for the FREE TIER (called on app load)
+create or replace function run_entropy_cycle(p_user_id uuid)
 returns void
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_last_run date;
+  v_today date := (to_char(now() at time zone 'UTC', 'YYYY-MM-DD'))::date;
+  v_days_diff integer;
 begin
-  -- Update probability scores
-  update pantry
-  set 
-    probability_score = greatest(0, probability_score * (1 - coalesce(foods.category_decay_rate, 0.05))),
-    status = case 
-      when (probability_score * (1 - coalesce(foods.category_decay_rate, 0.05))) < 0.3 then 'review_needed'
-      else status
-    end
-  from foods
-  where pantry.food_id = foods.id
-  and pantry.status = 'active';
+  -- Get user's last run date
+  select last_entropy_run into v_last_run from users where id = p_user_id;
+
+  -- Default to 1 day if last_run is null (new user)
+  if v_last_run is null then
+    v_days_diff := 1;
+  else
+    v_days_diff := v_today - v_last_run;
+  end if;
+
+  -- Only run if there is at least a day of difference
+  if v_days_diff > 0 then
+    -- ATOMIC UPDATE: Run probability decay and status checks in a single block.
+    -- pl/pgsql functions execute in a single implicit transaction.
+    update pantry
+    set 
+      probability_score = greatest(0, probability_score * power(1 - coalesce(foods.category_decay_rate, 0.05), v_days_diff)),
+      status = case 
+        when (probability_score * power(1 - coalesce(foods.category_decay_rate, 0.05), v_days_diff)) < 0.3 then 'review_needed'
+        else status
+      end
+    from foods
+    where pantry.food_id = foods.id
+    and pantry.user_id = p_user_id
+    and pantry.status = 'active';
+
+    -- Update last run timestamp for the user
+    update users set last_entropy_run = v_today where id = p_user_id;
+  end if;
+
 end;
 $$;
-
--- Schedule the job (Runs daily at 00:00 GMT)
--- Requires pg_cron to be active in Supabase
--- UNSCHEDULE FIRST IF EXISTS to avoid duplicate entries
-select cron.unschedule('entropy-daily-cycle') where exists (select 1 from cron.job where jobname = 'entropy-daily-cycle');
-select cron.schedule(
-  'entropy-daily-cycle',
-  '0 0 * * *', 
-  'select run_entropy_cycle()'
-);
 
 -- 12. SHOPPING LIST
 create table if not exists shopping_list (
@@ -198,6 +214,7 @@ create table if not exists shopping_list (
   added_by uuid references users(id),
   created_at timestamptz default now()
 );
+create index if not exists idx_shopping_household_id on shopping_list(household_id);
 
 -- ========================================================
 -- RLS SECURITY POLICIES
@@ -233,7 +250,8 @@ drop policy if exists "Authenticated insert profile" on users;
 create policy "Authenticated insert profile" on users for insert with check ((select auth.uid()) = id);
 
 drop policy if exists "Authenticated view profiles" on users;
-create policy "Authenticated view profiles" on users for select using ((select auth.role()) = 'authenticated');
+-- No broad profile view, only own profile is fully visible via first policy.
+-- If we need a social view later, we should create a public_profiles view.
 
 -- FOODS
 drop policy if exists "Foods read (auth)" on foods;
@@ -243,12 +261,6 @@ drop policy if exists "Foods insert (auth)" on foods;
 create policy "Foods insert (auth)" on foods for insert with check ((select auth.role()) = 'authenticated');
 
 -- PANTRY (Household Shared)
--- Cleanup old policies
-drop policy if exists "Pantry read own" on pantry;
-drop policy if exists "Pantry write own" on pantry;
-drop policy if exists "Pantry update own" on pantry;
-drop policy if exists "Pantry delete own" on pantry;
-
 drop policy if exists "Pantry read household" on pantry;
 create policy "Pantry read household" on pantry for select using (
   (select auth.uid()) = user_id or 
@@ -373,11 +385,8 @@ alter table vouchers enable row level security;
 drop policy if exists "Users view their own redeemed vouchers" on vouchers;
 create policy "Users view their own redeemed vouchers" on vouchers for select using ((select auth.uid()) = redeemed_by);
 
--- Allow admins or service role to manage vouchers (standard for Supabase)
--- Public can check if a voucher is valid (usually handled via Edge Function)
-
 -- ========================================================
--- 14. STORAGE CONFIGURATION
+-- 15. STORAGE CONFIGURATION
 -- ========================================================
 
 -- Ensure the bucket exists
@@ -400,9 +409,8 @@ create policy "Users can view own scans" on storage.objects for select using (
 );
 
 -- ========================================================
--- 15. REALTIME CONFIGURATION
+-- 16. REALTIME CONFIGURATION
 -- ========================================================
 
--- Enable realtime for logs table to support optimistic UI updates
+-- Enable realtime for logs table
 alter publication supabase_realtime add table logs;
-

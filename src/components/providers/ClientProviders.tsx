@@ -12,6 +12,7 @@ import { useAppStore } from '@/lib/state/appStore';
 // (navigator, localStorage, etc.) which are not available during static export/SSR.
 const AuthGuard = dynamic(() => import('@/components/AuthGuard'), { ssr: false });
 const AuthLinkHandler = dynamic(() => import('@/components/providers/AuthLinkHandler').then(m => m.AuthLinkHandler), { ssr: false });
+const NotificationHandler = dynamic(() => import('@/components/providers/NotificationHandler').then(m => m.NotificationHandler), { ssr: false });
 
 function ThemeWrapper({ children }: { children: React.ReactNode }) {
   const colorTheme = useAppStore((s) => s.colorTheme);
@@ -37,9 +38,11 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
                 <AuthLinkHandler>
                     <AuthGuard>
-                        <ThemeWrapper>
-                            {children}
-                        </ThemeWrapper>
+                        <NotificationHandler>
+                            <ThemeWrapper>
+                                {children}
+                            </ThemeWrapper>
+                        </NotificationHandler>
                     </AuthGuard>
                 </AuthLinkHandler>
             </ThemeProvider>

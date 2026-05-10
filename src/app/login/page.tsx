@@ -129,7 +129,7 @@ export default function LoginPage() {
                 </p>
             </div>
 
-            <Card className="border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] rounded-[40px] overflow-hidden border">
+            <Card className="border-[var(--border)] bg-[var(--bg-surface)] backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] rounded-[40px] overflow-hidden border">
               <CardHeader className="space-y-1 pb-4 pt-10 text-center">
                   <CardTitle className="text-xl font-bold text-[var(--text-primary)]">
                     {mode === 'login' ? 'System Access' : 'Initialize Account'}
@@ -146,7 +146,7 @@ export default function LoginPage() {
                   <Button 
                     type="button" 
                     variant="outline" 
-                    className="w-full flex items-center justify-center gap-3 font-bold h-14 bg-white/5 border-white/10 text-[var(--text-primary)] rounded-[24px] hover:bg-white/10 transition-all shadow-sm active:scale-95"
+                    className="w-full flex items-center justify-center gap-3 font-bold h-14 bg-[var(--bg-surface-2)] border-[var(--border)] text-[var(--text-primary)] rounded-[24px] hover:bg-[var(--bg-surface-2)]/80 transition-all shadow-sm active:scale-95"
                     onClick={handleGoogleLogin}
                     disabled={loading}
                   >
@@ -160,9 +160,9 @@ export default function LoginPage() {
                   </Button>
 
                   <div className="flex items-center gap-4">
-                      <div className="h-px flex-1 bg-white/10" />
+                      <div className="h-px flex-1 bg-[var(--border)]" />
                       <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">OR</span>
-                      <div className="h-px flex-1 bg-white/10" />
+                      <div className="h-px flex-1 bg-[var(--border)]" />
                   </div>
 
                   <form onSubmit={handleAuth} className="space-y-4">
@@ -175,7 +175,7 @@ export default function LoginPage() {
                           value={email}
                           onChange={e => setEmail(e.target.value)}
                           required
-                          className="h-14 pl-12 bg-white/5 border-white/10 focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/20 text-[var(--text-primary)] rounded-[20px] font-medium transition-all"
+                          className="h-14 pl-12 bg-[var(--bg-surface-2)] border-[var(--border)] focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/20 text-[var(--text-primary)] rounded-[20px] font-medium transition-all"
                         />
                       </div>
 
@@ -187,18 +187,18 @@ export default function LoginPage() {
                           value={password}
                           onChange={e => setPassword(e.target.value)}
                           required
-                          className="h-14 pl-12 bg-white/5 border-white/10 focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/20 text-[var(--text-primary)] rounded-[20px] font-medium transition-all"
+                          className="h-14 pl-12 bg-[var(--bg-surface-2)] border-[var(--border)] focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/20 text-[var(--text-primary)] rounded-[20px] font-medium transition-all"
                         />
                       </div>
                     </div>
 
                     <Button 
                       type="submit" 
-                      className="w-full font-black text-sm uppercase tracking-widest h-14 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white rounded-[24px] shadow-xl shadow-[var(--primary)]/20 transition-all flex items-center justify-center gap-2 mt-2 active:scale-95 group" 
+                      className="w-full font-black text-sm uppercase tracking-widest h-14 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-fg)] rounded-[24px] shadow-xl shadow-[var(--primary)]/20 transition-all flex items-center justify-center gap-2 mt-2 active:scale-95 group" 
                       disabled={loading}
                     >
                       {loading ? (
-                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--primary-fg)] border-t-transparent" />
                       ) : mode === 'login' ? (
                         <>Sign In <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
                       ) : (

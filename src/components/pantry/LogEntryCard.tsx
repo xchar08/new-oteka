@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { ChevronDown, Flame, Utensils } from 'lucide-react';
 import { visionService } from '@/lib/services/vision.service';
@@ -26,12 +26,20 @@ interface LogEntryCardProps {
  */
 export function LogEntryCard({ log }: LogEntryCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Smart intersection to handle both flattened (new) and wrapped (legacy) metadata
   const meta = (log.metabolic_tags_json || {}) as LogMetadata & { macros?: any; feedback?: any; food_name?: string };
   const macros = meta.macros || meta; 
   
   const name = meta.food_name || meta.item || 'Unknown Food';
-  const time = new Date(log.captured_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const time = mounted 
+    ? new Date(log.captured_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : '--:--';
   const ingredients = meta.ingredients || [];
   const vitamins = meta.vitamins || [];
   const minerals = meta.minerals || [];

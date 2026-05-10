@@ -114,18 +114,17 @@ export function aggregateNutrients(
   const result = { ...existing };
 
   newEntries.forEach((entry) => {
-    const { normalized } = parseNutrientAmount(entry.amount);
+    const { normalized, unit: parsedUnit } = parseNutrientAmount(entry.amount);
     const name = entry.name;
 
     if (result[name]) {
       // Add to existing normalized amount
-      // We keep the internal storage in 'mg' or the most common base unit
       result[name].amount += normalized;
       result[name].daily_value_pct += entry.daily_value_pct || 0;
     } else {
       result[name] = {
         amount: normalized,
-        unit: "mg", // Store in mg as standard base
+        unit: "mg", // Standardize internal storage to mg
         daily_value_pct: entry.daily_value_pct || 0,
       };
     }

@@ -14,9 +14,10 @@ export function PricingGuard({ plan = 'free', children, featureName = 'This feat
   const lastToastTime = useRef<number>(0);
   const isPro = plan === 'pro';
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClickCapture = (e: React.MouseEvent) => {
     if (isPro) return;
     
+    // STOP EVERYTHING in the capture phase
     e.preventDefault();
     e.stopPropagation();
 
@@ -56,7 +57,7 @@ export function PricingGuard({ plan = 'free', children, featureName = 'This feat
   };
 
   return (
-    <div onClick={handleClick} className="relative group cursor-pointer">
+    <div onClickCapture={handleClickCapture} className="relative group cursor-pointer h-full">
       {children}
       {!isPro && (
         <div className="absolute top-0 right-0 -mt-1 -mr-1 bg-[var(--primary)] text-white p-1 rounded-full shadow-lg border border-[var(--bg-app)] z-20 scale-75 group-hover:scale-100 transition-transform">

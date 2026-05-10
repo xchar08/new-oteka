@@ -437,3 +437,18 @@ entrypoint = "./functions/vision-menu/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/vision-menu/*.html" ]
+
+[functions.create-checkout-session]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/create-checkout-session/index.ts"
+
+[functions.optimize-meals]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/optimize-meals/index.ts"
+
+[functions.shopping-generator]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/shopping-generator/index.ts"

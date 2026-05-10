@@ -36,10 +36,12 @@ const itemVariants: Variants = {
 export default function WorkflowsPage() {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
+    setMounted(true);
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -153,7 +155,7 @@ export default function WorkflowsPage() {
                                             {workflow.trigger_type}
                                         </span>
                                         {workflow.last_run_at && (
-                                            <span>Ran {new Date(workflow.last_run_at).toLocaleDateString()}</span>
+                                            <span>Ran {mounted ? new Date(workflow.last_run_at).toLocaleDateString() : '--'}</span>
                                         )}
                                     </div>
                                 </div>

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.0.0?target=deno&no-check";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,10 +19,29 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId, successUrl, cancelUrl, userId } = await req.json();
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Missing Auth Header");
+    }
 
-    if (!userId) {
-      throw new Error("Missing userId");
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (!user || userError) {
+      throw new Error("Auth Failed");
+    }
+
+    const { priceId, successUrl, cancelUrl } = await req.json();
+
+    // SERVER-SIDE VALIDATION: Prevent price manipulation
+    // RECOMMENDED: Fetch allowed prices from a 'plans' table in Supabase for better maintainability
+    const ALLOWED_PRICE_IDS = ["price_1OTeKaSolarMonth"];
+    if (!ALLOWED_PRICE_IDS.includes(priceId)) {
+      throw new Error("Invalid Price ID selected");
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -35,7 +55,7 @@ serve(async (req) => {
       mode: "subscription",
       success_url: successUrl,
       cancel_url: cancelUrl,
-      client_reference_id: userId,
+      client_reference_id: user.id,
     });
 
     return new Response(JSON.stringify({ sessionId: session.id, url: session.url }), {

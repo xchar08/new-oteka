@@ -106,8 +106,7 @@ export async function runClientInference(imageElement: HTMLImageElement) {
     timestamp: Date.now(),
     segmentation: {
       shape: decResults.masks.dims,
-      // In production: Run RLE compression here
-      preview_rle: "compressed_data_placeholder"
+      preview_rle: encodeRLE(decResults.masks.data as Float32Array)
     },
     volumetric: {
       depth_map_shape: depthMap.dims,
@@ -129,4 +128,29 @@ function calculateMax(data: Float32Array) {
   let max = -Infinity;
   for(let i=0; i<data.length; i++) if(data[i] > max) max = data[i];
   return max;
+}
+
+/**
+ * Run-Length Encoding for Binary Masks
+ * Compacts 1024x1024 float arrays into integer sequences.
+ * Returns { startBit, counts } for unambiguous reconstruction.
+ */
+function encodeRLE(data: Float32Array): { startBit: number; counts: number[] } {
+  const counts: number[] = []; // Consider Uint32Array for Node A optimization in future iterations
+  let currentVal = data[0] > 0 ? 1 : 0;
+  const startBit = currentVal;
+  let count = 0;
+
+  for (let i = 0; i < data.length; i++) {
+    const val = data[i] > 0 ? 1 : 0;
+    if (val === currentVal) {
+      count++;
+    } else {
+      counts.push(count);
+      currentVal = val;
+      count = 1;
+    }
+  }
+  counts.push(count);
+  return { startBit, counts };
 }
