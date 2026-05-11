@@ -106,18 +106,19 @@
 
 /* DARK MODE - Global overrides when .dark is on html/body */
 .dark {
-  --bg-app: #09090b;
-  --bg-surface: #18181b;
-  --bg-surface-2: #27272a;
+  --bg-app: #1a1206;
+  --bg-surface: #292015;
+  --bg-surface-2: #362a1c;
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
-  --border: #27272a;
-  --secondary: #fafafa;
+  --border: #362a1c;
+  --secondary: #292015;
   --primary-fg: #FFFFFF;
   --success: #4ade80;
   --warning: #facc15;
   --error: #f87171;
 }
+
 
 /* Dark Mode Theme Specifics (Primary color tweaks for contrast) */
 .dark.theme-solar, .dark .theme-solar {

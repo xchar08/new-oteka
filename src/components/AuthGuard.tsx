@@ -44,8 +44,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
            return;
         }
 
-        const isPremiumRoute = PREMIUM_ROUTES.some(route => pathname === route || pathname?.startsWith(`${route}/`));
-        const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname === route || pathname?.startsWith(`${route}/`));
+        const isPremiumRoute = PREMIUM_ROUTES.some(route => 
+          pathname === route || 
+          pathname?.startsWith(`${route}/`)
+        );
+        
+        const isProtectedRoute = PROTECTED_ROUTES.some(route => 
+          pathname === route || 
+          pathname?.startsWith(`${route}/`)
+        );
+        
         const isExemptRoute = EXEMPT_ROUTES.some(route => pathname?.startsWith(route));
         const isOnboardingRoute = pathname.startsWith('/onboarding');
 
@@ -63,7 +71,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             .single();
 
           const currentPlan = profile?.plan || 'free';
-          const isPro = currentPlan === 'pro';
+          const isPro = currentPlan === 'pro' || currentPlan === 'premium';
 
           if (isPremiumRoute && !isPro) {
             router.replace('/pricing');
