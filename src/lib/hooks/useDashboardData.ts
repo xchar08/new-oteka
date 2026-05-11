@@ -24,6 +24,8 @@ export function useDashboardData() {
       const { data: { user } } = await supabase.auth.getUser();
       return user;
     },
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // 1. Fetch Profile
@@ -63,6 +65,8 @@ export function useDashboardData() {
       return data;
     },
     enabled: !!authUser,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // Aggressive post-upgrade sync: If session_id is in URL, force a refetch
@@ -176,6 +180,7 @@ export function useDashboardData() {
     dailyLogs,
     pantryItems,
     loading: isAuthLoading || isUserLoading || isConditionsLoading || isLogsLoading || isPantryLoading,
-    isOnline
+    isOnline,
+    refetchProfile
   };
 }

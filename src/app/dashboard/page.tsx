@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Camera, 
   ShoppingCart as ShoppingCartIcon, 
@@ -69,6 +69,8 @@ export default function DashboardPage() {
   const proteinTarget = meta.protein_target || 140;
   const carbsTarget = meta.carbs_target || 180;
   const fatsTarget = meta.fats_target || 65;
+  
+  // SUPPORT PRO PLAN
   const isPro = user?.plan === 'pro';
   const isMissingCalibration = !user?.hand_width_mm;
 
@@ -295,7 +297,7 @@ export default function DashboardPage() {
               <motion.div 
                 whileHover={{ scale: 1.1, y: -5 }}
                 whileTap={{ scale: 0.9 }}
-                className="w-16 h-16 rounded-[24px] bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 flex items-center justify-center shadow-sm group-hover:shadow-xl transition-all"
+                className={`w-16 h-16 rounded-[24px] flex items-center justify-center shadow-sm group-hover:shadow-xl transition-all border bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20`}
               >
                 <Camera size={24} strokeWidth={2.5} />
               </motion.div>
@@ -309,7 +311,7 @@ export default function DashboardPage() {
                 <motion.div 
                   whileHover={{ scale: 1.1, y: -5 }}
                   whileTap={{ scale: 0.9 }}
-                  className="w-16 h-16 rounded-[24px] bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center shadow-sm group-hover:shadow-xl transition-all"
+                  className={`w-16 h-16 rounded-[24px] border flex items-center justify-center shadow-sm group-hover:shadow-xl transition-all bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20`}
                 >
                   <Target size={24} strokeWidth={2.5} />
                 </motion.div>
@@ -324,7 +326,7 @@ export default function DashboardPage() {
                 <motion.div 
                   whileHover={{ scale: 1.1, y: -5 }}
                   whileTap={{ scale: 0.9 }}
-                  className="w-16 h-16 rounded-[24px] bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/20 flex items-center justify-center shadow-sm group-hover:shadow-xl transition-all"
+                  className={`w-16 h-16 rounded-[24px] border flex items-center justify-center shadow-sm group-hover:shadow-xl transition-all bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20`}
                 >
                   <ShoppingCartIcon size={24} strokeWidth={2.5} />
                 </motion.div>
@@ -339,7 +341,7 @@ export default function DashboardPage() {
                 <motion.div 
                   whileHover={{ scale: 1.1, y: -5 }}
                   whileTap={{ scale: 0.9 }}
-                  className="w-16 h-16 rounded-[24px] bg-[var(--warning)]/10 text-[var(--warning)] border border-[var(--warning)]/20 flex items-center justify-center shadow-sm group-hover:shadow-xl transition-all"
+                  className={`w-16 h-16 rounded-[24px] border flex items-center justify-center shadow-sm group-hover:shadow-xl transition-all bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20`}
                 >
                   <MessageSquare size={24} strokeWidth={2.5} />
                 </motion.div>

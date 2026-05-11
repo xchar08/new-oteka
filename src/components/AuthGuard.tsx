@@ -1,118 +1,126 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { useAppStore } from '@/lib/state/appStore';
-import dynamic from 'next/dynamic';
+import { UserProfile, MetabolicState } from '@/lib/types/metabolic';
 
 const PROTECTED_ROUTES = ['/pantry', '/planner', '/log', '/dashboard', '/analytics', '/coach', '/shopping', '/history', '/profile', '/settings', '/pricing', '/vision'];
 const PREMIUM_ROUTES = ['/planner', '/analytics', '/coach', '/travel/menu', '/shopping'];
 const ONBOARDING_ROUTES = ['/login'];
 const EXEMPT_ROUTES = ['/about', '/privacy', '/terms'];
 
+/**
+ * Global Authorization Guard
+ * Enforces:
+ * 1. Authentication
+ * 2. Sequential Onboarding (Profile -> Medical -> Calibration)
+ * 3. Pro-tier Route Protection
+ */
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
+  const setPlan = useAppStore(s => s.setPlan);
 
-  useEffect(() => {
+  const checkAuth = useCallback(async () => {
     const supabase = createClient();
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    const checkAuth = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError || !session) {
-          setAuthorized(false);
-          setLoading(false);
-          
-          if (pathname !== '/login' && !EXEMPT_ROUTES.some(route => pathname?.startsWith(route))) {
-            router.replace('/login');
-          } else {
-            setAuthorized(true);
-          }
-          return;
-        }
-
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-           await supabase.auth.signOut();
-           router.replace('/login');
-           return;
-        }
-
-        const isPremiumRoute = PREMIUM_ROUTES.some(route => 
-          pathname === route || 
-          pathname?.startsWith(`${route}/`)
-        );
+      if (sessionError || !session) {
+        setAuthorized(false);
+        setLoading(false);
         
-        const isProtectedRoute = PROTECTED_ROUTES.some(route => 
-          pathname === route || 
-          pathname?.startsWith(`${route}/`)
-        );
-        
-        const isExemptRoute = EXEMPT_ROUTES.some(route => pathname?.startsWith(route));
-        const isOnboardingRoute = pathname.startsWith('/onboarding');
-
-        if (session) {
-          if (isExemptRoute) {
-            setAuthorized(true);
-            setLoading(false);
-            return;
-          }
-
-          const { data: profile } = await supabase
-            .from('users')
-            .select('hand_width_mm, metabolic_state_json, plan')
-            .eq('id', session.user.id)
-            .single();
-
-          const currentPlan = profile?.plan || 'free';
-          const isPro = currentPlan === 'pro' || currentPlan === 'premium';
-
-          if (isPremiumRoute && !isPro) {
-            router.replace('/pricing');
-            setAuthorized(false);
-            setLoading(false);
-            return;
-          }
-
-          const metabolic = (profile?.metabolic_state_json || {}) as any;
-          const hasProfile = !!(metabolic.age && metabolic.height_cm);
-          const hasMedical = !!metabolic.medical_verified;
-          const hasCalibration = !!(profile?.hand_width_mm);
-
-          if (isOnboardingRoute) {
-            setAuthorized(true);
-            setLoading(false);
-            return;
-          }
-
-          if (!hasProfile && pathname !== '/onboarding/profile') {
-            router.replace('/onboarding/profile');
-            setAuthorized(false);
-          } else if (hasProfile && !hasMedical && pathname !== '/onboarding/medical') {
-            router.replace('/onboarding/medical');
-            setAuthorized(false);
-          } else if (hasProfile && hasMedical && !hasCalibration && pathname !== '/onboarding/calibration') {
-            router.replace('/onboarding/calibration');
-            setAuthorized(false);
-          } else {
-            setAuthorized(true);
-          }
+        if (pathname !== '/login' && !EXEMPT_ROUTES.some(route => pathname?.startsWith(route))) {
+          router.replace('/login');
         } else {
           setAuthorized(true);
         }
-      } catch (err) {
-        console.error("AuthGuard Exception:", err);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
+      // Fresh User Verification
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+         await supabase.auth.signOut();
+         router.replace('/login');
+         return;
+      }
+
+      const isPremiumRoute = PREMIUM_ROUTES.some(route => pathname === route || pathname?.startsWith(`${route}/`));
+      const isExemptRoute = EXEMPT_ROUTES.some(route => pathname?.startsWith(route));
+      const isOnboardingRoute = pathname.startsWith('/onboarding');
+
+      if (session) {
+        if (isExemptRoute) {
+          setAuthorized(true);
+          setLoading(false);
+          return;
+        }
+
+        // FETCH USER PROFILE & PLAN
+        const { data: profile } = await supabase
+          .from('users')
+          .select('id, hand_width_mm, metabolic_state_json, plan')
+          .eq('id', session.user.id)
+          .single();
+
+        const userProfile = profile as any as UserProfile; // Cast to profile for safety
+        const currentPlan = userProfile?.plan || 'free';
+        const isPro = currentPlan === 'pro';
+
+        // Sync plan with global store
+        setPlan(currentPlan === 'pro' ? 'pro' : 'free');
+
+        // 1. PROTECT PREMIUM ROUTES
+        if (isPremiumRoute && !isPro) {
+          console.warn("[AuthGuard] Premium route denied. Redirecting to pricing.");
+          router.replace('/pricing');
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
+
+        const metabolic = (userProfile?.metabolic_state_json || {}) as MetabolicState;
+        const hasProfile = !!(metabolic.age && metabolic.height_cm);
+        const hasMedical = !!metabolic.medical_verified;
+        const hasCalibration = !!(userProfile?.hand_width_mm);
+
+        if (isOnboardingRoute) {
+          setAuthorized(true);
+          setLoading(false);
+          return;
+        }
+
+        // 2. ENFORCE SEQUENTIAL ONBOARDING
+        if (!hasProfile && pathname !== '/onboarding/profile') {
+          router.replace('/onboarding/profile');
+          setAuthorized(false);
+        } else if (hasProfile && !hasMedical && pathname !== '/onboarding/medical') {
+          router.replace('/onboarding/medical');
+          setAuthorized(false);
+        } else if (hasProfile && hasMedical && !hasCalibration && pathname !== '/onboarding/calibration') {
+          router.replace('/onboarding/calibration');
+          setAuthorized(false);
+        } else {
+          setAuthorized(true);
+        }
+      } else {
+        setAuthorized(true);
+      }
+    } catch (err) {
+      console.error("AuthGuard critical error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [pathname, router, setPlan]);
+
+  useEffect(() => {
+    const supabase = createClient();
     setLoading(true);
     checkAuth();
     
@@ -129,7 +137,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [pathname, router]);
+  }, [checkAuth, router]);
 
   if (loading) {
     return (
@@ -139,7 +147,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Prevent unauthorized access during redirect
+  // Final Gate: Prevent unauthorized access during redirect
   if (!authorized && 
       !pathname.startsWith('/onboarding') && 
       pathname !== '/login' && 

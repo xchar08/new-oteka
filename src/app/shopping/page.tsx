@@ -36,6 +36,7 @@ export default function ShoppingPage() {
   const router = useRouter();
 
   const { user: userProfile, loading: isUserLoading } = useDashboardData();
+  const isPro = userProfile?.plan === 'pro';
   const householdId = userProfile?.household_id;
 
   const { data: items = [], isLoading } = useQuery({
@@ -82,16 +83,21 @@ export default function ShoppingPage() {
 
   const handleAcceptSuggestion = async (suggestion: any) => {
     if (!userProfile?.id || !householdId) return;
+    
+    // OPTIMISTIC UPDATE: Local UI feedback
+    const originalSuggestions = [...aiSuggestions];
+    setAiSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
+    
     try {
       await shoppingService.upsertItem({
         household_id: householdId,
         name: suggestion.name,
         added_by: userProfile.id,
       });
-      setAiSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
       queryClient.invalidateQueries({ queryKey: ['shopping-list'] });
       toast.success(`Added ${suggestion.name} to shared list!`);
     } catch (err) {
+      setAiSuggestions(originalSuggestions);
       toast.error("Failed to add suggestion to database.");
     }
   };
@@ -120,6 +126,32 @@ export default function ShoppingPage() {
           });
           return { name: item.name, action: 'added' };
       }
+    },
+    onMutate: async (newItem) => {
+        // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+        await queryClient.cancelQueries({ queryKey: ['shopping-list'] });
+
+        // Snapshot the previous value
+        const previousItems = queryClient.getQueryData(['shopping-list', userProfile?.id, householdId]);
+
+        // Optimistically update to the new value
+        if (newItem.type === 'suggestion') {
+            queryClient.setQueryData(['shopping-list', userProfile?.id, householdId], (old: any) => [
+                ...(old || []),
+                {
+                    id: newItem.id,
+                    name: newItem.name,
+                    category: newItem.category,
+                    reason: newItem.reason,
+                    type: 'db_list'
+                }
+            ]);
+        }
+
+        return { previousItems };
+    },
+    onError: (err, newItem, context) => {
+        queryClient.setQueryData(['shopping-list', userProfile?.id, householdId], context?.previousItems);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['shopping-list'] });
@@ -154,38 +186,40 @@ export default function ShoppingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] p-6 pb-32 flex flex-col gap-6 animate-in fade-in duration-500">
+    <div className={`min-h-screen p-6 pb-32 flex flex-col gap-6 animate-in fade-in duration-500 transition-colors ${isPro ? 'theme-solar dark bg-[var(--bg-app)] text-white' : 'bg-[var(--bg-app)] text-[var(--text-primary)]'}`}>
       
       <header className="flex items-center gap-4 pt-safe">
         <button 
             onClick={() => router.back()}
-            className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-secondary)] transition-colors"
+            className={`p-2 -ml-2 rounded-full transition-colors ${isPro ? 'hover:bg-white/10 text-white/40' : 'hover:bg-black/5 text-[var(--text-secondary)]'}`}
         >
             <ChevronLeft size={24} />
         </button>
         <div>
-           <h1 className="text-3xl font-light tracking-tight mb-1">Logistics</h1>
-           <p className="text-[var(--text-secondary)] text-sm">Managed household supply.</p>
+           <h1 className="text-3xl font-black tracking-tight mb-1">{isPro ? 'Neural Logistics' : 'Logistics'}</h1>
+           <p className={`text-sm font-bold uppercase tracking-widest ${isPro ? 'text-[var(--primary)] opacity-80' : 'text-[var(--text-secondary)]'}`}>
+               {isPro ? 'Elite Supply Protocol' : 'Managed household supply'}
+           </p>
         </div>
       </header>
 
       <div className="relative z-10">
           <input 
             type="text" 
-            placeholder="Add to supply chain..."
+            placeholder={isPro ? "Integrate manual supply..." : "Add to supply chain..."}
             value={manualInput}
             onChange={(e) => setManualInput(e.target.value)}
             onKeyDown={(e) => {
                 if (e.key === 'Enter') handleManualAdd();
             }}
-            className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl h-14 pl-5 pr-14 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:outline-none focus:border-[var(--primary)] transition-all shadow-sm"
+            className={`w-full border rounded-2xl h-14 pl-5 pr-14 outline-none transition-all shadow-sm ${isPro ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[var(--primary)]' : 'bg-[var(--bg-surface)] border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--primary)]'}`}
           />
           <button 
             onClick={handleManualAdd}
             disabled={!manualInput.trim()}
-            className="absolute right-3 top-3 h-8 w-8 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center disabled:opacity-30"
+            className={`absolute right-3 top-3 h-8 w-8 rounded-lg flex items-center justify-center disabled:opacity-30 ${isPro ? 'bg-[var(--primary)] text-black' : 'bg-[var(--primary)]/10 text-[var(--primary)]'}`}
           >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-5 w-5" strokeWidth={3} />
           </button>
       </div>
 
@@ -196,15 +230,15 @@ export default function ShoppingPage() {
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-r from-[var(--primary)]/10 to-transparent border border-[var(--border)] rounded-[2rem] p-6 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4"
+              className={`border rounded-[2rem] p-6 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 ${isPro ? 'bg-white/5 border-white/10' : 'bg-gradient-to-r from-[var(--primary)]/10 to-transparent border-[var(--border)]'}`}
             >
               <div className="flex items-center gap-4 text-left mr-auto">
-                <div className="w-12 h-12 rounded-2xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center shrink-0">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isPro ? 'bg-[var(--primary)]/20 text-[var(--primary)]' : 'bg-[var(--primary)]/10 text-[var(--primary)]'}`}>
                   <Sparkles size={22} className="animate-pulse" />
                 </div>
                 <div>
-                  <h4 className="font-black text-sm uppercase tracking-wider text-[var(--text-primary)]">Neural Supply Engine</h4>
-                  <p className="text-[10px] text-[var(--text-secondary)] font-bold mt-1 leading-normal max-w-xs">
+                  <h4 className="font-black text-sm uppercase tracking-wider">Neural Supply Engine</h4>
+                  <p className={`text-[10px] font-bold mt-1 leading-normal max-w-xs ${isPro ? 'text-white/40' : 'text-[var(--text-secondary)]'}`}>
                     Synthesize shopping lists and recipe pools aligned with your medical conditions and deficiency gaps.
                   </p>
                 </div>
@@ -213,7 +247,7 @@ export default function ShoppingPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={runAiOptimization}
-                className="w-full sm:w-auto h-12 px-6 bg-[var(--primary)] text-white font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2 shadow-md shadow-[var(--primary)]/10 shrink-0"
+                className={`w-full sm:w-auto h-12 px-6 font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2 shadow-md shrink-0 ${isPro ? 'bg-[var(--primary)] text-black' : 'bg-[var(--primary)] text-white shadow-[var(--primary)]/10'}`}
               >
                 Run AI Optimization
               </motion.button>
@@ -225,7 +259,7 @@ export default function ShoppingPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[2rem] p-8 text-center shadow-md flex flex-col items-center justify-center gap-4 min-h-[160px] relative overflow-hidden"
+              className={`border rounded-[2rem] p-8 text-center shadow-md flex flex-col items-center justify-center gap-4 min-h-[160px] relative overflow-hidden ${isPro ? 'bg-white/5 border-white/10' : 'bg-[var(--bg-surface)] border-[var(--border)]'}`}
             >
               <div className="absolute top-0 left-0 h-1 bg-[var(--primary)] w-full">
                 <motion.div 
@@ -238,7 +272,7 @@ export default function ShoppingPage() {
               <Loader2 className="animate-spin text-[var(--primary)] h-8 w-8" />
               <div>
                 <h4 className="font-black text-xs uppercase tracking-[0.2em] text-[var(--primary)] animate-pulse">{aiPhase}</h4>
-                <p className="text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-1.5 opacity-40">Oteka Bio-Synthesis engine active</p>
+                <p className="text-[9px] font-black uppercase tracking-widest mt-1.5 opacity-40">Oteka Bio-Synthesis engine active</p>
               </div>
             </motion.div>
           )}
@@ -249,28 +283,28 @@ export default function ShoppingPage() {
                 <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-[var(--bg-surface)] border border-[var(--primary)]/20 rounded-[2.5rem] p-6 shadow-xl shadow-[var(--primary)]/5 space-y-5"
+                className={`border rounded-[2.5rem] p-6 shadow-xl space-y-5 ${isPro ? 'bg-white/5 border-white/10 shadow-black/20' : 'bg-[var(--bg-surface)] border-[var(--primary)]/20 shadow-[var(--primary)]/5'}`}
                 >
                     <div className="flex justify-between items-start border-b border-[var(--border)] pb-4">
                         <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPro ? 'bg-[var(--primary)]/20 text-[var(--primary)]' : 'bg-[var(--primary)]/10 text-[var(--primary)]'}`}>
                             <Sparkles size={20} fill="currentColor" />
                         </div>
                         <div>
-                            <h4 className="font-black text-sm uppercase tracking-wider text-[var(--text-primary)]">AI Logistics Suggestions</h4>
-                            <p className="text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-0.5">Metabolic Gap Fill</p>
+                            <h4 className="font-black text-sm uppercase tracking-wider">AI Logistics Suggestions</h4>
+                            <p className="text-[9px] font-black uppercase tracking-widest mt-0.5 opacity-40">Metabolic Gap Fill</p>
                         </div>
                         </div>
                         <button 
                         onClick={() => { setAiSuggestions([]); setAiAnalysis(''); setAiRecipes([]); }}
-                        className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors py-1.5 px-3 bg-[var(--bg-app)] border border-[var(--border)] rounded-lg"
+                        className={`text-[9px] font-black uppercase tracking-widest transition-colors py-1.5 px-3 border rounded-lg ${isPro ? 'bg-white/5 border-white/10 text-white/40 hover:text-[var(--error)]' : 'bg-[var(--bg-app)] text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--error)]'}`}
                         >
                         Clear
                         </button>
                     </div>
 
-                    <div className="bg-[var(--bg-app)] border border-[var(--border)]/60 rounded-2xl p-4">
-                        <p className="text-xs leading-relaxed text-[var(--text-primary)] italic opacity-90 font-medium font-serif">
+                    <div className={`border rounded-2xl p-4 ${isPro ? 'bg-black/40 border-white/5' : 'bg-[var(--bg-app)] border-[var(--border)]/60'}`}>
+                        <p className="text-xs leading-relaxed italic opacity-90 font-medium font-serif">
                         "{aiAnalysis}"
                         </p>
                     </div>
@@ -282,11 +316,11 @@ export default function ShoppingPage() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             key={`${suggestion.name}-${index}`}
-                            className="flex items-center justify-between p-4 rounded-2xl border bg-[var(--bg-surface-2)] border-[var(--border)] shadow-sm group"
+                            className={`flex items-center justify-between p-4 rounded-2xl border shadow-sm group ${isPro ? 'bg-white/5 border-white/5' : 'bg-[var(--bg-surface-2)] border-[var(--border)]'}`}
                         >
                             <div className="flex-1 min-w-0 mr-4">
                             <div className="flex items-center gap-2">
-                                <span className="font-black text-[var(--text-primary)] text-base truncate capitalize">{suggestion.name}</span>
+                                <span className="font-black text-base truncate capitalize">{suggestion.name}</span>
                                 <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
                                 suggestion.priority === 'high' 
                                     ? 'bg-[var(--error)]/10 text-[var(--error)] border border-[var(--error)]/20' 
@@ -297,15 +331,15 @@ export default function ShoppingPage() {
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                                 <div className="text-[9px] text-[var(--primary)] uppercase tracking-wider font-bold shrink-0">{suggestion.category || 'Grocery'}</div>
-                                <div className="w-1 h-1 bg-[var(--border)] rounded-full shrink-0" />
-                                <div className="text-[9px] text-[var(--text-secondary)] font-semibold truncate">{suggestion.reason}</div>
+                                <div className={`w-1 h-1 rounded-full shrink-0 ${isPro ? 'bg-white/10' : 'bg-[var(--border)]'}`} />
+                                <div className="text-[9px] opacity-60 font-semibold truncate">{suggestion.reason}</div>
                             </div>
                             </div>
                             <motion.button 
-                            whileHover={{ scale: 1.1, backgroundColor: 'var(--primary)', color: '#fff' }}
+                            whileHover={{ scale: 1.1, backgroundColor: 'var(--primary)', color: '#000' }}
                             whileTap={{ scale: 0.9 }}
                             onClick={() => handleAcceptSuggestion(suggestion)}
-                            className="w-10 h-10 rounded-xl bg-[var(--bg-app)] border border-[var(--border)] flex items-center justify-center text-[var(--primary)] transition-colors shadow-sm shrink-0"
+                            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all shadow-sm shrink-0 ${isPro ? 'bg-white/5 border-white/10 text-[var(--primary)]' : 'bg-[var(--bg-app)] border-[var(--border)] text-[var(--primary)]'}`}
                             >
                             <Plus size={20} strokeWidth={2.5} />
                             </motion.button>
@@ -323,7 +357,7 @@ export default function ShoppingPage() {
                     >
                         <div className="flex items-center gap-2 px-2">
                             <BookOpen size={16} className="text-[var(--primary)]" />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)]">Metabolic Recipe Pool</h3>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Metabolic Recipe Pool</h3>
                         </div>
                         <div className="space-y-3">
                             {aiRecipes.map((recipe, i) => (
@@ -344,18 +378,18 @@ export default function ShoppingPage() {
        
       <div className="space-y-8 relative z-10">
         {items.length === 0 ? (
-          <div className="text-center py-20 bg-[var(--bg-surface)] border border-dashed border-[var(--border)] rounded-[32px]">
-            <CheckCircle className="h-10 w-10 mx-auto mb-4 text-[var(--primary)] opacity-20" />
-            <p className="text-[var(--text-secondary)] font-medium">Global metabolic supply optimal.</p>
+          <div className={`text-center py-20 border border-dashed rounded-[32px] ${isPro ? 'bg-white/5 border-white/10' : 'bg-[var(--bg-surface)] border-[var(--border)]'}`}>
+            <CheckCircle className={`h-10 w-10 mx-auto mb-4 text-[var(--primary)] opacity-20`} />
+            <p className="opacity-50 font-medium">Global metabolic supply optimal.</p>
           </div>
         ) : (
             <>
                 {groupedItems.shared.length > 0 && (
                     <section>
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4 ml-1">Household Supply Chain</h3>
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-4 ml-1">Household Supply Chain</h3>
                         <div className="space-y-3">
                             {groupedItems.shared.map(item => (
-                                <ShoppingItemRow key={item.id} item={item} onAction={() => actionMutation.mutate(item)} isProcessing={actionMutation.isPending && (actionMutation.variables as any)?.id === item.id} />
+                                <ShoppingItemRow key={item.id} item={item} isPro={isPro} onAction={() => actionMutation.mutate(item)} isProcessing={actionMutation.isPending && (actionMutation.variables as any)?.id === item.id} />
                             ))}
                         </div>
                     </section>
@@ -363,10 +397,10 @@ export default function ShoppingPage() {
 
                 {groupedItems.pantry.length > 0 && (
                     <section>
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--error)] mb-4 ml-1">Critical Pantry Deficiencies</h3>
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--error)] mb-4 ml-1 opacity-80">Critical Pantry Deficiencies</h3>
                         <div className="space-y-3">
                             {groupedItems.pantry.map(item => (
-                                <ShoppingItemRow key={item.id} item={item} onAction={() => actionMutation.mutate(item)} isProcessing={actionMutation.isPending && (actionMutation.variables as any)?.id === item.id} />
+                                <ShoppingItemRow key={item.id} item={item} isPro={isPro} onAction={() => actionMutation.mutate(item)} isProcessing={actionMutation.isPending && (actionMutation.variables as any)?.id === item.id} />
                             ))}
                         </div>
                     </section>
@@ -380,21 +414,21 @@ export default function ShoppingPage() {
   );
 }
 
-function ShoppingItemRow({ item, onAction, isProcessing }: { item: ShoppingItem; onAction: () => void; isProcessing: boolean }) {
+function ShoppingItemRow({ item, onAction, isProcessing, isPro }: { item: ShoppingItem; onAction: () => void; isProcessing: boolean; isPro: boolean }) {
     return (
         <motion.div 
             layout
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`flex items-center justify-between p-4 rounded-2xl border bg-[var(--bg-surface)] border-[var(--border)] shadow-sm group`}
+            className={`flex items-center justify-between p-4 rounded-2xl border shadow-sm group ${isPro ? 'bg-white/5 border-white/5' : 'bg-[var(--bg-surface)] border-[var(--border)]'}`}
         >
             <div className="flex-1 min-w-0 mr-4">
-                <div className="font-bold text-[var(--text-primary)] text-base truncate capitalize">{item.name}</div>
+                <div className="font-bold text-base truncate capitalize">{item.name}</div>
                 <div className="flex items-center gap-2 mt-1">
-                   <div className="text-[9px] text-[var(--text-secondary)] uppercase tracking-wider font-bold">{item.reason}</div>
+                   <div className="text-[9px] uppercase tracking-wider font-bold opacity-60">{item.reason}</div>
                    {item.added_by_name && (
                        <>
-                        <div className="w-1 h-1 bg-[var(--border)] rounded-full" />
+                        <div className={`w-1 h-1 rounded-full ${isPro ? 'bg-white/10' : 'bg-[var(--border)]'}`} />
                         <div className="text-[9px] text-[var(--primary)] uppercase tracking-wider font-black">By {item.added_by_name}</div>
                        </>
                    )}
@@ -403,7 +437,7 @@ function ShoppingItemRow({ item, onAction, isProcessing }: { item: ShoppingItem;
             <button 
                 onClick={onAction}
                 disabled={isProcessing}
-                className="w-12 h-12 rounded-xl bg-[var(--bg-app)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--primary)] hover:text-white transition-all active:scale-90"
+                className={`w-12 h-12 rounded-xl border flex items-center justify-center transition-all active:scale-90 ${isPro ? 'bg-white/5 border-white/10 text-white/40 hover:bg-[var(--primary)] hover:text-black' : 'bg-[var(--bg-app)] border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--primary)] hover:text-white'}`}
             >
                 {isProcessing ? <Loader2 className="animate-spin h-5 w-5" /> : <Plus size={22} />}
             </button>

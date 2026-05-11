@@ -147,4 +147,26 @@ export interface AdvisorResponse {
   actionable_insight: string;
 }
 
+// ─── User Profile & State ─────────────────────────────────────
 
+export interface MetabolicState {
+  age?: number;
+  height_cm?: number;
+  weight_kg?: number;
+  sex?: 'male' | 'female' | 'other';
+  current_goal?: 'maintenance' | 'loss' | 'gain';
+  medical_verified?: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  metabolic_state_json: MetabolicState;
+  hand_width_mm: number | null;
+  streak_count: number;
+  calorie_target: number;
+  plan: 'free' | 'pro';
+  household_id: string | null;
+  created_at: string;
+}

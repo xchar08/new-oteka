@@ -13,13 +13,16 @@ import {
   Flame,
   Droplets,
   Activity,
-  Ruler
+  Ruler,
+  RefreshCw
 } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { STORAGE_KEYS } from '@/lib/utils/storage';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -42,11 +45,23 @@ const cardVariants: Variants = {
 };
 
 export default function ProfilePage() {
-  const { user, dailyMacros, loading } = useDashboardData();
+  const { user, dailyMacros, loading, refetchProfile } = useDashboardData();
   const supabase = createClient();
   const router = useRouter();
 
+  console.log("[ProfilePage] User Profile State:", { 
+    id: user?.id, 
+    plan: user?.plan,
+    isPro: user?.plan === 'pro'
+  });
+
   const handleSignOut = async () => {
+    // 1. Clear session-specific optimizations
+    if (user?.id) {
+       localStorage.removeItem(STORAGE_KEYS.LAST_ENTROPY_RUN(user.id));
+    }
+    
+    // 2. Terminate Supabase Session
     await supabase.auth.signOut();
     router.push('/login');
   };
@@ -242,6 +257,11 @@ export default function ProfilePage() {
           <div className="px-6 py-2">
             {[
               { icon: Ruler, label: 'Hand Calibration', onClick: () => router.push('/onboarding/calibration') },
+              { icon: RefreshCw, label: 'Sync Plan Status', onClick: async () => {
+                  const res = await refetchProfile();
+                  console.log("[Profile] Manual Sync Result:", res.data?.plan);
+                  toast.success("Metabolic status synchronized.");
+              } },
               { icon: Settings, label: 'App Configuration', onClick: () => router.push('/settings') },
               { icon: Target, label: 'Pricing & Plans', onClick: () => router.push('/pricing') },
               { icon: Shield, label: 'Privacy Policy', onClick: () => router.push('/privacy') },

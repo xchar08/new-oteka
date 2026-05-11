@@ -28,22 +28,21 @@ export function BottomNav() {
         {navs.map((n) => {
           const isActive = pathname === n.href;
           const Icon = n.icon;
-          const isElite = n.isPremium && isPro;
           const needsPro = n.isPremium && !isPro;
           
           return (
             <Link 
               key={n.label} 
               href={needsPro ? '/pricing' : n.href} 
-              className={`flex flex-col items-center gap-1 transition-all duration-300 relative ${isActive ? 'text-[var(--primary)]' : isElite ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]/40'}`}
+              className={`flex flex-col items-center gap-1 transition-all duration-300 relative ${isActive ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]/40'}`}
             >
               <motion.div 
                 animate={isActive ? { y: -2, scale: 1.1 } : { y: 0, scale: 1 }}
-                className={`p-2 rounded-2xl transition-colors ${isActive ? 'bg-[var(--primary)]/10' : isElite ? 'bg-[var(--primary)]/5' : 'bg-transparent'}`}
+                className={`p-2 rounded-2xl transition-colors ${isActive ? 'bg-[var(--primary)]/10' : 'bg-transparent'}`}
               >
-                <Icon size={24} strokeWidth={isActive || isElite ? 2.5 : 2} className={isElite && !isActive ? 'opacity-80' : ''} />
+                <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
               </motion.div>
-              <span className={`text-[8px] font-black uppercase tracking-[0.2em] transition-all ${isActive || isElite ? 'opacity-100' : 'opacity-40'}`}>
+              <span className={`text-[8px] font-black uppercase tracking-[0.2em] transition-all ${isActive ? 'opacity-100' : 'opacity-40'}`}>
                 {n.label}
               </span>
               {isActive && (

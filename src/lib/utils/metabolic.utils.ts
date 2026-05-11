@@ -14,8 +14,12 @@ export function extractLogStats(log: LogEntry) {
     macros?: any;
     food_name?: string;
     feedback?: any;
+    status?: string;
   };
   const rawMacros = meta.macros || meta;
+
+  // Identify planned items (e.g. from Menu Scanner) where weight is yet to be determined
+  const isPlanned = meta.status === 'planned' || log.grams === 0;
 
   return {
     name: meta.food_name || meta.item || "Unknown Food",
@@ -34,6 +38,7 @@ export function extractLogStats(log: LogEntry) {
     feedback: meta.feedback,
     imagePath: meta.image_path || log.image_url, // image_url is the resolved signed URL
     capturedAt: log.captured_at,
+    isPlanned,
   };
 }
 
