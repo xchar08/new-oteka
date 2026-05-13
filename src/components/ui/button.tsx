@@ -8,12 +8,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800",
-        destructive: "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/20 hover:from-red-600 hover:to-red-700",
-        outline: "border-2 border-blue-600 bg-transparent text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30",
-        secondary: "bg-zinc-800 text-zinc-100 hover:bg-zinc-700 dark:bg-zinc-900/80 dark:hover:bg-zinc-800",
-        ghost: "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100",
-        success: "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-emerald-700",
+        default: "bg-[var(--primary)] text-[var(--primary-fg)] shadow-lg shadow-[var(--primary)]/20 hover:opacity-90",
+        destructive: "bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-600",
+        outline: "border-2 border-[var(--primary)] bg-transparent text-[var(--primary)] hover:bg-[var(--primary)]/5",
+        secondary: "bg-[var(--bg-surface-2)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--bg-surface-2)]/80",
+        ghost: "hover:bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+        success: "bg-[var(--success)] text-white shadow-lg shadow-[var(--success)]/20 hover:opacity-90",
       },
       size: {
         default: "h-11 px-6 py-2",

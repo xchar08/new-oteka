@@ -186,18 +186,18 @@ export default function ShoppingPage() {
   };
 
   return (
-    <div className={`min-h-screen p-6 pb-32 flex flex-col gap-6 animate-in fade-in duration-500 transition-colors ${isPro ? 'theme-solar dark bg-[var(--bg-app)] text-white' : 'bg-[var(--bg-app)] text-[var(--text-primary)]'}`}>
+    <div className="min-h-screen p-6 pb-32 flex flex-col gap-6 animate-in fade-in duration-500 transition-colors bg-[var(--bg-app)] text-[var(--text-primary)]">
       
       <header className="flex items-center gap-4 pt-safe">
         <button 
             onClick={() => router.back()}
-            className={`p-2 -ml-2 rounded-full transition-colors ${isPro ? 'hover:bg-white/10 text-white/40' : 'hover:bg-black/5 text-[var(--text-secondary)]'}`}
+            className="p-2 -ml-2 rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-secondary)]"
         >
             <ChevronLeft size={24} />
         </button>
         <div>
            <h1 className="text-3xl font-black tracking-tight mb-1">{isPro ? 'Neural Logistics' : 'Logistics'}</h1>
-           <p className={`text-sm font-bold uppercase tracking-widest ${isPro ? 'text-[var(--primary)] opacity-80' : 'text-[var(--text-secondary)]'}`}>
+           <p className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)]">
                {isPro ? 'Elite Supply Protocol' : 'Managed household supply'}
            </p>
         </div>
@@ -212,12 +212,12 @@ export default function ShoppingPage() {
             onKeyDown={(e) => {
                 if (e.key === 'Enter') handleManualAdd();
             }}
-            className={`w-full border rounded-2xl h-14 pl-5 pr-14 outline-none transition-all shadow-sm ${isPro ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[var(--primary)]' : 'bg-[var(--bg-surface)] border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--primary)]'}`}
+            className="w-full border rounded-2xl h-14 pl-5 pr-14 outline-none transition-all shadow-sm bg-[var(--bg-surface)] border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--primary)]"
           />
           <button 
             onClick={handleManualAdd}
             disabled={!manualInput.trim()}
-            className={`absolute right-3 top-3 h-8 w-8 rounded-lg flex items-center justify-center disabled:opacity-30 ${isPro ? 'bg-[var(--primary)] text-black' : 'bg-[var(--primary)]/10 text-[var(--primary)]'}`}
+            className="absolute right-3 top-3 h-8 w-8 rounded-lg flex items-center justify-center disabled:opacity-30 bg-[var(--primary)]/10 text-[var(--primary)]"
           >
               <Plus className="h-5 w-5" strokeWidth={3} />
           </button>
@@ -230,15 +230,15 @@ export default function ShoppingPage() {
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`border rounded-[2rem] p-6 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 ${isPro ? 'bg-white/5 border-white/10' : 'bg-gradient-to-r from-[var(--primary)]/10 to-transparent border-[var(--border)]'}`}
+              className="border rounded-[2rem] p-6 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 bg-gradient-to-r from-[var(--primary)]/10 to-transparent border-[var(--border)]"
             >
               <div className="flex items-center gap-4 text-left mr-auto">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isPro ? 'bg-[var(--primary)]/20 text-[var(--primary)]' : 'bg-[var(--primary)]/10 text-[var(--primary)]'}`}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-[var(--primary)]/10 text-[var(--primary)]">
                   <Sparkles size={22} className="animate-pulse" />
                 </div>
                 <div>
                   <h4 className="font-black text-sm uppercase tracking-wider">Neural Supply Engine</h4>
-                  <p className={`text-[10px] font-bold mt-1 leading-normal max-w-xs ${isPro ? 'text-white/40' : 'text-[var(--text-secondary)]'}`}>
+                  <p className="text-[10px] font-bold mt-1 leading-normal max-w-xs text-[var(--text-secondary)]">
                     Synthesize shopping lists and recipe pools aligned with your medical conditions and deficiency gaps.
                   </p>
                 </div>
@@ -247,7 +247,7 @@ export default function ShoppingPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={runAiOptimization}
-                className={`w-full sm:w-auto h-12 px-6 font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2 shadow-md shrink-0 ${isPro ? 'bg-[var(--primary)] text-black' : 'bg-[var(--primary)] text-white shadow-[var(--primary)]/10'}`}
+                className="w-full sm:w-auto h-12 px-6 font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2 shadow-md shrink-0 bg-[var(--primary)] text-[var(--primary-fg)] shadow-[var(--primary)]/10"
               >
                 Run AI Optimization
               </motion.button>
@@ -259,7 +259,7 @@ export default function ShoppingPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className={`border rounded-[2rem] p-8 text-center shadow-md flex flex-col items-center justify-center gap-4 min-h-[160px] relative overflow-hidden ${isPro ? 'bg-white/5 border-white/10' : 'bg-[var(--bg-surface)] border-[var(--border)]'}`}
+              className="border rounded-[2rem] p-8 text-center shadow-md flex flex-col items-center justify-center gap-4 min-h-[160px] relative overflow-hidden bg-[var(--bg-surface)] border-[var(--border)]"
             >
               <div className="absolute top-0 left-0 h-1 bg-[var(--primary)] w-full">
                 <motion.div 
@@ -283,11 +283,11 @@ export default function ShoppingPage() {
                 <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className={`border rounded-[2.5rem] p-6 shadow-xl space-y-5 ${isPro ? 'bg-white/5 border-white/10 shadow-black/20' : 'bg-[var(--bg-surface)] border-[var(--primary)]/20 shadow-[var(--primary)]/5'}`}
+                className="border rounded-[2.5rem] p-6 shadow-xl space-y-5 bg-[var(--bg-surface)] border-[var(--primary)]/20 shadow-[var(--primary)]/5"
                 >
                     <div className="flex justify-between items-start border-b border-[var(--border)] pb-4">
                         <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPro ? 'bg-[var(--primary)]/20 text-[var(--primary)]' : 'bg-[var(--primary)]/10 text-[var(--primary)]'}`}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)]">
                             <Sparkles size={20} fill="currentColor" />
                         </div>
                         <div>
@@ -297,13 +297,13 @@ export default function ShoppingPage() {
                         </div>
                         <button 
                         onClick={() => { setAiSuggestions([]); setAiAnalysis(''); setAiRecipes([]); }}
-                        className={`text-[9px] font-black uppercase tracking-widest transition-colors py-1.5 px-3 border rounded-lg ${isPro ? 'bg-white/5 border-white/10 text-white/40 hover:text-[var(--error)]' : 'bg-[var(--bg-app)] text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--error)]'}`}
+                        className="text-[9px] font-black uppercase tracking-widest transition-colors py-1.5 px-3 border rounded-lg bg-[var(--bg-app)] text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--error)]"
                         >
                         Clear
                         </button>
                     </div>
 
-                    <div className={`border rounded-2xl p-4 ${isPro ? 'bg-black/40 border-white/5' : 'bg-[var(--bg-app)] border-[var(--border)]/60'}`}>
+                    <div className="border rounded-2xl p-4 bg-[var(--bg-app)] border-[var(--border)]/60">
                         <p className="text-xs leading-relaxed italic opacity-90 font-medium font-serif">
                         "{aiAnalysis}"
                         </p>
@@ -316,7 +316,7 @@ export default function ShoppingPage() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             key={`${suggestion.name}-${index}`}
-                            className={`flex items-center justify-between p-4 rounded-2xl border shadow-sm group ${isPro ? 'bg-white/5 border-white/5' : 'bg-[var(--bg-surface-2)] border-[var(--border)]'}`}
+                            className="flex items-center justify-between p-4 rounded-2xl border shadow-sm group bg-[var(--bg-surface-2)] border-[var(--border)]"
                         >
                             <div className="flex-1 min-w-0 mr-4">
                             <div className="flex items-center gap-2">
@@ -331,7 +331,7 @@ export default function ShoppingPage() {
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                                 <div className="text-[9px] text-[var(--primary)] uppercase tracking-wider font-bold shrink-0">{suggestion.category || 'Grocery'}</div>
-                                <div className={`w-1 h-1 rounded-full shrink-0 ${isPro ? 'bg-white/10' : 'bg-[var(--border)]'}`} />
+                                <div className="w-1 h-1 rounded-full shrink-0 bg-[var(--border)]" />
                                 <div className="text-[9px] opacity-60 font-semibold truncate">{suggestion.reason}</div>
                             </div>
                             </div>
@@ -339,7 +339,7 @@ export default function ShoppingPage() {
                             whileHover={{ scale: 1.1, backgroundColor: 'var(--primary)', color: '#000' }}
                             whileTap={{ scale: 0.9 }}
                             onClick={() => handleAcceptSuggestion(suggestion)}
-                            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all shadow-sm shrink-0 ${isPro ? 'bg-white/5 border-white/10 text-[var(--primary)]' : 'bg-[var(--bg-app)] border-[var(--border)] text-[var(--primary)]'}`}
+                            className="w-10 h-10 rounded-xl border flex items-center justify-center transition-all shadow-sm shrink-0 bg-[var(--bg-app)] border-[var(--border)] text-[var(--primary)]"
                             >
                             <Plus size={20} strokeWidth={2.5} />
                             </motion.button>
@@ -378,7 +378,7 @@ export default function ShoppingPage() {
        
       <div className="space-y-8 relative z-10">
         {items.length === 0 ? (
-          <div className={`text-center py-20 border border-dashed rounded-[32px] ${isPro ? 'bg-white/5 border-white/10' : 'bg-[var(--bg-surface)] border-[var(--border)]'}`}>
+          <div className="text-center py-20 border border-dashed rounded-[32px] bg-[var(--bg-surface)] border-[var(--border)]">
             <CheckCircle className={`h-10 w-10 mx-auto mb-4 text-[var(--primary)] opacity-20`} />
             <p className="opacity-50 font-medium">Global metabolic supply optimal.</p>
           </div>
@@ -420,7 +420,7 @@ function ShoppingItemRow({ item, onAction, isProcessing, isPro }: { item: Shoppi
             layout
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`flex items-center justify-between p-4 rounded-2xl border shadow-sm group ${isPro ? 'bg-white/5 border-white/5' : 'bg-[var(--bg-surface)] border-[var(--border)]'}`}
+            className="flex items-center justify-between p-4 rounded-2xl border shadow-sm group bg-[var(--bg-surface)] border-[var(--border)]"
         >
             <div className="flex-1 min-w-0 mr-4">
                 <div className="font-bold text-base truncate capitalize">{item.name}</div>
@@ -428,7 +428,7 @@ function ShoppingItemRow({ item, onAction, isProcessing, isPro }: { item: Shoppi
                    <div className="text-[9px] uppercase tracking-wider font-bold opacity-60">{item.reason}</div>
                    {item.added_by_name && (
                        <>
-                        <div className={`w-1 h-1 rounded-full ${isPro ? 'bg-white/10' : 'bg-[var(--border)]'}`} />
+                        <div className="w-1 h-1 rounded-full bg-[var(--border)]" />
                         <div className="text-[9px] text-[var(--primary)] uppercase tracking-wider font-black">By {item.added_by_name}</div>
                        </>
                    )}
@@ -437,7 +437,7 @@ function ShoppingItemRow({ item, onAction, isProcessing, isPro }: { item: Shoppi
             <button 
                 onClick={onAction}
                 disabled={isProcessing}
-                className={`w-12 h-12 rounded-xl border flex items-center justify-center transition-all active:scale-90 ${isPro ? 'bg-white/5 border-white/10 text-white/40 hover:bg-[var(--primary)] hover:text-black' : 'bg-[var(--bg-app)] border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--primary)] hover:text-white'}`}
+                className="w-12 h-12 rounded-xl border flex items-center justify-center transition-all active:scale-90 bg-[var(--bg-app)] border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--primary)] hover:text-[var(--primary-fg)]"
             >
                 {isProcessing ? <Loader2 className="animate-spin h-5 w-5" /> : <Plus size={22} />}
             </button>

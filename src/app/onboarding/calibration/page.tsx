@@ -87,15 +87,15 @@ export default function CalibrationPage() {
 
         <section className="relative aspect-[3/4] bg-black rounded-3xl overflow-hidden shadow-2xl border border-[var(--border)]">
           {!cameraActive ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 gap-4 p-8 text-center">
-              <div className="w-20 h-20 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-700">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--text-secondary)] gap-4 p-8 text-center">
+              <div className="w-20 h-20 rounded-full bg-[var(--bg-surface)] flex items-center justify-center text-[var(--text-secondary)]">
                 <Camera size={40} />
               </div>
               <p className="text-sm">Activate camera to calibrate visually for maximum accuracy.</p>
               <Button 
                 variant="outline" 
                 onClick={() => setCameraActive(true)}
-                className="border-zinc-800 text-zinc-400"
+                className="border-[var(--border)] text-[var(--text-secondary)]"
               >
                 Enable Camera
               </Button>

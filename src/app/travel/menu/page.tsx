@@ -97,7 +97,7 @@ export default function MenuScannerPage() {
           <div className="flex items-center gap-4">
             <button 
                 onClick={() => router.back()}
-                className={`p-2 -ml-2 rounded-full hover:bg-black/5 text-[var(--text-secondary)] transition-colors`}
+                className={`p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-secondary)] transition-colors`}
             >
                 <ChevronLeft size={24} />
             </button>
@@ -222,7 +222,7 @@ export default function MenuScannerPage() {
                             disabled={targetingId !== null}
                             className={`w-full py-3.5 rounded-2xl font-black uppercase tracking-[0.25em] text-[9px] flex items-center justify-center gap-2.5 transition-all shadow-lg ${
                                 targetingId === i 
-                                ? 'bg-zinc-800 text-white cursor-wait'
+                                ? 'bg-[var(--text-secondary)] text-white cursor-wait opacity-50'
                                 : 'bg-[var(--primary)] text-white shadow-[var(--primary)]/20'
                             }`}
                         >

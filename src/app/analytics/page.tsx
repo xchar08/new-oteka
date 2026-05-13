@@ -234,15 +234,15 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-3 gap-4 relative z-10">
               <div className="text-center">
                 <div className="text-xl font-black">{stats.protein_total}g</div>
-                <div className="text-[8px] font-bold uppercase text-gray-400 mt-1">Protein</div>
+                <div className="text-[8px] font-bold uppercase text-[var(--text-secondary)] mt-1">Protein</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-black">{stats.carbs_total}g</div>
-                <div className="text-[8px] font-bold uppercase text-gray-400 mt-1">Carbs</div>
+                <div className="text-[8px] font-bold uppercase text-[var(--text-secondary)] mt-1">Carbs</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-black">{stats.fats_total}g</div>
-                <div className="text-[8px] font-bold uppercase text-gray-400 mt-1">Fats</div>
+                <div className="text-[8px] font-bold uppercase text-[var(--text-secondary)] mt-1">Fats</div>
               </div>
             </div>
           </motion.div>

@@ -86,7 +86,7 @@ export function DebugConsole() {
             pointerEvents: 'auto',
             display: 'flex'
         }}
-        className="w-12 h-12 bg-zinc-900 border border-white/20 text-white rounded-full items-center justify-center shadow-2xl active:scale-95 transition-transform"
+        className="w-12 h-12 bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-primary)] rounded-full items-center justify-center shadow-2xl active:scale-95 transition-transform"
       >
         {isOpen ? <ChevronDown size={24} /> : <Terminal size={24} />}
       </button>
@@ -98,29 +98,29 @@ export function DebugConsole() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             style={{ zIndex: 99999 }}
-            className="fixed inset-4 bottom-20 bg-black/95 backdrop-blur-2xl border border-white/10 rounded-[32px] flex flex-col font-mono text-[10px] overflow-hidden shadow-2xl"
+            className="fixed inset-4 bottom-20 bg-[var(--bg-app)]/95 backdrop-blur-2xl border border-[var(--border)] rounded-[32px] flex flex-col font-mono text-[10px] overflow-hidden shadow-2xl"
           >
-            <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/5">
-                <span className="text-white/40 uppercase font-black tracking-widest flex items-center gap-2">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--bg-surface)]">
+                <span className="text-[var(--text-secondary)] uppercase font-black tracking-widest flex items-center gap-2">
                     <Terminal size={12} /> System Kernel
                 </span>
                 <div className="flex items-center gap-4">
-                    <button onClick={() => setLogs([])} className="text-white/40 hover:text-white p-2"><Trash2 size={14} /></button>
-                    <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white p-2"><X size={14} /></button>
+                    <button onClick={() => setLogs([])} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-2"><Trash2 size={14} /></button>
+                    <button onClick={() => setIsOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-2"><X size={14} /></button>
                 </div>
             </div>
             
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
-                {logs.length === 0 && <div className="text-white/20 italic">Listening for system output...</div>}
+                {logs.length === 0 && <div className="text-[var(--text-secondary)]/20 italic">Listening for system output...</div>}
                 {logs.map((l, i) => (
-                    <div key={i} className="flex gap-3 border-b border-white/5 pb-2 last:border-0">
-                        <span className="text-white/20 shrink-0">{l.ts}</span>
+                    <div key={i} className="flex gap-3 border-b border-[var(--border)] pb-2 last:border-0">
+                        <span className="text-[var(--text-secondary)]/20 shrink-0">{l.ts}</span>
                         <span className={`shrink-0 font-bold uppercase ${
-                            l.type === 'error' ? 'text-red-500' : 
-                            l.type === 'warn' ? 'text-yellow-500' : 
-                            'text-blue-400'
+                            l.type === 'error' ? 'text-[var(--error)]' : 
+                            l.type === 'warn' ? 'text-[var(--warning)]' : 
+                            'text-[var(--primary)]'
                         }`}>[{l.type}]</span>
-                        <span className="text-white/80 break-all leading-relaxed">{l.msg}</span>
+                        <span className="text-[var(--text-primary)] break-all leading-relaxed">{l.msg}</span>
                     </div>
                 ))}
             </div>

@@ -35,15 +35,15 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <QueryClientProvider client={queryClient}>
-            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true} disableTransitionOnChange>
                 <AuthLinkHandler>
-                    <AuthGuard>
-                        <NotificationHandler>
-                            <ThemeWrapper>
+                    <ThemeWrapper>
+                        <AuthGuard>
+                            <NotificationHandler>
                                 {children}
-                            </ThemeWrapper>
-                        </NotificationHandler>
-                    </AuthGuard>
+                            </NotificationHandler>
+                        </AuthGuard>
+                    </ThemeWrapper>
                 </AuthLinkHandler>
             </ThemeProvider>
         </QueryClientProvider>

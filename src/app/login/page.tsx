@@ -10,11 +10,6 @@ import { Mail, Lock, Sparkles, UserPlus, ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '@/lib/state/appStore'
 
-function ThemeWrapper({ children }: { children: React.ReactNode }) {
-    const { colorTheme } = useAppStore();
-    return <div className={`theme-${colorTheme} contents`}>{children}</div>;
-}
-
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -86,7 +81,6 @@ export default function LoginPage() {
   }
 
   return (
-    <ThemeWrapper>
         <div className="relative min-h-screen flex items-center justify-center p-6 bg-[var(--bg-app)] overflow-hidden font-sans">
           {/* Solar Energy Background Elements */}
           <motion.div 
@@ -233,6 +227,5 @@ export default function LoginPage() {
             </motion.p>
           </motion.div>
         </div>
-    </ThemeWrapper>
   )
 }
