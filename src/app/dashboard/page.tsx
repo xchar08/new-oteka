@@ -8,7 +8,6 @@ import {
   Flame, 
   Target, 
   Activity as ActivityIcon, 
-  MessageSquare,
   Zap,
   Droplets,
   ChevronRight,
@@ -307,7 +306,7 @@ export default function DashboardPage() {
 
           <motion.div variants={item}>
             <PricingGuard plan={user?.plan} featureName="Planner">
-              <button onClick={() => router.push('/planner')} className="flex flex-col items-center gap-2 group w-full">
+              <button onClick={() => router.push('/pantry')} className="flex flex-col items-center gap-2 group w-full">
                 <motion.div 
                   whileHover={{ scale: 1.1, y: -5 }}
                   whileTap={{ scale: 0.9 }}
@@ -336,18 +335,16 @@ export default function DashboardPage() {
           </motion.div>
 
           <motion.div variants={item}>
-            <PricingGuard plan={user?.plan} featureName="AI Coach">
-              <button onClick={() => router.push('/coach')} className="flex flex-col items-center gap-2 group w-full">
-                <motion.div 
-                  whileHover={{ scale: 1.1, y: -5 }}
-                  whileTap={{ scale: 0.9 }}
-                  className={`w-16 h-16 rounded-[24px] border flex items-center justify-center shadow-sm group-hover:shadow-xl transition-all bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20`}
-                >
-                  <MessageSquare size={24} strokeWidth={2.5} />
-                </motion.div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 transition-opacity">Coach</span>
-              </button>
-            </PricingGuard>
+            <button onClick={() => router.push('/log')} className="flex flex-col items-center gap-2 group w-full">
+              <motion.div 
+                whileHover={{ scale: 1.1, y: -5 }}
+                whileTap={{ scale: 0.9 }}
+                className={`w-16 h-16 rounded-[24px] border flex items-center justify-center shadow-sm group-hover:shadow-xl transition-all bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20`}
+              >
+                <ActivityIcon size={24} strokeWidth={2.5} />
+              </motion.div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 transition-opacity">Logs</span>
+            </button>
           </motion.div>
         </div>
 

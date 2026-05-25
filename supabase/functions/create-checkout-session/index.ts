@@ -39,8 +39,13 @@ serve(async (req) => {
 
     // SERVER-SIDE VALIDATION: Prevent price manipulation
     // RECOMMENDED: Fetch allowed prices from a 'plans' table in Supabase for better maintainability
-    const ALLOWED_PRICE_IDS = ["price_1OTeKaSolarMonth"];
-    if (!ALLOWED_PRICE_IDS.includes(priceId)) {
+    const PLAN_CONFIG: Record<string, { plan_type: string; quantity: number }> = {
+      "price_1OTeKaSolarMonth": { plan_type: "pro", quantity: 1 },
+      "price_1CoachPlanMonth":  { plan_type: "coach", quantity: 15 },
+    };
+
+    const planInfo = PLAN_CONFIG[priceId];
+    if (!planInfo) {
       throw new Error("Invalid Price ID selected");
     }
 
@@ -49,13 +54,17 @@ serve(async (req) => {
       line_items: [
         {
           price: priceId,
-          quantity: 1,
+          quantity: planInfo.quantity,
         },
       ],
       mode: "subscription",
       success_url: successUrl,
       cancel_url: cancelUrl,
       client_reference_id: user.id,
+      metadata: {
+        plan_type: planInfo.plan_type,
+        seat_count: String(planInfo.quantity),
+      },
     });
 
     return new Response(JSON.stringify({ sessionId: session.id, url: session.url }), {

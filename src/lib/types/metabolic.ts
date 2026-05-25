@@ -8,7 +8,8 @@
 
 export interface NutrientEntry {
   name: string;
-  amount: string;
+  amount: string;              // Display string, e.g. "2.5mg" — used in UI rendering
+  amount_mg?: number;          // Pre-normalized to milligrams at the API boundary — used for computation
   daily_value_pct?: number;
 }
 
@@ -60,6 +61,7 @@ export interface FoodItem {
   protein: number;
   carbs: number;
   fat: number;
+  multiplier?: number; // Added for UI adjustments
 }
 
 export interface ScanResult {

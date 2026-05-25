@@ -42,14 +42,14 @@ export default function ShoppingPage() {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['shopping-list', userProfile?.id, householdId],
     queryFn: async () => {
-      if (!userProfile?.id || !householdId) return [];
-      return shoppingService.getConsolidatedList(userProfile.id, householdId);
+      if (!userProfile?.id) return [];
+      return shoppingService.getConsolidatedList(userProfile.id, householdId || null);
     },
-    enabled: !!userProfile && !!householdId
+    enabled: !!userProfile
   });
 
   const runAiOptimization = async () => {
-    if (aiLoading || !userProfile?.id || !householdId) return;
+    if (aiLoading || !userProfile?.id) return;
     setAiLoading(true);
     setAiSuggestions([]);
     setAiRecipes([]);
@@ -82,7 +82,7 @@ export default function ShoppingPage() {
   };
 
   const handleAcceptSuggestion = async (suggestion: any) => {
-    if (!userProfile?.id || !householdId) return;
+    if (!userProfile?.id) return;
     
     // OPTIMISTIC UPDATE: Local UI feedback
     const originalSuggestions = [...aiSuggestions];
@@ -90,7 +90,7 @@ export default function ShoppingPage() {
     
     try {
       await shoppingService.upsertItem({
-        household_id: householdId,
+        household_id: householdId || null,
         name: suggestion.name,
         added_by: userProfile.id,
       });
@@ -107,11 +107,31 @@ export default function ShoppingPage() {
       if (!userProfile) throw new Error('Not logged in');
       if (item.type === 'db_list' && item.db_id) {
           await shoppingService.deleteItem(item.db_id);
+          
+          // Look up food_id from the foods table for proper optimizer linkage
+          const supabaseClient = createClient();
+          const { data: foodMatch } = await supabaseClient
+            .from('foods')
+            .select('id')
+            .ilike('name', item.name.trim())
+            .limit(1);
+          
+          let foodId = foodMatch?.[0]?.id || null;
+          if (!foodId) {
+            const { data: fuzzyMatch } = await supabaseClient
+              .from('foods')
+              .select('id')
+              .ilike('name', `%${item.name.trim()}%`)
+              .limit(1);
+            foodId = fuzzyMatch?.[0]?.id || null;
+          }
+          
           const supabase = createClient();
           await supabase.from('pantry').insert({
             user_id: userProfile.id,
-            household_id: householdId,
+            household_id: householdId || null,
             name: item.name,
+            food_id: foodId,
             status: 'active'
           });
           return { name: item.name, action: 'purchased' };
@@ -120,7 +140,7 @@ export default function ShoppingPage() {
           return { name: item.name, action: 'restocked' };
       } else {
           await shoppingService.upsertItem({
-              household_id: householdId,
+              household_id: householdId || null,
               name: item.name,
               added_by: userProfile.id,
           });
@@ -161,7 +181,7 @@ export default function ShoppingPage() {
   });
 
   const handleManualAdd = async () => {
-    if (!manualInput.trim() || !userProfile?.id || !householdId) return;
+    if (!manualInput.trim() || !userProfile?.id) return;
     actionMutation.mutate({
       id: `manual-${Date.now()}`,
       type: 'suggestion',

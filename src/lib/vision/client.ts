@@ -16,8 +16,8 @@ export async function runClientInference(imageElement: HTMLImageElement): Promis
     
     return {
       source: 'client_neural_v1',
-      timestamp: Date.now(),
       ...result,
+      timestamp: result?.timestamp || Date.now(),
       note: 'Processed via on-device SAM 3 + Depth Core'
     };
   } catch (e) {

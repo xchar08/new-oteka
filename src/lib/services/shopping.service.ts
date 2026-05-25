@@ -5,13 +5,15 @@ import { pantryService } from './pantry.service';
 const getSupabase = () => createClient();
 
 export const shoppingService = {
-  async getList(householdId: string) {
+  async getList(userId: string, householdId: string | null) {
     const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('shopping_list')
-      .select('*')
-      .eq('household_id', householdId)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('shopping_list').select('*');
+    if (householdId) {
+      query = query.eq('household_id', householdId);
+    } else {
+      query = query.eq('added_by', userId).is('household_id', null);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw normalizeError(error);
     return data;
@@ -21,11 +23,11 @@ export const shoppingService = {
    * Builds a consolidated view of the household shopping list, 
    * merging manual entries with smart pantry suggestions.
    */
-  async getConsolidatedList(userId: string, householdId: string) {
+  async getConsolidatedList(userId: string, householdId: string | null) {
     const supabase = getSupabase();
     
     // 1. Fetch Shared List
-    const sharedList = await this.getList(householdId);
+    const sharedList = await this.getList(userId, householdId);
     
     // 2. Fetch User Names for the list
     const userIds = Array.from(new Set(sharedList.map((i: any) => i.added_by).filter(Boolean)));

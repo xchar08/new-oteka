@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { visionService } from '@/lib/services/vision.service';
 import { toast } from 'sonner';
 
 export default function MenuScannerPage() {
@@ -33,20 +34,51 @@ export default function MenuScannerPage() {
       const image = await Camera.getPhoto({
         quality: 90,
         allowEditing: false,
-        resultType: CameraResultType.Base64,
+        resultType: CameraResultType.Uri,
       });
 
-      if (image.base64String) {
-        const { data, error: functionError } = await supabase.functions.invoke('vision-menu', {
-          body: { image: image.base64String, goal: user?.metabolic_state_json?.current_goal || 'maintenance' },
-        });
+      if (!image.webPath) throw new Error('Failed to capture image');
 
-        if (functionError) throw functionError;
-        setResult(data);
+      // 1. Convert to Blob and Resize if needed (simplified here, but following storage-first pattern)
+      const res = await fetch(image.webPath);
+      const blob = await res.blob();
+
+      if (!user) throw new Error('User session required');
+
+      // 2. Upload to Storage
+      toast.info('Uploading menu data...', { duration: 2000 });
+      const { path } = await visionService.uploadScan(user.id, blob);
+
+      // 3. Invoke Edge Function with Path
+      const { data, error: functionError } = await supabase.functions.invoke('vision-menu', {
+        body: { 
+          imagePath: path, 
+          goal: user?.metabolic_state_json?.current_goal || 'maintenance' 
+        },
+      });
+
+      if (functionError) {
+        console.error('[Vision Menu] Function Invoke Error:', functionError);
+        
+        let detail = functionError.message;
+        // Supabase FunctionsHttpError contains a 'context' which is the Response object
+        if ((functionError as any).context) {
+          try {
+            const ctx = (functionError as any).context;
+            const errBody = await ctx.json();
+            detail = `${errBody.error}: ${errBody.details || ''} ${JSON.stringify(errBody.debug_auth || {})}`;
+          } catch (e) {
+            console.error('[Vision Menu] Could not parse error body:', e);
+          }
+        }
+        throw new Error(`[${functionError.name || 'Error'}] ${detail}`);
       }
+      setResult(data);
     } catch (e: any) {
       console.error('Menu Scan Failed:', e);
-      setError(e.message || 'Optical analysis failed. Check neural link.');
+      const errorMessage = e.message || 'Optical analysis failed. Check neural link.';
+      setError(errorMessage);
+      toast.error('Scan Failed: ' + errorMessage);
     } finally {
       setAnalyzing(false);
     }
@@ -192,49 +224,84 @@ export default function MenuScannerPage() {
                 </div>
                 
                 <div className="space-y-4">
-                  {result.items?.map((item: any, i: number) => (
-                    <motion.div 
-                        key={i} 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        className={`p-5 rounded-[2.5rem] border bg-[var(--bg-surface-2)] border-[var(--border)] relative overflow-hidden group`}
-                    >
-                        <div className="flex justify-between items-start mb-2">
-                            <span className="font-black text-sm pr-4">{item.name}</span>
-                            <span className="text-[var(--primary)] font-black text-xs font-mono shrink-0 bg-[var(--primary)]/10 px-3 py-1 rounded-full">{item.estimated_calories} kcal</span>
-                        </div>
-                        <p className={`text-[10px] leading-relaxed mb-4 text-[var(--text-secondary)] opacity-80 italic`}>{item.description}</p>
-                        
-                        <div className="flex flex-wrap gap-2 mb-6">
-                            {item.tags?.map((t: string) => (
-                                <span key={t} className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border)] opacity-60`}>
-                                    {t}
-                                </span>
-                            ))}
-                        </div>
+                  {result.items?.map((item: any, i: number) => {
+                    const impactColors: Record<string, string> = {
+                      'super_good': 'bg-green-500/20 text-green-500 border-green-500/30',
+                      'good': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+                      'neutral': 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border)]',
+                      'bad': 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+                      'super_bad': 'bg-red-500/20 text-red-500 border-red-500/30',
+                    };
 
-                        {/* TARGET MEAL ACTION */}
-                        <motion.button 
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => handleTargetMeal(item, i)}
-                            disabled={targetingId !== null}
-                            className={`w-full py-3.5 rounded-2xl font-black uppercase tracking-[0.25em] text-[9px] flex items-center justify-center gap-2.5 transition-all shadow-lg ${
-                                targetingId === i 
-                                ? 'bg-[var(--text-secondary)] text-white cursor-wait opacity-50'
-                                : 'bg-[var(--primary)] text-white shadow-[var(--primary)]/20'
-                            }`}
-                        >
-                            {targetingId === i ? (
-                                <Loader2 size={14} className="animate-spin" />
-                            ) : (
-                                <Crosshair size={14} strokeWidth={3} />
-                            )}
-                            {targetingId === i ? 'Locking Node...' : 'Target This Meal'}
-                        </motion.button>
-                    </motion.div>
-                  ))}
+                    const impact = item.metabolic_impact || 'neutral';
+                    const colorClass = impactColors[impact] || impactColors.neutral;
+                    const isMedicalConflict = item.health_score <= 1;
+
+                    return (
+                      <motion.div 
+                          key={i} 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className={`p-5 rounded-[2.5rem] border ${isMedicalConflict ? 'bg-red-500/5 border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'bg-[var(--bg-surface-2)] border-[var(--border)]'} relative overflow-hidden group`}
+                      >
+                          {isMedicalConflict && (
+                            <div className="absolute top-0 right-0 px-4 py-1.5 bg-red-500 text-white text-[8px] font-black uppercase tracking-[0.2em] rounded-bl-2xl flex items-center gap-1.5 shadow-lg">
+                                <AlertCircle size={10} fill="white" className="text-red-500" />
+                                Medical Conflict
+                            </div>
+                          )}
+
+                          <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <span className={`font-black text-sm pr-4 block ${isMedicalConflict ? 'text-red-500' : ''}`}>{item.name}</span>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <div className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${colorClass}`}>
+                                        {impact.replace('_', ' ')}
+                                    </div>
+                                    <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">{item.estimated_calories} kcal</span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-center shrink-0">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 border-[var(--primary)]/20`}>
+                                    <span className="font-black text-[var(--primary)] text-sm">{item.health_score}</span>
+                                </div>
+                                <span className="text-[7px] font-black uppercase tracking-widest text-[var(--text-secondary)] mt-1 opacity-40">Score</span>
+                              </div>
+                          </div>
+                          
+                          <p className={`text-[10px] leading-relaxed mb-4 text-[var(--text-secondary)] opacity-80 italic`}>{item.layman_explanation || item.description}</p>
+                          
+                          <div className="flex flex-wrap gap-2 mb-6">
+                              {item.tags?.map((t: string) => (
+                                  <span key={t} className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border)] opacity-60`}>
+                                      {t}
+                                  </span>
+                              ))}
+                          </div>
+
+                          {/* TARGET MEAL ACTION */}
+                          <motion.button 
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => handleTargetMeal(item, i)}
+                              disabled={targetingId !== null}
+                              className={`w-full py-3.5 rounded-2xl font-black uppercase tracking-[0.25em] text-[9px] flex items-center justify-center gap-2.5 transition-all shadow-lg ${
+                                  targetingId === i 
+                                  ? 'bg-[var(--text-secondary)] text-white cursor-wait opacity-50'
+                                  : 'bg-[var(--primary)] text-white shadow-[var(--primary)]/20'
+                              }`}
+                          >
+                              {targetingId === i ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                  <Crosshair size={14} strokeWidth={3} />
+                              )}
+                              {targetingId === i ? 'Locking Node...' : 'Target This Meal'}
+                          </motion.button>
+                      </motion.div>
+                    );
+                  })}
                 </div>
 
                 <button 

@@ -46,7 +46,7 @@ const HUB_GROUPS = [
   {
     title: 'Planning & Logistics',
     items: [
-      { name: 'Meal Planner', href: '/planner', icon: Calendar, color: 'var(--primary)', isPremium: true },
+      { name: 'Meal Planner', href: '/pantry', icon: Calendar, color: 'var(--primary)', isPremium: true },
       { name: 'Shopping List', href: '/shopping', icon: ShoppingCart, color: 'var(--primary)', isPremium: true },
     ]
   },

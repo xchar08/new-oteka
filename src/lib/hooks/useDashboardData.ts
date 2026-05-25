@@ -172,6 +172,20 @@ export function useDashboardData() {
     enabled: !!authUser,
   });
 
+  // 6. Fetch Global Foods
+  const { data: globalFoods = [], isLoading: isGlobalFoodsLoading } = useQuery({
+    queryKey: ['global-foods'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('foods')
+        .select('name, nutritional_info, category_decay_rate')
+        .limit(100);
+      return data || [];
+    },
+    enabled: isOnline,
+    staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours
+  });
+
   return {
     user,
     advice,
@@ -179,7 +193,8 @@ export function useDashboardData() {
     dailyMacros,
     dailyLogs,
     pantryItems,
-    loading: isAuthLoading || isUserLoading || isConditionsLoading || isLogsLoading || isPantryLoading,
+    globalFoods,
+    loading: isAuthLoading || isUserLoading || isConditionsLoading || isLogsLoading || isPantryLoading || isGlobalFoodsLoading,
     isOnline,
     refetchProfile
   };

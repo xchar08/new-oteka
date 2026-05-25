@@ -119,7 +119,10 @@ export function aggregateNutrients(
   const result = { ...existing };
 
   newEntries.forEach((entry) => {
-    const { normalized, unit: parsedUnit } = parseNutrientAmount(entry.amount);
+    // Prefer pre-normalized amount_mg (set at API boundary) over regex parsing
+    const normalized = entry.amount_mg != null
+      ? entry.amount_mg
+      : parseNutrientAmount(entry.amount).normalized;
     const name = entry.name;
 
     if (result[name]) {

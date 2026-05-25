@@ -17,29 +17,30 @@ export function PlannerControls({ onRun }: { onRun: (c: PlannerConstraints) => v
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 backdrop-blur-md p-5 rounded-2xl shadow-sm space-y-5">
-      <div className="p-3 bg-blue-500/10 text-blue-200 text-sm rounded-lg border border-blue-500/20 leading-relaxed">
-        <strong className="text-blue-400">Auto-Optimized:</strong> Macros are calculated based on your biological profile.
+    <form onSubmit={handleSubmit} className="bg-[var(--bg-surface)] border border-[var(--border)] backdrop-blur-md p-5 rounded-[28px] shadow-sm space-y-5">
+      <div className="p-3 bg-[var(--primary)]/10 text-[var(--text-primary)] text-sm rounded-2xl border border-[var(--primary)]/20 leading-relaxed">
+        <strong className="text-[var(--primary)] font-black text-[10px] uppercase tracking-widest">Auto-Optimized</strong>
+        <p className="text-xs text-[var(--text-secondary)] mt-1 font-medium">Macros are calculated based on your biological profile.</p>
       </div>
 
-      <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" onClick={() => (document.getElementById('strict') as HTMLInputElement)?.click()}>
+      <label className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[var(--bg-app)] transition-colors cursor-pointer border border-[var(--border)]">
         <input 
           name="strict" 
           type="checkbox" 
           id="strict" 
           defaultChecked 
-          className="rounded border-white/20 bg-black/40 text-blue-500 focus:ring-blue-500/50 h-5 w-5"
+          className="rounded border-[var(--border)] bg-[var(--bg-app)] text-[var(--primary)] focus:ring-[var(--primary)]/50 h-5 w-5"
         />
-        <label htmlFor="strict" className="text-sm text-zinc-300 font-medium cursor-pointer">
-          Strict Pantry Only <span className="text-zinc-500 font-normal">(No Shopping)</span>
-        </label>
-      </div>
+        <span className="text-sm text-[var(--text-primary)] font-bold">
+          Strict Pantry Only <span className="text-[var(--text-secondary)] font-normal text-xs">(No Shopping)</span>
+        </span>
+      </label>
 
       <button 
         type="submit" 
-        className="w-full bg-white text-black py-4 rounded-xl font-bold hover:bg-zinc-200 transition-all shadow-lg shadow-white/5 active:scale-95"
+        className="w-full bg-[var(--primary)] text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:brightness-110 transition-all shadow-lg shadow-[var(--primary)]/20 active:scale-95"
       >
-        Generative Meal Plan
+        Generate Meal Plan
       </button>
     </form>
   );

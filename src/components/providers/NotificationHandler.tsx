@@ -30,7 +30,7 @@ export function NotificationHandler({ children }: { children: React.ReactNode })
     // Handle notification click when app is in foreground or background
     const setupListeners = async () => {
       // 1. Check if app was launched from a notification (Cold Start)
-      const launchNotification = await LocalNotifications.getLaunchNotification();
+      const launchNotification = await (LocalNotifications as any).getLaunchNotification();
       if (launchNotification?.notification) {
         console.log('[NotificationHandler] App launched via notification');
         handleAction(launchNotification.notification);

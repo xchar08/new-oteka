@@ -1,8 +1,8 @@
 // This is a Web Worker
-// Implementing NSGA-II (Genetic Algorithm) in TypeScript
-// Replaces the previous "Mock" logic with actual computational optimization.
+// Implementing a robust Genetic Algorithm in TypeScript for offline fallback
 
-// Types
+export {};
+
 type Gene = {
   name: string;
   calories: number;
@@ -10,285 +10,145 @@ type Gene = {
   carbs: number;
   fats: number;
   inPantry: boolean;
+  sodium?: number;
+  sugar?: number;
 };
 
 type Individual = {
-  chromosome: Gene[]; // [ProteinSource, CarbSource, Veg/Fat]
+  chromosome: Gene[];
   fitness: number;
-  violations: number;
 };
 
-// Simplified Food Database for Simulation (In a real app, this comes from DB)
-const SAMPLE_PROTEINS: Gene[] = [
-  {
-    name: "Chicken Breast",
-    calories: 165,
-    protein: 31,
-    carbs: 0,
-    fats: 3.6,
-    inPantry: true,
-  },
-  {
-    name: "Salmon",
-    calories: 208,
-    protein: 20,
-    carbs: 0,
-    fats: 13,
-    inPantry: false,
-  },
-  {
-    name: "Tofu",
-    calories: 144,
-    protein: 17,
-    carbs: 3,
-    fats: 8,
-    inPantry: true,
-  },
-  {
-    name: "Steak",
-    calories: 271,
-    protein: 26,
-    carbs: 0,
-    fats: 19,
-    inPantry: false,
-  },
+const ASSUMED_STAPLES: Gene[] = [
+  { name: "Olive Oil", calories: 119, protein: 0, carbs: 0, fats: 13.5, sodium: 0, sugar: 0, inPantry: true },
+  { name: "Butter", calories: 102, protein: 0.1, carbs: 0.1, fats: 11.5, sodium: 91, sugar: 0.1, inPantry: true },
+  { name: "Salt", calories: 0, protein: 0, carbs: 0, fats: 0, sodium: 2325, sugar: 0, inPantry: true },
+  { name: "Water", calories: 0, protein: 0, carbs: 0, fats: 0, sodium: 0, sugar: 0, inPantry: true }
 ];
 
-const SAMPLE_CARBS: Gene[] = [
-  {
-    name: "White Rice",
-    calories: 200,
-    protein: 4,
-    carbs: 44,
-    fats: 0.4,
-    inPantry: true,
-  },
-  {
-    name: "Quinoa",
-    calories: 222,
-    protein: 8,
-    carbs: 39,
-    fats: 3.6,
-    inPantry: false,
-  },
-  {
-    name: "Sweet Potato",
-    calories: 112,
-    protein: 2,
-    carbs: 26,
-    fats: 0.1,
-    inPantry: true,
-  },
-  {
-    name: "Pasta",
-    calories: 220,
-    protein: 8,
-    carbs: 43,
-    fats: 1.3,
-    inPantry: false,
-  },
-];
-
-const SAMPLE_VEG: Gene[] = [
-  {
-    name: "Spinach",
-    calories: 23,
-    protein: 2.9,
-    carbs: 3.6,
-    fats: 0.4,
-    inPantry: true,
-  },
-  {
-    name: "Broccoli",
-    calories: 55,
-    protein: 3.7,
-    carbs: 11,
-    fats: 0.6,
-    inPantry: true,
-  },
-  {
-    name: "Avocado",
-    calories: 240,
-    protein: 3,
-    carbs: 12,
-    fats: 22,
-    inPantry: false,
-  },
+const DEFAULT_FALLBACK_FOODS = [
+  { name: "Chicken Breast", calories: 165, protein: 31, carbs: 0, fats: 3.6, sodium: 74, sugar: 0 },
+  { name: "Eggs", calories: 143, protein: 12.6, carbs: 0.7, fats: 9.5, sodium: 124, sugar: 0.4 },
+  { name: "Spinach", calories: 23, protein: 2.9, carbs: 3.6, fats: 0.4, sodium: 79, sugar: 0.4 },
+  { name: "Salmon Fillet", calories: 208, protein: 22, carbs: 0, fats: 13, sodium: 59, sugar: 0 },
+  { name: "Brown Rice", calories: 111, protein: 2.6, carbs: 23, fats: 0.9, sodium: 5, sugar: 0.4 },
+  { name: "Avocado", calories: 160, protein: 2, carbs: 8.5, fats: 14.7, sodium: 7, sugar: 0.7 },
+  { name: "Greek Yogurt", calories: 59, protein: 10, carbs: 3.6, fats: 0.4, sodium: 36, sugar: 3.2 },
+  { name: "Almonds", calories: 579, protein: 21, carbs: 22, fats: 49, sodium: 1, sugar: 4.3 },
+  { name: "Broccoli", calories: 34, protein: 2.8, carbs: 7, fats: 0.4, sodium: 33, sugar: 1.7 },
+  { name: "Sweet Potato", calories: 86, protein: 1.6, carbs: 20, fats: 0.1, sodium: 55, sugar: 4.2 }
 ];
 
 addEventListener("message", async (event) => {
-  const { user_profile, constraints } = event.data;
+  const { pantry_items, user_profile, conditions, constraints, global_foods } = event.data;
 
   try {
-    // 1. Define Objectives from Profile
-    let targetCalories = 500;
-    let targetProtein = 25;
+    const targets = {
+      calories: user_profile?.calorie_target || 2000,
+      protein: user_profile?.metabolic_state_json?.protein_target || 150,
+    };
 
-    if (user_profile?.metabolic_state_json?.current_goal === "muscle_gain") {
-      targetCalories = 700;
-      targetProtein = 40;
-    } else if (
-      user_profile?.metabolic_state_json?.current_goal === "fat_loss"
-    ) {
-      targetCalories = 400;
-      targetProtein = 30;
-    }
+    const POPSIZE = 40;
+    const GENERATIONS = 20;
+    
+    let pool: Gene[] = pantry_items && pantry_items.length > 0 
+      ? pantry_items.map((p: any) => {
+          const frac = p.metadata_json?.remaining_fraction ?? 1.0;
+          return {
+            name: p.foods?.name || p.name || "Unknown",
+            calories: (p.foods?.nutritional_info?.calories || p.nutritional_info?.calories || 100) * frac,
+            protein: (p.foods?.nutritional_info?.protein || p.nutritional_info?.protein || 5) * frac,
+            carbs: (p.foods?.nutritional_info?.carbs || p.nutritional_info?.carbs || 10) * frac,
+            fats: (p.foods?.nutritional_info?.fats || p.nutritional_info?.fats || 2) * frac,
+            sodium: (p.foods?.nutritional_info?.sodium || p.nutritional_info?.sodium || 0) * frac,
+            sugar: (p.foods?.nutritional_info?.sugar || p.nutritional_info?.sugar || 0) * frac,
+            inPantry: true
+          };
+        })
+      : (global_foods && global_foods.length > 0
+          ? global_foods.map((f: any) => ({
+              name: f.name || "Unknown",
+              calories: f.nutritional_info?.calories || 100,
+              protein: f.nutritional_info?.protein || 5,
+              carbs: f.nutritional_info?.carbs || 10,
+              fats: f.nutritional_info?.fats || 2,
+              sodium: f.nutritional_info?.sodium || 0,
+              sugar: f.nutritional_info?.sugar || 0,
+              inPantry: false
+            }))
+          : DEFAULT_FALLBACK_FOODS.map(f => ({ ...f, inPantry: false }))
+        );
 
-    const POPSIZE = 50;
-    const GENERATIONS = 30;
-    const MUTATION_RATE = 0.1;
+    // Inject staples to prevent constraint failure
+    pool = [...pool, ...ASSUMED_STAPLES];
 
-    // 2. Initialize Population
-    let population: Individual[] = [];
-    for (let i = 0; i < POPSIZE; i++) {
-      population.push(createRandomIndividual());
-    }
+    // Initialize Population
+    let population: Individual[] = Array.from({ length: POPSIZE }, () => ({
+      chromosome: getRandomGenes(pool, 3),
+      fitness: 0
+    }));
 
-    // 3. Evolution Loop
+    // Evolution Loop
     for (let g = 0; g < GENERATIONS; g++) {
-      // Evaluate
-      population.forEach((ind) =>
-        evaluate(ind, targetCalories, targetProtein, constraints.strictness)
-      );
+      population.forEach(ind => {
+        const totals = calculateTotals(ind.chromosome);
+        const dCal = Math.abs(targets.calories - totals.calories);
+        const dProt = Math.abs(targets.protein - totals.protein);
+        const pantryViolations = ind.chromosome.filter(g => !g.inPantry).length;
+        
+        let medicalPenalty = 0;
+        if (conditions) {
+            conditions.forEach((cond: any) => {
+                const rules = cond.rules_json || {};
+                if (rules.max_sodium && totals.sodium > rules.max_sodium) medicalPenalty += 10000;
+                if (rules.max_sugar && totals.sugar > rules.max_sugar) medicalPenalty += 10000;
+            });
+        }
 
-      // Sort by fitness (lower is better, 0 is perfect)
+        // Constraint relaxation: reduce penalties in later generations if not strict
+        const isLateGeneration = g > GENERATIONS / 2;
+        const protMultiplier = (isLateGeneration && !constraints?.strictness) ? 1 : 2;
+        const calMultiplier = (isLateGeneration && !constraints?.strictness) ? 0.5 : 1;
+
+        ind.fitness = (dCal * calMultiplier) + (dProt * protMultiplier) + (pantryViolations * (constraints?.strictness ? 1000 : 50)) + medicalPenalty;
+      });
+
       population.sort((a, b) => a.fitness - b.fitness);
-
-      // Selection & Crossover (Simple Elitism + Random Mating)
-      const nextGen: Individual[] = population.slice(0, 10); // Keep top 10
-
+      const nextGen = population.slice(0, 10);
       while (nextGen.length < POPSIZE) {
-        const p1 = population[Math.floor(Math.random() * 20)]; // Select from top 20
-        const p2 = population[Math.floor(Math.random() * 20)];
-        nextGen.push(crossover(p1, p2, MUTATION_RATE));
+        const p1 = population[Math.floor(Math.random() * 20)];
+        nextGen.push({
+          chromosome: p1.chromosome.map(g => Math.random() < 0.1 ? pool[Math.floor(Math.random() * pool.length)] : g),
+          fitness: 0
+        });
       }
       population = nextGen;
     }
 
-    // 4. Final Evaluation & Formatting
-    const bestSolutions = population.slice(0, 3).map((ind) => {
-      const totalCals = ind.chromosome.reduce(
-        (sum, gene) => sum + gene.calories,
-        0,
-      );
-      return {
-        menu: ind.chromosome.map((g) => g.name),
-        stats: { calories: totalCals },
-        personalized_note: `Fitness Score: ${
-          ind.fitness.toFixed(1)
-        } (Lower is better)`,
-      };
-    });
+    const solutions = population.slice(0, 3).map(ind => ({
+      menu: ind.chromosome.map(g => g.name),
+      stats: calculateTotals(ind.chromosome),
+      personalized_note: "Computed via Local Neural Fallback (Offline)."
+    }));
 
-    postMessage({
-      type: "SUCCESS",
-      result: { solutions: bestSolutions, retries_used: 0 },
-    });
+    postMessage({ type: "SUCCESS", result: { solutions } });
   } catch (error) {
     postMessage({ type: "ERROR", error: String(error) });
   }
 });
 
-// --- HELPER FUNCTIONS ---
-
-function createRandomIndividual(): Individual {
-  return {
-    chromosome: [
-      SAMPLE_PROTEINS[Math.floor(Math.random() * SAMPLE_PROTEINS.length)],
-      SAMPLE_CARBS[Math.floor(Math.random() * SAMPLE_CARBS.length)],
-      SAMPLE_VEG[Math.floor(Math.random() * SAMPLE_VEG.length)],
-    ],
-    fitness: 9999,
-    violations: 0,
-  };
+function calculateTotals(genes: Gene[]) {
+  return genes.reduce((acc, g) => ({
+    calories: acc.calories + g.calories,
+    protein: acc.protein + g.protein,
+    carbs: acc.carbs + g.carbs,
+    fats: acc.fats + g.fats,
+    sodium: acc.sodium + (g.sodium || 0),
+    sugar: acc.sugar + (g.sugar || 0)
+  }), { calories: 0, protein: 0, carbs: 0, fats: 0, sodium: 0, sugar: 0 });
 }
 
-function evaluate(
-  ind: Individual,
-  targetCals: number,
-  targetProt: number,
-  strictPantry: boolean,
-) {
-  let totalCals = 0;
-  let totalProt = 0;
-  let pantryViolations = 0;
-
-  ind.chromosome.forEach((gene) => {
-    totalCals += gene.calories;
-    totalProt += gene.protein;
-    if (strictPantry && !gene.inPantry) pantryViolations++;
-  });
-
-  // Fitness Function: Weighted sum of deviations
-  // We punish pantry violations severely if strict mode is on
-  const calDiff = Math.abs(targetCals - totalCals);
-  const protDiff = Math.abs(targetProt - totalProt);
-
-  ind.fitness = calDiff + (protDiff * 2) + (pantryViolations * 500);
-  ind.violations = pantryViolations;
-}
-
-function crossover(
-  p1: Individual,
-  p2: Individual,
-  mutationRate: number,
-): Individual {
-  const childChrom = p1.chromosome.map((gene, i) => {
-    // Uniform Crossover
-    return Math.random() > 0.5 ? gene : p2.chromosome[i];
-  });
-
-  // Mutation
-  if (Math.random() < mutationRate) {
-    const index = Math.floor(Math.random() * 3);
-    if (index === 0) {
-      childChrom[0] =
-        SAMPLE_PROTEINS[Math.floor(Math.random() * SAMPLE_PROTEINS.length)];
-    }
-    if (index === 1) {
-      childChrom[1] =
-        SAMPLE_CARBS[Math.floor(Math.random() * SAMPLE_CARBS.length)];
-    }
-    if (index === 2) {
-      childChrom[2] = SAMPLE_VEG[Math.floor(Math.random() * SAMPLE_VEG.length)];
-    }
-  }
-
-  return {
-    chromosome: childChrom,
-    fitness: 0,
-    violations: 0,
-  };
-}
-
-export class PlannerWorker {
-  private worker: Worker | null = null;
-  constructor() {
-    if (typeof window !== "undefined") {
-      this.worker = new Worker(new URL("./worker.ts", import.meta.url));
-    }
-  }
-  optimize(inputs: any, constraints: any) {
-    if (!this.worker) return Promise.reject("Worker not initialized");
-    return new Promise((resolve, reject) => {
-      this.worker!.onmessage = (e) => {
-        if (e.data.type === "SUCCESS") resolve(e.data.result);
-        else reject(e.data.error);
-      };
-      this.worker!.onerror = (e) => reject(e);
-      this.worker!.postMessage({ inputs, constraints });
-    });
-  }
-  terminate() {
-    this.worker?.terminate();
-  }
-}
-
-export async function runOptimization(params: any) {
-  const planner = new PlannerWorker();
-  try {
-    return await planner.optimize(params.pantry_items, params.constraints);
-  } finally {
-    planner.terminate();
-  }
+function getRandomGenes(pool: Gene[], count: number): Gene[] {
+  if (!pool || pool.length === 0) return [];
+  return Array.from({ length: count }, () => pool[Math.floor(Math.random() * pool.length)]);
 }

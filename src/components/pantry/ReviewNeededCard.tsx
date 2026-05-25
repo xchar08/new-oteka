@@ -6,7 +6,7 @@ interface ReviewNeededCardProps {
   id: number;
   name: string;
   probability: number;
-  onConfirmGood: () => Promise<void> | void;
+  onConfirmGood: (fraction: number) => Promise<void> | void;
   onConfirmSpoiled: () => Promise<void> | void;
 }
 
@@ -53,21 +53,25 @@ export function ReviewNeededCard(props: ReviewNeededCardProps) {
         </div>
       </div>
 
-      <div className="flex gap-3 w-full sm:w-auto relative z-10">
+      <div className="flex flex-col gap-2 w-full sm:w-auto relative z-10">
+        <div className="flex gap-2 w-full">
+            {[0.25, 0.5, 0.75, 1].map((frac) => (
+                <button
+                  key={frac}
+                  disabled={busy}
+                  onClick={() => handleClick(() => props.onConfirmGood(frac))}
+                  className="flex-1 px-3 py-2 text-[10px] font-black uppercase tracking-widest bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white rounded-xl border border-[var(--primary)]/20 transition-all active:scale-95"
+                >
+                  {frac === 1 ? 'Full' : `${frac * 100}%`}
+                </button>
+            ))}
+        </div>
         <button
           disabled={busy}
           onClick={() => handleClick(props.onConfirmSpoiled)}
-          className="flex-1 sm:flex-none px-6 py-3 text-[10px] font-black uppercase tracking-widest bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20 transition-all active:scale-95"
+          className="w-full px-6 py-2 text-[10px] font-black uppercase tracking-widest bg-red-500/10 text-red-500 rounded-xl border border-red-500/20 transition-all active:scale-95 hover:bg-red-500 hover:text-white"
         >
-          Depleted
-        </button>
-        
-        <button
-          disabled={busy}
-          onClick={() => handleClick(props.onConfirmGood)}
-          className="flex-1 sm:flex-none px-6 py-3 text-[10px] font-black uppercase tracking-widest bg-[var(--primary)] text-white rounded-2xl shadow-lg shadow-[var(--primary)]/20 transition-all active:scale-95"
-        >
-          Verify Stock
+          Depleted (0%)
         </button>
       </div>
     </div>

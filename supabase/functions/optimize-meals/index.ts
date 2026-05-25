@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { fromFileUrl } from "https://deno.land/std@0.168.0/path/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import init, { optimize_meal_plan } from "./planner_wasm.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 /**
@@ -18,15 +18,15 @@ let wasmInstance: any = null;
 async function getWasmInstance() {
   if (wasmInstance) return wasmInstance;
   try {
-      console.log("[WASM] Initializing binary from storage...");
-      const wasmUrl = new URL('./planner_wasm_bg.wasm', import.meta.url);
-      const wasmCode = await Deno.readFile(fromFileUrl(wasmUrl));
-      await init(wasmCode);
-      wasmInstance = true;
-      return wasmInstance;
+    console.log("[WASM] Initializing binary from storage...");
+    const wasmUrl = new URL("./planner_wasm_bg.wasm", import.meta.url);
+    const wasmCode = await Deno.readFile(wasmUrl);
+    await init(wasmCode);
+    wasmInstance = true;
+    return wasmInstance;
   } catch (e) {
-      console.warn("[WASM] Global load failed. Reverting to TS fallback.", e);
-      return null;
+    console.warn("[WASM] Global load failed. Reverting to TS fallback.", e);
+    return null;
   }
 }
 
@@ -53,96 +53,195 @@ type Individual = {
   fitness: number;
 };
 
-function runTSOptimization(profile: any, constraints: any, pantry: Gene[], recentFeedback: any[], userConditions: any[]) {
-  const POPSIZE = constraints.pop_size || 50;
-  const GENERATIONS = constraints.generations || 25;
-  
-  const targets = {
-    calories: profile?.calorie_target || 2000,
-    protein: profile?.protein_target || 150,
-    magnesium: 400,
-    iron: 18,
-    vitD: 20
-  };
+function runTSOptimization(
+  profile: any,
+  constraints: any,
+  pantry: Gene[],
+  recentFeedback: any[],
+  userConditions: any[],
+) {
+  // GREEDY HEURISTIC — replaces full NSGA-II to avoid edge function CPU timeouts.
+  // Iteratively selects the food that best closes the remaining macro gap.
+  const targetCal = profile?.calorie_target || 2000;
+  const targetProt = profile?.metabolic_state_json?.protein_target || 150;
+  const MAX_ITEMS = 7;
 
-  let population: Individual[] = Array.from({ length: POPSIZE }, () => ({
-    chromosome: getRandomGenes(pantry, 3),
-    fitness: 0
-  }));
+  // Pre-filter banned foods from medical conditions
+  const conditions = userConditions || [];
+  const bannedNames = new Set(
+    conditions.flatMap((c: any) =>
+      (c.never_recommend_json || []).map((s: string) => s.toLowerCase())
+    ),
+  );
+  const safePool = pantry.filter((g) => !bannedNames.has(g.name.toLowerCase()));
+  if (safePool.length === 0) return [];
 
-  for (let g = 0; g < GENERATIONS; g++) {
-    population.forEach(ind => evaluateWithMedical(ind, targets, constraints, recentFeedback, userConditions));
-    population.sort((a, b) => a.fitness - b.fitness);
+  // Build medical threshold limits
+  const maxSodium = conditions.reduce(
+    (m: number, c: any) => Math.min(m, c.rules_json?.max_sodium ?? Infinity),
+    Infinity,
+  );
+  const maxSugar = conditions.reduce(
+    (m: number, c: any) => Math.min(m, c.rules_json?.max_sugar ?? Infinity),
+    Infinity,
+  );
 
-    const nextGen = population.slice(0, 10);
-    while (nextGen.length < POPSIZE) {
-      const p1 = population[Math.floor(Math.random() * 20)];
-      nextGen.push({
-        chromosome: mutate(p1.chromosome, pantry),
-        fitness: 0
-      });
+  const selected: Gene[] = [];
+  let remainCal = targetCal;
+  let remainProt = targetProt;
+  let totalSodium = 0;
+  let totalSugar = 0;
+  const used = new Set<number>();
+  const selectedNames = new Set<string>();
+  const selectedCategories = new Map<string, number>(); // Track category counts for diversity
+
+  for (let i = 0; i < MAX_ITEMS && remainCal > 50; i++) {
+    let bestIdx = -1;
+    let bestScore = Infinity;
+
+    for (let j = 0; j < safePool.length; j++) {
+      if (used.has(j)) continue;
+      const g = safePool[j];
+      if (selectedNames.has(g.name.toLowerCase())) continue;
+
+      // Medical constraint check
+      if (totalSodium + (g.sodium || 0) > maxSodium) continue;
+      if (totalSugar + (g.sugar || 0) > maxSugar) continue;
+
+      // Normalize gaps so calories and protein are balanced relative to their total targets
+      const calGap = (Math.abs(remainCal - g.calories) / targetCal) * 1000;
+      const protGap = (Math.max(0, remainProt - g.protein) / targetProt) * 1000 * 2.5;
+      const pantryBonus = g.inPantry ? 0 : (constraints.strictness ? 5000 : 50);
+
+      // Reward high protein density (protein per calorie) when protein target is still unfulfilled
+      const proteinDensity = g.protein / (g.calories || 1);
+      const densityBonus = remainProt > 0 ? (proteinDensity * 1200) : 0;
+
+      // Freshness bonus: prioritize items expiring soon
+      let expiryBonus = 0;
+      if (g.expiry) {
+        const daysLeft = (new Date(g.expiry).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24);
+        if (daysLeft > 0 && daysLeft <= 2) expiryBonus = -500; // Encourage use-soon
+        if (daysLeft < 0) continue; // Skip expired
+      }
+
+      // Feedback penalty
+      let fbPenalty = 0;
+      const pastRating = recentFeedback.find((f: any) => f.item === g.name);
+      if (pastRating && pastRating.score < 3) fbPenalty = 500;
+
+      // Category diversity penalty — penalize selecting many items from the same food group
+      const itemCategory = (g as any).category || 'general';
+      const categoryCount = selectedCategories.get(itemCategory) || 0;
+      const diversityPenalty = categoryCount * 300; // Each duplicate category adds a penalty
+
+      // Add a stochastic exploration factor so the greedy algorithm doesn't always pick the exact same sequence
+      const explorationBonus = Math.random() * 800;
+
+      const score = calGap + protGap + pantryBonus + expiryBonus + fbPenalty + diversityPenalty - densityBonus - explorationBonus;
+      if (score < bestScore) {
+        bestScore = score;
+        bestIdx = j;
+      }
     }
-    population = nextGen;
+
+    if (bestIdx < 0) break;
+    const pick = safePool[bestIdx];
+    selected.push(pick);
+    used.add(bestIdx);
+    selectedNames.add(pick.name.toLowerCase());
+    const pickCategory = (pick as any).category || 'general';
+    selectedCategories.set(pickCategory, (selectedCategories.get(pickCategory) || 0) + 1);
+    remainCal -= pick.calories;
+    remainProt -= pick.protein;
+    totalSodium += pick.sodium || 0;
+    totalSugar += pick.sugar || 0;
   }
 
-  return population
-    .filter(ind => ind.fitness < 20000) // Filter out medical violations (penalty is 10k+)
-    .map(ind => ({
-      menu: ind.chromosome.map(g => g.name),
-      stats: calculateTotals(ind.chromosome),
-      score: ind.fitness
-    }));
+  if (selected.length === 0) return [];
+
+  const stats = calculateTotals(selected);
+  const fitness = Math.abs(targetCal - stats.calories) +
+    Math.abs(targetProt - stats.protein) * 2;
+
+  return [{
+    menu: selected.map((g) => g.name),
+    stats,
+    score: fitness,
+  }];
 }
 
-function evaluateWithMedical(ind: Individual, targets: any, constraints: any, feedback: any[], userConditions: any[]) {
+function evaluateWithMedical(
+  ind: Individual,
+  targets: any,
+  constraints: any,
+  feedback: any[],
+  userConditions: any[],
+) {
   const totals = calculateTotals(ind.chromosome);
   let medicalPenalty = 0;
 
-  userConditions.forEach(cond => {
+  userConditions.forEach((cond) => {
     const rules = cond.rules_json || {};
     // Strict Medical Blocking
-    if (rules.max_sodium && totals.sodium > rules.max_sodium) medicalPenalty += 50000;
-    if (rules.max_sugar && totals.sugar > rules.max_sugar) medicalPenalty += 50000;
-    if (rules.min_protein && totals.protein < rules.min_protein) medicalPenalty += 10000;
+    if (rules.max_sodium && totals.sodium > rules.max_sodium) {
+      medicalPenalty += 50000;
+    }
+    if (rules.max_sugar && totals.sugar > rules.max_sugar) {
+      medicalPenalty += 50000;
+    }
+    if (rules.min_protein && totals.protein < rules.min_protein) {
+      medicalPenalty += 10000;
+    }
   });
 
   // Standard multi-objective sum
-  evaluate(ind, targets, constraints, feedback); 
+  evaluate(ind, targets, constraints, feedback);
   ind.fitness += medicalPenalty;
 }
 
-function evaluate(ind: Individual, targets: any, constraints: any, feedback: any[]) {
+function evaluate(
+  ind: Individual,
+  targets: any,
+  constraints: any,
+  feedback: any[],
+) {
   const totals = calculateTotals(ind.chromosome);
   const dCal = Math.abs(targets.calories - totals.calories);
   const dProt = Math.abs(targets.protein - totals.protein);
   const dMg = Math.max(0, targets.magnesium - (totals.magnesium || 0));
   const dFe = Math.max(0, targets.iron - (totals.iron || 0));
-  const pantryViolations = ind.chromosome.filter(g => !g.inPantry).length;
-  
+  const pantryViolations = ind.chromosome.filter((g) => !g.inPantry).length;
+
   let wastePenalty = 0;
   const now = new Date().getTime();
-  ind.chromosome.forEach(gene => {
+  ind.chromosome.forEach((gene) => {
     if (gene.expiry) {
-      const daysLeft = (new Date(gene.expiry).getTime() - now) / (1000 * 60 * 60 * 24);
-      if (daysLeft <= 2 && daysLeft > 0) wastePenalty += 2500; 
+      const daysLeft = (new Date(gene.expiry).getTime() - now) /
+        (1000 * 60 * 60 * 24);
+      if (daysLeft <= 2 && daysLeft > 0) wastePenalty += 2500;
       if (daysLeft <= 0) wastePenalty -= 2000;
     } else if (gene.decay_coefficient && gene.logged_at) {
-      const daysSinceLog = (now - new Date(gene.logged_at).getTime()) / (1000 * 60 * 60 * 24);
+      const daysSinceLog = (now - new Date(gene.logged_at).getTime()) /
+        (1000 * 60 * 60 * 24);
       const freshness = Math.exp(-gene.decay_coefficient * daysSinceLog);
-      if (freshness < 0.3 && freshness > 0.05) wastePenalty += 1000; 
+      if (freshness < 0.3 && freshness > 0.05) wastePenalty += 1000;
     }
   });
 
   let feedbackPenalty = 0;
-  ind.chromosome.forEach(gene => {
-    const pastRating = feedback.find(f => f.item === gene.name);
-    if (pastRating && pastRating.score < 3) feedbackPenalty += 500 * (3 - pastRating.score);
+  ind.chromosome.forEach((gene) => {
+    const pastRating = feedback.find((f) => f.item === gene.name);
+    if (pastRating && pastRating.score < 3) {
+      feedbackPenalty += 500 * (3 - pastRating.score);
+    }
     if (pastRating && pastRating.score >= 4) feedbackPenalty -= 200;
   });
 
-  ind.fitness = dCal + (dProt * 2) + (dMg * 10) + (dFe * 10) + 
-                (pantryViolations * (constraints.strictness ? 1000 : 50)) - 
-                wastePenalty + feedbackPenalty;
+  ind.fitness = dCal + (dProt * 2) + (dMg * 10) + (dFe * 10) +
+    (pantryViolations * (constraints.strictness ? 1000 : 50)) -
+    wastePenalty + feedbackPenalty;
 }
 
 function calculateTotals(genes: Gene[]) {
@@ -155,20 +254,129 @@ function calculateTotals(genes: Gene[]) {
     iron: (acc.iron || 0) + (g.iron || 0),
     sodium: (acc.sodium || 0) + (g.sodium || 0),
     sugar: (acc.sugar || 0) + (g.sugar || 0),
-  }), { calories: 0, protein: 0, carbs: 0, fats: 0, magnesium: 0, iron: 0, sodium: 0, sugar: 0 });
+  }), {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fats: 0,
+    magnesium: 0,
+    iron: 0,
+    sodium: 0,
+    sugar: 0,
+  });
 }
 
 function getRandomGenes(pool: Gene[], count: number): Gene[] {
   if (pool.length === 0) return [];
-  return Array.from({ length: count }, () => pool[Math.floor(Math.random() * pool.length)]);
+  return Array.from(
+    { length: count },
+    () => pool[Math.floor(Math.random() * pool.length)],
+  );
 }
 
 function mutate(chrom: Gene[], pool: Gene[]): Gene[] {
-  return chrom.map(g => Math.random() < 0.2 ? pool[Math.floor(Math.random() * pool.length)] : g);
+  return chrom.map((g) =>
+    Math.random() < 0.2 ? pool[Math.floor(Math.random() * pool.length)] : g
+  );
 }
 
+const DEFAULT_FALLBACK_FOODS = [
+  {
+    name: "Chicken Breast",
+    calories: 165,
+    protein: 31,
+    carbs: 0,
+    fats: 3.6,
+    sodium: 74,
+    sugar: 0,
+  },
+  {
+    name: "Eggs",
+    calories: 143,
+    protein: 12.6,
+    carbs: 0.7,
+    fats: 9.5,
+    sodium: 124,
+    sugar: 0.4,
+  },
+  {
+    name: "Spinach",
+    calories: 23,
+    protein: 2.9,
+    carbs: 3.6,
+    fats: 0.4,
+    sodium: 79,
+    sugar: 0.4,
+  },
+  {
+    name: "Salmon",
+    calories: 208,
+    protein: 20,
+    carbs: 0,
+    fats: 13,
+    sodium: 59,
+    sugar: 0,
+  },
+  {
+    name: "Brown Rice",
+    calories: 111,
+    protein: 2.6,
+    carbs: 23,
+    fats: 0.9,
+    sodium: 5,
+    sugar: 0.4,
+  },
+  {
+    name: "Avocado",
+    calories: 160,
+    protein: 2,
+    carbs: 8.5,
+    fats: 14.7,
+    sodium: 7,
+    sugar: 0.7,
+  },
+  {
+    name: "Greek Yogurt",
+    calories: 59,
+    protein: 10,
+    carbs: 3.6,
+    fats: 0.4,
+    sodium: 36,
+    sugar: 3.2,
+  },
+  {
+    name: "Almonds",
+    calories: 579,
+    protein: 21,
+    carbs: 22,
+    fats: 49,
+    sodium: 1,
+    sugar: 4.3,
+  },
+  {
+    name: "Broccoli",
+    calories: 34,
+    protein: 2.8,
+    carbs: 7,
+    fats: 0.4,
+    sodium: 33,
+    sugar: 1.7,
+  },
+  {
+    name: "Sweet Potato",
+    calories: 86,
+    protein: 1.6,
+    carbs: 20,
+    fats: 0.1,
+    sodium: 55,
+    sugar: 4.2,
+  },
+];
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -177,64 +385,116 @@ serve(async (req) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
     );
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.substring(7)
+      : authHeader;
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      token,
+    );
     if (!user || userError) throw new Error("Auth Failed");
 
     const reqBody = await req.json();
-    let constraints = reqBody.constraints || { strictness: 1.0, use_preferences: true };
+    let constraints = reqBody.constraints ||
+      { strictness: 1.0, use_preferences: true };
 
     // 1. Fetch Profile & Medical
     const { data: profile } = await supabase
       .from("users")
-      .select("metabolic_state_json, calorie_target, protein_target")
+      .select("metabolic_state_json, calorie_target")
       .eq("id", user.id)
       .single();
 
+    const proteinTarget = profile?.metabolic_state_json?.protein_target || 150;
+
     const { data: userConditions } = await supabase
       .from("user_conditions")
-      .select("condition_id, conditions(name, rules_json)")
+      .select(
+        "condition_id, conditions(name, rules_json, never_recommend_json)",
+      )
       .eq("user_id", user.id);
 
-    const conditions = (userConditions || []).map((uc: any) => uc.conditions);
+    const conditions = (userConditions || [])
+      .map((uc: any) => uc.conditions)
+      .filter((c: any) => c !== null && c !== undefined);
+    const globalExclusions = conditions.flatMap((c) =>
+      c.never_recommend_json || []
+    ).map((s) => s.toLowerCase());
 
     // 2. Fetch Pantry Pool
     const { data: pantryRaw } = await supabase
       .from("pantry")
-      .select("foods(id, name, metadata_json), quantity, expiry, created_at")
-      .eq("user_id", user.id);
+      .select("name, food_id, foods(id, name, nutritional_info, category_decay_rate), quantity, expiry, created_at, metadata_json")
+      .eq("user_id", user.id)
+      .eq("status", "active");
 
-    let pantryPool: Gene[] = (pantryRaw || []).map((p: any) => ({
-      name: p.foods?.name || "Unknown",
-      calories: p.foods?.metadata_json?.macros?.calories || 100,
-      protein: p.foods?.metadata_json?.macros?.protein || 5,
-      carbs: p.foods?.metadata_json?.macros?.carbs || 10,
-      fats: p.foods?.metadata_json?.macros?.fats || 2,
-      sodium: p.foods?.metadata_json?.macros?.sodium || 0,
-      sugar: p.foods?.metadata_json?.macros?.sugar || 0,
-      magnesium: 10,
-      iron: 2,
-      inPantry: true,
-      expiry: p.expiry,
-      decay_coefficient: p.foods?.metadata_json?.decay_k || 0.05,
-      logged_at: p.created_at
-    }));
+    let pantryPool: Gene[] = (pantryRaw || [])
+      .filter((p: any) => {
+        const itemName = p.foods?.name || p.name || "";
+        return itemName && !globalExclusions.includes(itemName.toLowerCase());
+      })
+      .map((p: any) => {
+        // Use foods table data if linked, otherwise use defaults
+        const ni = p.foods?.nutritional_info || {};
+        return {
+          name: p.foods?.name || p.name || "Unknown",
+          calories: ni.calories || 100,
+          protein: ni.protein || 5,
+          carbs: ni.carbs || 10,
+          fats: ni.fats || 2,
+          sodium: ni.sodium || 0,
+          sugar: ni.sugar || 0,
+          magnesium: ni.magnesium || 10,
+          iron: ni.iron || 2,
+          vitamin_d: ni.vitamin_d || 0,
+          inPantry: true,
+          expiry: p.expiry,
+          category: ni.category || (p.metadata_json?.category) || "general",
+          decay_coefficient: p.foods?.category_decay_rate || 0.05,
+          logged_at: p.created_at,
+        };
+      });
 
     if (pantryPool.length === 0) {
-      const { data: globalFoods } = await supabase.from("foods").select("name, metadata_json").limit(40);
-      pantryPool = (globalFoods || []).map((f: any) => ({
-        name: f.name,
-        calories: f.metadata_json?.macros?.calories || 100,
-        protein: f.metadata_json?.macros?.protein || 5,
-        carbs: f.metadata_json?.macros?.carbs || 10,
-        fats: f.metadata_json?.macros?.fats || 2,
-        sodium: f.metadata_json?.macros?.sodium || 0,
-        sugar: f.metadata_json?.macros?.sugar || 0,
-        inPantry: false,
-        decay_coefficient: 0.05
-      }));
+      const { data: globalFoods } = await supabase.from("foods").select(
+        "name, nutritional_info, category_decay_rate",
+      ).limit(200);
+      pantryPool = (globalFoods || [])
+        .filter((f: any) =>
+          !globalExclusions.includes((f.name || "").toLowerCase())
+        )
+        .map((f: any) => ({
+          name: f.name,
+          calories: f.nutritional_info?.calories || 100,
+          protein: f.nutritional_info?.protein || 5,
+          carbs: f.nutritional_info?.carbs || 10,
+          fats: f.nutritional_info?.fats || 2,
+          sodium: f.nutritional_info?.sodium || 0,
+          sugar: f.nutritional_info?.sugar || 0,
+          magnesium: f.nutritional_info?.magnesium || 10,
+          iron: f.nutritional_info?.iron || 2,
+          vitamin_d: f.nutritional_info?.vitamin_d || 0,
+          inPantry: false,
+          decay_coefficient: f.category_decay_rate || 0.05,
+        }));
+
+      if (pantryPool.length === 0) {
+        pantryPool = DEFAULT_FALLBACK_FOODS
+          .filter((f) => !globalExclusions.includes(f.name.toLowerCase()))
+          .map((f) => ({
+            ...f,
+            inPantry: false,
+            decay_coefficient: 0.05,
+          }));
+      }
     }
 
     const { data: logsRaw } = await supabase
@@ -243,9 +503,10 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .not("metabolic_tags_json->feedback", "is", null);
 
-    const recentFeedback = (logsRaw || []).map(l => {
+    const recentFeedback = (logsRaw || []).map((l) => {
       const f = l.metabolic_tags_json.feedback;
-      const avgScore = ((f.taste || 3) + (f.digestion || 3) + (f.satiety || 3)) / 3;
+      const avgScore =
+        ((f.taste || 3) + (f.digestion || 3) + (f.satiety || 3)) / 3;
       return { item: l.metabolic_tags_json.item, score: avgScore };
     });
 
@@ -255,45 +516,68 @@ serve(async (req) => {
     // TRY WASM FIRST
     const wasm = await getWasmInstance();
     if (wasm) {
-        console.log("[WASM] Executing optimization...");
-        try {
-            const wasmReq = {
-                profile: {
-                    calorie_target: profile?.calorie_target || 2000,
-                    protein_target: profile?.protein_target || 150,
-                    magnesium_target: 400,
-                    iron_target: 18
-                },
-                available_foods: pantryPool,
-                recent_feedback: recentFeedback.map(f => ({ item_name: f.item, score: f.score })),
-                strictness: constraints.strictness || 1.0
-            };
-            const result = optimize_meal_plan(wasmReq);
-            if (result && result.selected_foods && result.selected_foods.length > 0) {
-                 solutions = [{
-                     menu: result.selected_foods.map((f: any) => f.name),
-                     stats: {
-                         calories: result.total_calories,
-                         protein: result.total_protein,
-                         magnesium: result.total_magnesium,
-                         iron: result.total_iron,
-                         carbs: result.selected_foods.reduce((acc: number, f: any) => acc + (f.carbs||0), 0),
-                         fats: result.selected_foods.reduce((acc: number, f: any) => acc + (f.fats||0), 0),
-                         sodium: result.selected_foods.reduce((acc: number, f: any) => acc + (f.sodium||0), 0),
-                         sugar: result.selected_foods.reduce((acc: number, f: any) => acc + (f.sugar||0), 0),
-                     },
-                     score: result.fitness_score
-                 }];
-                 method = "WASM_ON_EDGE";
-            }
-        } catch (e) {
-            console.warn("[WASM] Execution failed, falling back to TS", e);
+      console.log("[WASM] Executing optimization...");
+      try {
+        const wasmReq = {
+          profile: {
+            calorie_target: profile?.calorie_target || 2000,
+            protein_target: profile?.metabolic_state_json?.protein_target || 150,
+            magnesium_target: 400,
+            iron_target: 18,
+          },
+          available_foods: pantryPool,
+          recent_feedback: recentFeedback.map((f) => ({
+            item_name: f.item,
+            score: f.score,
+          })),
+          strictness: constraints.strictness || 1.0,
+        };
+        const result = optimize_meal_plan(wasmReq);
+        if (
+          result && result.selected_foods && result.selected_foods.length > 0
+        ) {
+          solutions = [{
+            menu: result.selected_foods.map((f: any) => f.name),
+            stats: {
+              calories: result.total_calories,
+              protein: result.total_protein,
+              magnesium: result.total_magnesium,
+              iron: result.total_iron,
+              carbs: result.selected_foods.reduce(
+                (acc: number, f: any) => acc + (f.carbs || 0),
+                0,
+              ),
+              fats: result.selected_foods.reduce(
+                (acc: number, f: any) => acc + (f.fats || 0),
+                0,
+              ),
+              sodium: result.selected_foods.reduce(
+                (acc: number, f: any) => acc + (f.sodium || 0),
+                0,
+              ),
+              sugar: result.selected_foods.reduce(
+                (acc: number, f: any) => acc + (f.sugar || 0),
+                0,
+              ),
+            },
+            score: result.fitness_score,
+          }];
+          method = "WASM_ON_EDGE";
         }
+      } catch (e) {
+        console.warn("[WASM] Execution failed, falling back to TS", e);
+      }
     }
 
     let iteration = 0;
     while (solutions.length === 0 && iteration < 3) {
-      solutions = runTSOptimization(profile, constraints, pantryPool, recentFeedback, conditions);
+      solutions = runTSOptimization(
+        profile,
+        constraints,
+        pantryPool,
+        recentFeedback,
+        conditions,
+      );
       if (solutions.length === 0) {
         if (iteration === 0) constraints.strictness *= 0.9;
         else if (iteration === 1) constraints.use_preferences = false;
@@ -302,15 +586,18 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ 
-        success: true, 
+    return new Response(
+      JSON.stringify({
+        success: true,
         solutions: solutions.slice(0, 3),
-        meta: { method, iterations: iteration, pantry_size: pantryPool.length }
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
+        meta: { method, iterations: iteration, pantry_size: pantryPool.length },
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

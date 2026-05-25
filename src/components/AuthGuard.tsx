@@ -7,8 +7,8 @@ import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { useAppStore } from '@/lib/state/appStore';
 import { UserProfile, MetabolicState } from '@/lib/types/metabolic';
 
-const PROTECTED_ROUTES = ['/pantry', '/planner', '/log', '/dashboard', '/analytics', '/coach', '/shopping', '/history', '/profile', '/settings', '/pricing', '/vision'];
-const PREMIUM_ROUTES = ['/planner', '/analytics', '/coach', '/travel/menu', '/shopping'];
+const PROTECTED_ROUTES = ['/pantry', '/log', '/dashboard', '/analytics', '/coach', '/shopping', '/history', '/profile', '/settings', '/pricing', '/vision'];
+const PREMIUM_ROUTES = ['/analytics', '/coach', '/travel/menu', '/shopping'];
 const ONBOARDING_ROUTES = ['/login'];
 const EXEMPT_ROUTES = ['/about', '/privacy', '/terms'];
 

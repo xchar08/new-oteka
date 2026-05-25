@@ -72,11 +72,12 @@ create table if not exists pantry (
   probability_score numeric default 1.0,
   last_verified_at timestamptz default now(),
   status text default 'active', -- active, review_needed, consumed
-  metadata_json jsonb default '{}'::jsonb, -- Stores ingredients, micros, packaging info
+  metadata_json jsonb default '{}'::jsonb, -- Stores ingredients, micros, packaging info, and remaining_fraction (e.g. 0.25)
   created_at timestamptz default now()
 );
 create index if not exists idx_pantry_household_id on pantry(household_id);
 create index if not exists idx_pantry_user_id on pantry(user_id);
+create index if not exists idx_pantry_user_status on pantry(user_id, status);
 
 -- 5. FRIENDSHIPS
 create table if not exists friendships (
@@ -144,6 +145,8 @@ create table if not exists logs (
 
 -- Performance indices for logs
 create index if not exists idx_logs_user_date on logs(user_id, local_date);
+create index if not exists idx_logs_user_id on logs(user_id);
+create index if not exists idx_logs_user_captured_at on logs(user_id, captured_at desc);
 create index if not exists idx_logs_feedback on logs using gin (metabolic_tags_json);
 
 -- 11. CACHE ENTRIES
@@ -187,14 +190,12 @@ begin
     -- pl/pgsql functions execute in a single implicit transaction.
     update pantry
     set 
-      probability_score = greatest(0, probability_score * power(1 - coalesce(foods.category_decay_rate, 0.05), v_days_diff)),
+      probability_score = greatest(0, probability_score * power(1 - coalesce((select category_decay_rate from foods where id = pantry.food_id), 0.05), v_days_diff)),
       status = case 
-        when (probability_score * power(1 - coalesce(foods.category_decay_rate, 0.05), v_days_diff)) < 0.3 then 'review_needed'
+        when (probability_score * power(1 - coalesce((select category_decay_rate from foods where id = pantry.food_id), 0.05), v_days_diff)) < 0.3 then 'review_needed'
         else status
       end
-    from foods
-    where pantry.food_id = foods.id
-    and pantry.user_id = p_user_id
+    where pantry.user_id = p_user_id
     and pantry.status = 'active';
 
     -- Update last run timestamp for the user
@@ -215,6 +216,7 @@ create table if not exists shopping_list (
   created_at timestamptz default now()
 );
 create index if not exists idx_shopping_household_id on shopping_list(household_id);
+create index if not exists idx_shopping_list_added_by_household on shopping_list (added_by, household_id);
 
 -- ========================================================
 -- RLS SECURITY POLICIES
@@ -236,7 +238,10 @@ alter table cache_entries enable row level security;
 -- HELPER FUNCTIONS FOR RLS
 create or replace function get_my_household_id()
 returns uuid language sql stable security definer set search_path = public as $$
-  select household_id from users where id = (select auth.uid());
+  select coalesce(
+    nullif(current_setting('request.jwt.claims', true)::json->>'household_id', '')::uuid,
+    (select household_id from users where id = (select auth.uid()))
+  );
 $$;
 
 -- USERS
@@ -308,6 +313,21 @@ drop policy if exists "Households read member" on households;
 create policy "Households read member" on households for select using (
   id = get_my_household_id()
 );
+
+-- CONDITIONS (Read-Only Public Lookup)
+drop policy if exists "Conditions are viewable by everyone" on conditions;
+create policy "Conditions are viewable by everyone" on conditions for select using (true);
+
+-- USER CONDITIONS (User Scoped)
+drop policy if exists "Users manage own conditions" on user_conditions;
+create policy "Users manage own conditions" on user_conditions for all using (auth.uid() = user_id);
+
+-- FRIENDSHIPS (Shared Read, User Insert/Delete)
+drop policy if exists "Users view own friendships" on friendships;
+create policy "Users view own friendships" on friendships for select using (auth.uid() = user_id or auth.uid() = friend_id);
+
+drop policy if exists "Users manage own friendships" on friendships;
+create policy "Users manage own friendships" on friendships for all using (auth.uid() = user_id);
 
 -- ========================================================
 -- TRIGGERS
@@ -398,14 +418,16 @@ on conflict (id) do nothing;
 drop policy if exists "Users can upload own scans" on storage.objects;
 create policy "Users can upload own scans" on storage.objects for insert with check (
   bucket_id = 'food_scans' and 
-  auth.role() = 'authenticated'
+  auth.role() = 'authenticated' and
+  (storage.foldername(name))[1] = auth.uid()::text
 );
 
 -- Allow users to view their own scans
 drop policy if exists "Users can view own scans" on storage.objects;
 create policy "Users can view own scans" on storage.objects for select using (
   bucket_id = 'food_scans' and 
-  auth.role() = 'authenticated'
+  auth.role() = 'authenticated' and
+  (storage.foldername(name))[1] = auth.uid()::text
 );
 
 -- ========================================================

@@ -6,7 +6,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { createClient } from '@/lib/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { visionService } from '@/lib/services/vision.service';
-import { Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
+import { Sparkles, CheckCircle2, Loader2, Minus, Plus, X, Layers, Microscope, Activity, ChevronRight, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { NeuralScanOverlay } from './NeuralScanOverlay';
 import { MetabolicBadge } from '../ui/MetabolicBadge';
@@ -27,6 +27,7 @@ export function OptimisticCapture({
 }) {
   const [status, setStatus] = useState<'idle' | 'uploading' | 'complete'>('idle');
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [editableResult, setEditableResult] = useState<ScanResult | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -43,12 +44,16 @@ export function OptimisticCapture({
       console.log("[Capture] Image uploaded to:", path);
 
       console.log("[Capture] Invoking vision-pipeline. Calibration:", handWidth || 'FALLBACK');
+      const clientLocalDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in device timezone
+      const timezoneOffset = new Date().getTimezoneOffset(); // minutes offset from UTC
       const { data, error } = await supabase.functions.invoke('vision-pipeline', {
         body: { 
           imagePath: path,
           mode: VISION_CONFIG.modes.ANALYZE,
           hand_width_mm: handWidth || VISION_CONFIG.fallbacks.HAND_WIDTH_MM,
-          is_calibrated: !!handWidth
+          is_calibrated: !!handWidth,
+          local_date: clientLocalDate,
+          timezone_offset: timezoneOffset
         }
       });
 
@@ -192,28 +197,105 @@ export function OptimisticCapture({
 
   const [isLogging, setIsLogging] = useState(false);
 
+  useEffect(() => {
+    if (scanResult) {
+      const itemsWithMultiplier = scanResult.items.map(item => ({
+        ...item,
+        multiplier: item.multiplier ?? 1
+      }));
+      setEditableResult({ ...scanResult, items: itemsWithMultiplier });
+    }
+  }, [scanResult]);
+
+  const recalculateTotals = (items: any[]) => {
+    if (!editableResult) return;
+
+    // 1. Recalculate Macros
+    const newMacros = items.reduce((acc, item) => {
+      const m = item.multiplier || 1;
+      return {
+        calories: acc.calories + ((item.calories || 0) * m),
+        protein: acc.protein + ((item.protein || 0) * m),
+        carbs: acc.carbs + ((item.carbs || 0) * m),
+        fat: acc.fat + ((item.fat || 0) * m),
+        fiber: acc.fiber + ((item.fiber || 0) * m),
+        sugar: acc.sugar + ((item.sugar || 0) * m),
+        sodium: acc.sodium + ((item.sodium || 0) * m),
+        cholesterol: acc.cholesterol + ((item.cholesterol || 0) * m),
+      };
+    }, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, cholesterol: 0 });
+
+    // 2. Synchronize Ingredients & Volumetric Data
+    // We filter ingredients based on items remaining and adjust volume
+    const remainingNames = items.map(it => it.name.toLowerCase());
+    const newIngredients = (scanResult?.ingredients || []).filter(ing => {
+        const name = (typeof ing === 'string' ? ing : ing.name) || "";
+        const lowerName = name.toLowerCase();
+        // If an ingredient is explicitly named after a food item we removed, purge it
+        return remainingNames.some(itName => itName.includes(lowerName) || lowerName.includes(itName));
+    });
+
+    // 3. Update Volume based on total quantity change
+    const originalCount = scanResult?.items?.length || 1;
+    const currentCount = items.reduce((acc, it) => acc + (it.multiplier || 1), 0);
+    const volumeFactor = currentCount / originalCount;
+    const newVolume = (scanResult?.volume_cm3 || 0) * volumeFactor;
+
+    setEditableResult({
+      ...editableResult,
+      items,
+      macros: newMacros,
+      ingredients: newIngredients,
+      volume_cm3: newVolume
+    });
+  };
+
+  const handleUpdateMultiplier = (index: number, delta: number) => {
+    if (!editableResult) return;
+    const newItems = [...editableResult.items];
+    newItems[index] = {
+      ...newItems[index],
+      multiplier: Math.max(0, (newItems[index].multiplier || 1) + delta)
+    };
+    recalculateTotals(newItems);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (!editableResult) return;
+    const newItems = editableResult.items.filter((_, i) => i !== index);
+    recalculateTotals(newItems);
+  };
+
   const handleLog = async () => {
-    if (!scanResult || isLogging) return;
+    const resultToLog = editableResult || scanResult;
+    if (!resultToLog || isLogging) return;
     setIsLogging(true);
     
     try {
-        if (scanResult.persisted) {
-            console.log("[Capture] Result already persisted by server.");
-        } else {
-            console.log("[Capture] Manually logging meal result (Server Persistence Skipped)...");
-            const { data: { user: authUser } } = await supabase.auth.getUser();
-            if (!authUser) throw new Error("No user found");
-
-            const logEntry = {
-                user_id: authUser.id,
-                grams: scanResult.volume_cm3 || 0,
-                metabolic_tags_json: buildLogMetadata(scanResult),
-                captured_at: new Date().toISOString()
-            };
-
-            const { error } = await supabase.from('logs').insert(logEntry);
-            if (error) throw error;
+        // Fix 1: Check if the edge function already persisted this scan
+        if (resultToLog.persisted) {
+            console.log("[Capture] Edge function already persisted this scan — skipping client-side insert.");
+            toast.success("Meal logged successfully!");
+            queryClient.invalidateQueries({ queryKey: ['daily-logs'] });
+            router.push('/dashboard');
+            return;
         }
+
+        console.log("[Capture] Manually logging meal result...");
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser) throw new Error("No user found");
+
+        const clientLocalDate = new Date().toLocaleDateString('en-CA');
+        const logEntry = {
+            user_id: authUser.id,
+            grams: resultToLog.volume_cm3 || 0,
+            local_date: clientLocalDate,
+            metabolic_tags_json: buildLogMetadata(resultToLog),
+            captured_at: new Date().toISOString()
+        };
+
+        const { error } = await supabase.from('logs').insert(logEntry);
+        if (error) throw error;
 
         toast.success("Meal logged successfully!");
         queryClient.invalidateQueries({ queryKey: ['daily-logs'] });
@@ -245,7 +327,7 @@ export function OptimisticCapture({
     );
   }
 
-  if (status === 'complete') {
+  if (status === 'complete' && editableResult) {
     return (
       <div className="fixed inset-0 bg-[var(--bg-app)] flex flex-col animate-in fade-in duration-500 transition-colors z-[60]">
         {/* Scrollable Content */}
@@ -260,183 +342,280 @@ export function OptimisticCapture({
             </div>
           </div>
 
-        {scanResult && (
-            <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
-            >
-                {/* Safety Alerts at the top */}
-                {scanResult.safety_alerts?.map((alert: any, idx: number) => (
-                    <div key={idx} className="flex justify-center">
-                        <SafetyAlert reason={alert.reason} type={alert.type} />
-                    </div>
-                ))}
+          <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+          >
+              {/* Safety Alerts at the top */}
+              {editableResult.safety_alerts?.map((alert: any, idx: number) => (
+                  <div key={idx} className="flex justify-center">
+                      <SafetyAlert reason={alert.reason} type={alert.type} />
+                  </div>
+              ))}
 
-                {/* Main Insight Card */}
-                <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[40px] p-8 shadow-sm space-y-6">
-                    <div className="flex justify-between items-start">
-                        <div className="flex-1 min-w-0 pr-4">
-                            <h3 className="text-2xl font-black text-[var(--text-primary)] capitalize truncate">{scanResult.items?.[0]?.name || 'Analyzed Content'}</h3>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest">{scanResult.macros?.calories || 0} kcal</span>
-                                <div className="w-1 h-1 bg-[var(--border)] rounded-full" />
-                                <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">{scanResult.items?.[0]?.quantity}</span>
+              {/* Main Insight Card */}
+              <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[40px] p-8 shadow-sm space-y-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-5">
+                    <Activity size={120} />
+                  </div>
+                  
+                  <div className="flex justify-between items-start relative z-10">
+                      <div className="flex-1 min-w-0 pr-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--primary)] px-2 py-0.5 rounded-lg bg-[var(--primary)]/10">Neural Intelligence</span>
+                          </div>
+                          <h3 className="text-2xl font-black text-[var(--text-primary)] capitalize truncate leading-tight">
+                            {editableResult.items?.[0]?.name || 'Analyzed Content'}
+                          </h3>
+                          <div className="flex items-center gap-3 mt-2">
+                              <div className="flex items-center gap-1 text-[var(--primary)]">
+                                <Activity size={12} fill="currentColor" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">{Math.round(editableResult.macros?.calories || 0)} kcal</span>
+                              </div>
+                              <div className="w-1 h-1 bg-[var(--border)] rounded-full opacity-30" />
+                              <div className="flex items-center gap-1 text-[var(--text-secondary)]">
+                                <Layers size={12} />
+                                <span className="text-[10px] font-black uppercase tracking-widest">{editableResult.items?.length} components</span>
+                              </div>
+                          </div>
+                      </div>
+                      <div className="h-14 w-14 rounded-[20px] bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]/60 text-white flex items-center justify-center shadow-lg shadow-[var(--primary)]/20 shrink-0">
+                          <Sparkles size={28} />
+                      </div>
+                  </div>
+
+                  <div className="bg-[var(--bg-app)] border border-[var(--border)] p-6 rounded-[2rem] relative group">
+                      <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Info size={16} />
+                      </div>
+                      <p className="text-sm text-[var(--text-primary)] font-medium leading-relaxed italic opacity-80 pr-4">
+                          "{editableResult.metabolic_insight?.layman_explanation || "Meal signal successfully integrated into your metabolic history."}"
+                      </p>
+                  </div>
+
+                  {/* Triggered Phenomena Badges */}
+                  <div className="flex flex-wrap gap-2">
+                      {editableResult.metabolic_insight?.triggered_phenomena?.map((p: any) => (
+                          <MetabolicBadge key={p.id} name={p.name} why={p.why} />
+                      ))}
+                  </div>
+              </div>
+
+              {/* Editable Items Section */}
+              <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[40px] p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-6">
+                    <div className="w-8 h-8 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)]">
+                        <Layers size={16} />
+                    </div>
+                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-[var(--text-primary)]">Molecular Components</h4>
+                </div>
+                
+                <div className="space-y-3">
+                  {editableResult.items.map((item: any, i: number) => (
+                    <motion.div 
+                        layout
+                        key={i} 
+                        className="flex items-center justify-between gap-4 p-4 bg-[var(--bg-app)]/50 rounded-[2rem] border border-[var(--border)] hover:bg-[var(--bg-app)] transition-colors group"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-bold text-[var(--text-primary)] block truncate group-hover:text-[var(--primary)] transition-colors">{item.name}</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[9px] font-black text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{item.quantity}</span>
+                            <div className="w-0.5 h-0.5 bg-[var(--border)] rounded-full" />
+                            <span className="text-[9px] font-black text-[var(--primary)] opacity-60 uppercase tracking-widest">~{Math.round((item.calories || 0) * (item.multiplier || 1))} kcal</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center bg-[var(--bg-surface)] rounded-[1.25rem] border border-[var(--border)] overflow-hidden shadow-sm">
+                          <button 
+                            onClick={() => handleUpdateMultiplier(i, -0.5)}
+                            className="w-10 h-10 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-[var(--text-secondary)]"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <div className="w-12 text-center">
+                            <span className="text-xs font-black tabular-nums">{item.multiplier}x</span>
+                          </div>
+                          <button 
+                            onClick={() => handleUpdateMultiplier(i, 0.5)}
+                            className="w-10 h-10 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-[var(--primary)]"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                        
+                        <button 
+                          onClick={() => handleRemoveItem(i)}
+                          className="w-10 h-10 flex items-center justify-center text-red-500/40 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                  {editableResult.items.length === 0 && (
+                    <div className="text-center py-10 space-y-2 opacity-40">
+                        <Layers size={32} className="mx-auto text-[var(--text-secondary)]" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">All components purged.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Macros Matrix */}
+              <div className="grid grid-cols-3 gap-3">
+                  {[
+                      { label: 'Protein', val: editableResult.macros?.protein, unit: 'g', color: 'text-emerald-500' },
+                      { label: 'Carbs', val: editableResult.macros?.carbs, unit: 'g', color: 'text-orange-500' },
+                      { label: 'Fats', val: editableResult.macros?.fat, unit: 'g', color: 'text-rose-500' },
+                  ].map(m => (
+                      <div key={m.label} className="bg-[var(--bg-surface)] border border-[var(--border)] p-5 rounded-[2.5rem] text-center shadow-sm relative overflow-hidden group">
+                          <div className={`absolute top-0 left-0 w-full h-1 bg-current ${m.color} opacity-20`} />
+                          <div className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-[0.2em] mb-1.5 opacity-50">{m.label}</div>
+                          <div className="text-2xl font-black text-[var(--text-primary)] tabular-nums">
+                            {Math.round(m.val || 0)}
+                            <span className="text-[10px] opacity-30 ml-0.5 font-bold uppercase">{m.unit}</span>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+
+              {/* Scientific Breakdown */}
+              <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[40px] p-8 shadow-sm">
+                <div className="flex items-center gap-2 mb-8">
+                    <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                        <Microscope size={16} />
+                    </div>
+                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-[var(--text-primary)]">Molecular Scaffolding</h4>
+                </div>
+
+                {/* Extended Macros Row */}
+                <div className="grid grid-cols-4 gap-4 mb-8">
+                    {[
+                        { label: 'Fiber', val: editableResult.macros?.fiber, unit: 'g' },
+                        { label: 'Sugar', val: editableResult.macros?.sugar, unit: 'g' },
+                        { label: 'Sodium', val: editableResult.macros?.sodium, unit: 'mg' },
+                        { label: 'Chol.', val: editableResult.macros?.cholesterol, unit: 'mg' },
+                    ].map(m => (
+                        <div key={m.label} className="space-y-1">
+                            <div className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest opacity-40">{m.label}</div>
+                            <div className="text-sm font-black text-[var(--text-primary)] tabular-nums">
+                                {Math.round(m.val || 0)}
+                                <span className="text-[8px] opacity-30 ml-0.5 uppercase font-bold">{m.unit}</span>
                             </div>
                         </div>
-                        <div className="h-12 w-12 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] shrink-0">
-                            <Sparkles size={24} />
-                        </div>
-                    </div>
-
-                    <div className="bg-[var(--bg-app)] border border-[var(--border)] p-6 rounded-3xl">
-                        <p className="text-sm text-[var(--text-primary)] font-medium leading-relaxed italic opacity-80">
-                            "{scanResult.metabolic_insight?.layman_explanation || "Meal signal successfully integrated into your metabolic history."}"
-                        </p>
-                    </div>
-
-                    {/* Triggered Phenomena Badges */}
-                    <div className="flex flex-wrap gap-2">
-                        {scanResult.metabolic_insight?.triggered_phenomena?.map((p: any) => (
-                            <MetabolicBadge key={p.id} name={p.name} why={p.why} />
-                        ))}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                    {[
-                        { label: 'Protein', val: scanResult.macros?.protein, unit: 'g' },
-                        { label: 'Carbs', val: scanResult.macros?.carbs, unit: 'g' },
-                        { label: 'Fats', val: scanResult.macros?.fat, unit: 'g' },
-                    ].map(m => (
-                        <div key={m.label} className="bg-[var(--bg-surface)] border border-[var(--border)] p-4 rounded-3xl text-center shadow-sm">
-                            <div className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-1 opacity-50">{m.label}</div>
-                            <div className="text-lg font-black text-[var(--text-primary)]">{Math.round(m.val || 0)}<span className="text-[10px] opacity-30 ml-0.5">{m.unit}</span></div>
-                        </div>
                     ))}
                 </div>
 
-                {/* Extended Macros */}
-                <div className="grid grid-cols-4 gap-2">
-                    {[
-                        { label: 'Fiber', val: scanResult.macros?.fiber, unit: 'g' },
-                        { label: 'Sugar', val: scanResult.macros?.sugar, unit: 'g' },
-                        { label: 'Sodium', val: scanResult.macros?.sodium, unit: 'mg' },
-                        { label: 'Chol.', val: scanResult.macros?.cholesterol, unit: 'mg' },
-                    ].map(m => (
-                        <div key={m.label} className="bg-[var(--bg-surface)] border border-[var(--border)] p-3 rounded-2xl text-center">
-                            <div className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-0.5 opacity-40">{m.label}</div>
-                            <div className="text-sm font-bold text-[var(--text-primary)]">{Math.round(m.val || 0)}<span className="text-[8px] opacity-30 ml-0.5">{m.unit}</span></div>
+                {/* Ingredients List */}
+                {editableResult.ingredients?.length > 0 && (
+                    <div className="space-y-4 pt-6 border-t border-[var(--border)]">
+                        {editableResult.ingredients.map((ing: any, i: number) => {
+                            const ingName = ing.name || ing;
+                            const ratio = ing.ratio != null ? `${Math.round(ing.ratio * 100)}%` : null;
+                            return (
+                                <div key={i} className="flex justify-between items-center group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] opacity-40 group-hover:scale-150 transition-transform" />
+                                        <span className="text-sm text-[var(--text-primary)] font-bold capitalize group-hover:text-[var(--primary)] transition-colors">{ingName}</span>
+                                    </div>
+                                    {ratio && <span className="text-xs text-[var(--text-secondary)] font-black tabular-nums bg-[var(--bg-app)] px-3 py-1 rounded-full border border-[var(--border)]">{ratio}</span>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+              </div>
+
+              {/* Micronutrient Matrix */}
+              {(editableResult.vitamins?.length > 0 || editableResult.minerals?.length > 0) && (
+                <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[40px] p-8 shadow-sm">
+                    <div className="flex items-center gap-2 mb-8">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                            <Sparkles size={16} />
                         </div>
-                    ))}
+                        <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-[var(--text-primary)]">Micronutrient Matrix</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6">
+                        {/* Vitamins */}
+                        {editableResult.vitamins?.length > 0 && (
+                            <div className="space-y-4">
+                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-40 block mb-4">Core Vitamins</span>
+                                {editableResult.vitamins.map((v: any, i: number) => (
+                                    <div key={i} className="flex justify-between items-center bg-[var(--bg-app)]/50 p-3 rounded-2xl border border-[var(--border)]">
+                                        <span className="text-sm text-[var(--text-primary)] font-bold">{v.name}</span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs text-[var(--text-secondary)] font-black tabular-nums">{v.amount}</span>
+                                            {v.daily_value_pct != null && (
+                                                <div className="px-3 py-1 rounded-full bg-[var(--primary)]/10 border border-[var(--primary)]/20">
+                                                    <span className="text-[10px] font-black text-[var(--primary)] tabular-nums">{v.daily_value_pct}%</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Minerals */}
+                        {editableResult.minerals?.length > 0 && (
+                            <div className="space-y-4 pt-4 border-t border-[var(--border)]">
+                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-40 block mb-4">Essential Minerals</span>
+                                {editableResult.minerals.map((m: any, i: number) => (
+                                    <div key={i} className="flex justify-between items-center bg-[var(--bg-app)]/50 p-3 rounded-2xl border border-[var(--border)]">
+                                        <span className="text-sm text-[var(--text-primary)] font-bold">{m.name}</span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs text-[var(--text-secondary)] font-black tabular-nums">{m.amount}</span>
+                                            {m.daily_value_pct != null && (
+                                                <div className="px-3 py-1 rounded-full bg-[var(--primary)]/10 border border-[var(--primary)]/20">
+                                                    <span className="text-[10px] font-black text-[var(--primary)] tabular-nums">{m.daily_value_pct}%</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
+              )}
 
-                {/* Molecular Scaffolding */}
-                {scanResult.ingredients?.length > 0 && (
-                    <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[32px] p-6 shadow-sm">
-                        <h4 className="text-[9px] uppercase tracking-widest font-black text-[var(--text-secondary)] mb-4">Molecular Scaffolding</h4>
-                        <div className="space-y-3">
-                            {scanResult.ingredients.map((ing: any, i: number) => {
-                                const ingName = ing.name || ing;
-                                const ratio = ing.ratio != null ? `${Math.round(ing.ratio * 100)}%` : null;
-                                return (
-                                    <div key={i} className="flex justify-between items-center">
-                                        <span className="text-sm text-[var(--text-primary)] font-medium capitalize">{ingName}</span>
-                                        {ratio && <span className="text-sm text-[var(--text-secondary)] font-bold tabular-nums">{ratio}</span>}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
-                {/* Vitamins */}
-                {scanResult.vitamins?.length > 0 && (
-                    <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[32px] p-6 shadow-sm">
-                        <h4 className="text-[9px] uppercase tracking-widest font-black text-[var(--text-secondary)] mb-4">Vitamins</h4>
-                        <div className="space-y-3">
-                            {scanResult.vitamins.map((v: any, i: number) => (
-                                <div key={i} className="flex justify-between items-center">
-                                    <span className="text-sm text-[var(--text-primary)] font-medium">{v.name}</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-[var(--text-secondary)] tabular-nums">{v.amount}</span>
-                                        {v.daily_value_pct != null && (
-                                            <span className="text-[10px] font-bold text-[var(--primary)] tabular-nums">{v.daily_value_pct}% DV</span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Minerals */}
-                {scanResult.minerals?.length > 0 && (
-                    <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[32px] p-6 shadow-sm">
-                        <h4 className="text-[9px] uppercase tracking-widest font-black text-[var(--text-secondary)] mb-4">Minerals</h4>
-                        <div className="space-y-3">
-                            {scanResult.minerals.map((m: any, i: number) => (
-                                <div key={i} className="flex justify-between items-center">
-                                    <span className="text-sm text-[var(--text-primary)] font-medium">{m.name}</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-[var(--text-secondary)] tabular-nums">{m.amount}</span>
-                                        {m.daily_value_pct != null && (
-                                            <span className="text-[10px] font-bold text-[var(--primary)] tabular-nums">{m.daily_value_pct}% DV</span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Other Nutrients (legacy micros) */}
-                {scanResult.micros?.length > 0 && (
-                    <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[32px] p-6 shadow-sm">
-                        <h4 className="text-[9px] uppercase tracking-widest font-black text-[var(--text-secondary)] mb-4">Other Nutrients</h4>
-                        <div className="space-y-3">
-                            {scanResult.micros.map((micro: any, i: number) => (
-                                <div key={i} className="flex justify-between items-center">
-                                    <span className="text-sm text-[var(--text-primary)] font-medium">{micro.name}</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-[var(--text-secondary)] tabular-nums">{micro.amount}</span>
-                                        {micro.daily_value_pct != null && (
-                                            <span className="text-[10px] font-bold text-[var(--primary)] tabular-nums">{micro.daily_value_pct}% DV</span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-            </motion.div>
-        )}
+          </motion.div>
         </div>
 
         {/* Sticky Bottom Action Buttons */}
-        <div className="shrink-0 p-6 pt-3 pb-safe bg-[var(--bg-app)] border-t border-[var(--border)]">
-            <button 
+        <div className="shrink-0 p-8 pt-4 pb-safe bg-[var(--bg-app)] border-t border-[var(--border)]">
+            <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleLog}
-                disabled={isLogging || !scanResult}
-                className="w-full h-16 bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                disabled={isLogging || editableResult.items.length === 0}
+                className="w-full h-16 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:grayscale"
             >
-                {isLogging ? <Loader2 className="animate-spin" size={18} /> : <><CheckCircle2 size={18} /> Add to Daily Log</>}
-            </button>
+                {isLogging ? (
+                    <Loader2 className="animate-spin" size={20} />
+                ) : (
+                    <>
+                        <CheckCircle2 size={20} strokeWidth={3} />
+                        Synchronize Entry
+                    </>
+                )}
+            </motion.button>
 
             <button 
                 onClick={() => router.push('/dashboard')}
-                className="w-full h-12 bg-transparent text-[var(--text-secondary)] rounded-[2rem] font-bold uppercase tracking-widest text-[9px] mt-2 opacity-50"
+                className="w-full h-12 bg-transparent text-[var(--text-secondary)] rounded-[2rem] font-black uppercase tracking-[0.2em] text-[8px] mt-2 opacity-50 hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
             >
-                Return to Hub
+                Cancel Acquisition
+                <ChevronRight size={14} />
             </button>
         </div>
       </div>
     );
   }
-
-  const isScanning = (status as string) === 'uploading';
-  const showOverlay = (status as string) !== 'complete';
 
   return (
     <div className="relative h-screen w-full bg-black overflow-hidden">
@@ -449,7 +628,7 @@ export function OptimisticCapture({
       />
       
       {/* High-Fidelity Design System Overlay */}
-      <NeuralScanOverlay status={isScanning ? 'scanning' : 'idle'} show={showOverlay} />
+      <NeuralScanOverlay status="idle" show={true} />
 
       <div className="absolute bottom-20 left-0 right-0 flex flex-col items-center gap-10 z-50 pb-safe">
         <div className="text-center space-y-2">

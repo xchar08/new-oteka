@@ -52,10 +52,14 @@ serve(async (request: Request) => {
           // Get subscription details
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
+          // Determine plan type from session metadata (defaults to 'pro' for backward compat)
+          const planType = session.metadata?.plan_type || 'pro';
+          console.log("Plan type from metadata:", planType);
+
           // Update user plan
           await supabase
             .from('users')
-            .update({ plan: 'pro' })
+            .update({ plan: planType })
             .eq('id', userId);
 
           // Insert into subscriptions table

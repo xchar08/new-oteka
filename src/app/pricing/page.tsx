@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Check, Sparkles, Zap, Flame, Crown, Loader2 } from 'lucide-react';
+import { ChevronLeft, Check, Sparkles, Zap, Flame, Crown, Loader2, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
@@ -47,7 +47,8 @@ export default function PricingPage() {
             "Standard Pantry Management"
         ],
         cta: "Current Plan",
-        active: !user || user.plan === 'free'
+        active: !user || user.plan === 'free',
+        badge: null,
     },
     {
         name: "Oteka Solar",
@@ -64,7 +65,27 @@ export default function PricingPage() {
         ],
         cta: user?.plan === 'pro' ? "Current Plan" : "Upgrade to Solar",
         active: user?.plan === 'pro',
-        premium: true
+        premium: true,
+        badge: "Recommended",
+    },
+    {
+        name: "Oteka Coach",
+        price: "$99",
+        period: "per month",
+        priceId: "price_1CoachPlanMonth", // Replace with your actual Stripe Price ID
+        desc: "Elite team access — 15 Pro subscriptions at a discounted rate.",
+        features: [
+            "15 Pro Seats Included",
+            "Everything in Solar",
+            "Team Metabolic Dashboard",
+            "Bulk Athlete Onboarding",
+            "Priority Support Channel"
+        ],
+        cta: user?.plan === 'coach' ? "Current Plan" : "Upgrade to Coach",
+        active: user?.plan === 'coach',
+        premium: true,
+        badge: "Best Value",
+        isCoach: true,
     }
   ];
 
@@ -99,14 +120,20 @@ export default function PricingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
                 className={`relative p-8 rounded-[40px] border transition-all duration-500 shadow-sm ${
-                    plan.premium 
+                    (plan as any).isCoach
+                    ? 'bg-gradient-to-br from-[var(--secondary)] to-[#3a1c00] border-[var(--primary)] text-white ring-2 ring-[var(--primary)]/60 ring-offset-4 ring-offset-[var(--bg-app)]'
+                    : plan.premium 
                     ? 'bg-[var(--secondary)] border-[var(--primary)] text-white ring-2 ring-[var(--primary)] ring-offset-4 ring-offset-[var(--bg-app)]' 
                     : 'bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-primary)]'
                 }`}
             >
-                {plan.premium && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-white px-6 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg flex items-center gap-2">
-                        <Crown size={12} /> Recommended
+                {plan.badge && (
+                    <div className={`absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg flex items-center gap-2 ${
+                        (plan as any).isCoach 
+                        ? 'bg-gradient-to-r from-[var(--primary)] to-amber-500 text-white' 
+                        : 'bg-[var(--primary)] text-white'
+                    }`}>
+                        {(plan as any).isCoach ? <Users size={12} /> : <Crown size={12} />} {plan.badge}
                     </div>
                 )}
 

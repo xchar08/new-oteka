@@ -55,17 +55,39 @@ export default function PantryScanPage() {
         .eq('id', user.id)
         .single();
 
-      const inserts = itemsToSave.map(item => ({
-        user_id: user.id,
-        household_id: userData?.household_id,
-        name: item.name,
-        status: 'active',
-        probability_score: 1.0,
-        metadata_json: {
-           quantity_estimate: item.quantity,
-           expiry_text: item.expiry,
-           ingredients: item.ingredients || []
+      // Look up food_id for each item by searching the foods table
+      const inserts = await Promise.all(itemsToSave.map(async (item) => {
+        // Try to find a matching food in the database
+        const { data: foodMatch } = await supabase
+          .from('foods')
+          .select('id')
+          .ilike('name', item.name.trim())
+          .limit(1);
+
+        // If no exact match, try fuzzy
+        let foodId = foodMatch?.[0]?.id || null;
+        if (!foodId) {
+          const { data: fuzzyMatch } = await supabase
+            .from('foods')
+            .select('id')
+            .ilike('name', `%${item.name.trim()}%`)
+            .limit(1);
+          foodId = fuzzyMatch?.[0]?.id || null;
         }
+
+        return {
+          user_id: user.id,
+          household_id: userData?.household_id,
+          name: item.name,
+          food_id: foodId,
+          status: 'active',
+          probability_score: 1.0,
+          metadata_json: {
+            quantity_estimate: item.quantity,
+            expiry_text: item.expiry,
+            ingredients: item.ingredients || []
+          }
+        };
       }));
 
       const { error } = await supabase.from('pantry').insert(inserts);

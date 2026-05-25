@@ -99,7 +99,9 @@ Deno.serve(async (req) => {
       mode, 
       location_context, 
       latitude, 
-      longitude 
+      longitude,
+      local_date,        // Client-provided YYYY-MM-DD in device timezone
+      timezone_offset    // Client timezone offset in minutes from UTC
     } = await req.json();
 
     let finalImageBase64 = image;
@@ -805,19 +807,42 @@ Deno.serve(async (req) => {
     // 6. Final Processing & Database Insertion
     let persisted = false;
     console.log(`[Vision DEBUG] Mode: ${mode}, Has Result: ${!!finalResult}`);
+
+    // 6a. Pre-normalize nutrient amounts: convert string "2.5mg" → amount_mg: 2.5
+    // This eliminates expensive regex parsing in the frontend aggregation loop
+    function normalizeNutrientAmounts(entries: any[]): any[] {
+      if (!Array.isArray(entries)) return entries;
+      const UNIT_MULT: Record<string, number> = { g: 1000, mg: 1, mcg: 0.001, "µg": 0.001, ug: 0.001, iu: 1 };
+      return entries.map((e: any) => {
+        if (e.amount_mg != null) return e; // Already normalized
+        const match = (e.amount || "").match(/^([\d.]+)\s*([a-zA-Zµ]*)$/);
+        if (!match) return { ...e, amount_mg: 0 };
+        const val = parseFloat(match[1]);
+        const unit = (match[2] || "").toLowerCase();
+        return { ...e, amount_mg: val * (UNIT_MULT[unit] || 1) };
+      });
+    }
+
     if (finalResult) {
+      // Normalize all nutrient arrays at the API boundary
+      if (finalResult.vitamins) finalResult.vitamins = normalizeNutrientAmounts(finalResult.vitamins);
+      if (finalResult.minerals) finalResult.minerals = normalizeNutrientAmounts(finalResult.minerals);
+      if (finalResult.micros) finalResult.micros = normalizeNutrientAmounts(finalResult.micros);
+
       const keys = Object.keys(finalResult);
       console.log(`[Vision DEBUG] FinalResult Keys: ${keys.join(', ')}`);
       const hasPantryItems = Array.isArray(finalResult.pantry_items) && finalResult.pantry_items.length > 0;
       
       if (mode === 'log' && !hasPantryItems) {
         console.log(`[Vision] Persisting log to database for user ${user.id}`);
+
+        // Use client-provided local_date (device timezone) — fallback to UTC if not provided
+        const logLocalDate = local_date || new Date().toLocaleDateString('en-CA');
         
-        const localDate = new Date().toLocaleDateString('en-CA');
         const logEntry = {
           user_id: user.id,
           grams: finalResult.volume_cm3 || 0,
-          local_date: localDate,
+          local_date: logLocalDate,
           metabolic_tags_json: {
             item: finalResult.items?.[0]?.name || 'Unknown Food',
             calories: finalResult.macros?.calories || 0,
