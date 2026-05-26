@@ -6,6 +6,7 @@ export interface PantryItem {
   probability_score: number;
   last_verified_at: string; // ISO date
   expires_at?: string; // ISO date
+  metadata_json?: any;
 }
 
 const DECAY_RATES: Record<string, number> = {
@@ -20,12 +21,15 @@ export function calculateEntropy(
   item: PantryItem,
   daysElapsed: number,
 ): number {
-  const k = DECAY_RATES[item.category] || DECAY_RATES["other"];
+  const baseK = DECAY_RATES[item.category] || DECAY_RATES["other"];
+  const fraction = item.metadata_json?.remaining_fraction ?? 1.0;
+  const effectiveK = baseK * (2.0 - fraction);
+
   // Pnew = Pold * (1 - k)^days
   // Assuming Pold was 1.0 at last_verified_at check
   // or we iteratively apply it. Simpler: P = (1 - k)^days
 
-  const p = Math.pow(1 - k, daysElapsed);
+  const p = Math.pow(1 - effectiveK, daysElapsed);
   return Math.max(0, p);
 }
 

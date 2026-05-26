@@ -7,7 +7,7 @@ import { ChevronLeft, Zap, Activity, Battery, Flame, Moon, Sun } from 'lucide-re
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useAppStore, ColorTheme } from '@/lib/state/appStore';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
 import { userService } from '@/lib/services/user.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const { theme, setTheme } = useTheme();
   const { colorTheme, setColorTheme } = useAppStore();
-  const { user, loading: dataLoading } = useDashboardData();
+  const { user, loading: dataLoading } = useUser();
   const queryClient = useQueryClient();
   
   const supabase = createClient();

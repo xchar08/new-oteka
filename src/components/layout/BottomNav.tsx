@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, PlusCircle, List, User, LayoutGrid, UtensilsCrossed, Package, Camera, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user } = useDashboardData();
+  const { user } = useUser();
   const isPro = user?.plan === 'pro';
   
   const hideNavRoutes = ['/vision', '/onboarding', '/login'];

@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { ChevronDown, Flame, Utensils } from 'lucide-react';
-import { visionService } from '@/lib/services/vision.service';
+import { ChevronDown, Flame, Utensils, RefreshCw } from 'lucide-react';
 import { NutrientSection } from '@/components/ui/NutrientSection';
+import { useLogFeedback } from '@/lib/hooks/useLogFeedback';
 import type { LogEntry, LogMetadata } from '@/lib/types/metabolic';
 
 const itemVariants: Variants = {
@@ -46,27 +46,15 @@ export function LogEntryCard({ log }: LogEntryCardProps) {
   const micros = meta.micros || [];
 
   // Feedback State (NSGA-II Fitness Weights)
-  const [feedback, setFeedback] = useState(meta.feedback || { taste: 3, satiety: 3, digestion: 3 });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasFeedback, setHasFeedback] = useState(!!meta.feedback);
+  const { feedback, setFeedback, isSubmitting, hasFeedback, submitFeedback } = useLogFeedback(log.id, meta);
 
-  const handleFeedbackSubmit = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsSubmitting(true);
-    try {
-      await visionService.updateLogFeedback(log.id!, meta, feedback);
-      setHasFeedback(true);
-    } catch (e) {
-      console.error("Failed to calibrate algorithm", e);
-    }
-    setIsSubmitting(false);
-  };
+  const isOptimistic = (log.metabolic_tags_json as any)?.isOptimistic;
 
   return (
     <motion.div 
       layout 
       variants={itemVariants} 
-      className="bg-[var(--bg-surface)]/60 backdrop-blur-xl rounded-[24px] shadow-sm border border-[var(--border)] overflow-hidden relative"
+      className="glass-panel overflow-hidden relative"
     >
       {/* Kinetic Background Glow */}
       <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/5 to-transparent opacity-30 pointer-events-none" />
@@ -85,10 +73,17 @@ export function LogEntryCard({ log }: LogEntryCardProps) {
         <div className="flex-1 py-1 flex flex-col justify-between min-w-0">
           <div>
             <div className="flex justify-between items-start">
-              <h4 className="font-bold text-[var(--text-primary)] leading-tight capitalize truncate w-[70%]">{name}</h4>
+              <div className="flex items-center gap-2 max-w-[70%]">
+                <h4 className="font-bold text-[var(--text-primary)] leading-tight capitalize truncate">{name}</h4>
+                {isOptimistic && (
+                  <RefreshCw size={12} className="text-[var(--primary)] animate-spin shrink-0" />
+                )}
+              </div>
               <ChevronDown size={16} className={`text-[var(--text-secondary)] opacity-30 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
             </div>
-            <p className="text-[10px] font-bold uppercase text-[var(--primary)] mt-1 tracking-wider font-mono">{time}</p>
+            <p className="text-[10px] font-bold uppercase text-[var(--primary)] mt-1 tracking-wider font-mono">
+              {isOptimistic ? 'Syncing...' : time}
+            </p>
           </div>
           <div className="flex gap-4">
             <div className="text-[10px] font-bold text-[var(--text-primary)] flex flex-col font-mono">
@@ -172,9 +167,9 @@ export function LogEntryCard({ log }: LogEntryCardProps) {
                     />
                   </div>
 
-                  {!hasFeedback && (
+                  {!hasFeedback && !isOptimistic && (
                     <button 
-                      onClick={handleFeedbackSubmit}
+                      onClick={submitFeedback}
                       disabled={isSubmitting}
                       className="w-full py-3 mt-2 bg-[var(--primary)] text-white hover:brightness-110 transition-all shadow-[0_0_20px_rgba(255,140,0,0.3)] rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95"
                     >

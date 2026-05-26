@@ -532,11 +532,9 @@ serve(async (req) => {
           })),
           strictness: constraints.strictness || 1.0,
         };
-        const result = optimize_meal_plan(wasmReq);
-        if (
-          result && result.selected_foods && result.selected_foods.length > 0
-        ) {
-          solutions = [{
+        const results = optimize_meal_plan(wasmReq);
+        if (Array.isArray(results) && results.length > 0) {
+          solutions = results.map((result: any) => ({
             menu: result.selected_foods.map((f: any) => f.name),
             stats: {
               calories: result.total_calories,
@@ -561,7 +559,7 @@ serve(async (req) => {
               ),
             },
             score: result.fitness_score,
-          }];
+          }));
           method = "WASM_ON_EDGE";
         }
       } catch (e) {

@@ -27,7 +27,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
 import Link from 'next/link';
 import { useConnectionMode } from '@/lib/hooks/useConnectionMode';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
+import { useMetabolicLogs } from '@/lib/hooks/useMetabolicLogs';
 import { useRouter } from 'next/navigation';
 import { PricingGuard } from '@/components/ui/PricingGuard';
 
@@ -53,13 +54,9 @@ const item = {
 
 export default function DashboardPage() {
   useConnectionMode();
-  const { 
-    user, 
-    advice, 
-    dailyMacros, 
-    dailyLogs = [],
-    loading, 
-  } = useDashboardData();
+  const { user, loading: userLoading } = useUser();
+  const { dailyMacros, advice, dailyLogs = [], loading: logsLoading } = useMetabolicLogs();
+  const loading = userLoading || logsLoading;
 
   const router = useRouter();
 

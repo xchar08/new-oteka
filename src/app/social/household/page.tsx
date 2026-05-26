@@ -183,7 +183,11 @@ export default function HouseholdPage() {
                         </div>
                         <div className="space-y-2">
                             {members.map((m) => (
-                                <div key={m.id} className="flex items-center justify-between p-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border)]">
+                                <div 
+                                    key={m.id} 
+                                    onClick={() => router.push(`/profile/member?id=${m.id}`)}
+                                    className="flex items-center justify-between p-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border)] cursor-pointer hover:border-[var(--primary)]/50 transition-colors"
+                                >
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-xl overflow-hidden bg-[var(--primary)]/10 border border-[var(--primary)]/20 flex items-center justify-center">
                                             {m.avatar_url ? (

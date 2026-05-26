@@ -140,3 +140,16 @@ export function aggregateNutrients(
 
   return result;
 }
+
+/**
+ * Determines default serving size in grams based on RFK Jr / MAHA 2025-2030 Food Guidelines (Inverted Pyramid)
+ */
+export function calculateDefaultGrams(category: string): number {
+  if (['Meat', 'Proteins', 'Fish', 'Poultry', 'Beef'].some(c => category.includes(c))) return 200; // Increased protein emphasis
+  if (['Dairy', 'Milk', 'Cheese'].some(c => category.includes(c))) return 150; // Full-fat dairy emphasis
+  if (['Produce', 'Vegetables', 'Fruits'].some(c => category.includes(c))) return 150;
+  if (['Oils', 'Fats', 'Butter', 'Tallow'].some(c => category.includes(c))) return 15; // Healthy fats (keep volume small due to density)
+  if (['Grains', 'Carbs', 'Bread'].some(c => category.includes(c))) return 50; // Minimized grains at the bottom of pyramid
+  if (['Snacks', 'Sweets', 'Processed'].some(c => category.includes(c))) return 30;
+  return 100; // Default fallback
+}

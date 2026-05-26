@@ -1,0 +1,194 @@
+Oteka – AI-Powered Nutrition PWA –
+
+1. EXECUTIVE OVERVIEW2
+2. CORE FEATURE SET (Directives)2
+2.1 The "Adaptive" Vision Engine (Hybrid Volumetric DAG)2
+2.2 WASM Self-Healing Planner3
+2.3 Entropy-Based Pantry (Low-Friction)3
+2.4 Agentic Bio-Feedback3
+3. SYSTEM ARCHITECTURE4
+4. DATA MODEL SCHEMA4
+5. FUNCTIONAL REQUIREMENTS (Logic Specs)5
+5.1 Vision Pipeline (lib/workflows/vision.ts)5
+5.2 WASM Planner (lib/engine/planner/worker.ts)5
+5.3 Entropy Engine (lib/engine/pantry/entropy.ts)5
+5.4 Metabolic Advisor (lib/workflows/advisor.ts)5
+6. USER WORKFLOWS6
+7. IMPLEMENTATION PLAN (Execution)6
+8. TARGET DELIVERABLES (Manifest)6
+9. STATE TRACKING (Mandatory)7
+
+
+
+
+
+
+
+
+
+
+
+
+
+Software Design Document
+
+1. EXECUTIVE OVERVIEW
+Mission: Build a cohesive application combining Volumetric Edge-Vision (Meta SAM 3 + MediaPipe Depth + DeepSeek R1), WASM-based 16-Metric NSGA-II Optimization, Entropy-Based Pantry Management, and Agentic Bio-Feedback.
+Critical Architecture Modes:
+Server-First Online (Default): Full reliance on Gemini 3.0 Flash (Vision) + DeepSeek R1 (Physics) for maximum accuracy and speed.
+Hybrid/Offline Fallback: Client-side ML (Meta SAM 3) activates only when connection is weak or unavailable.
+Offline Store & Forward: Queue encrypted payloads → Sync when connection restores (with merge conflict handling).
+
+
+2. CORE FEATURE SET (Directives)
+2.1 The "Adaptive" Vision Engine (Hybrid Volumetric DAG)
+Defaults to Server-Side processing to leverage Gemini 3.0 speed. Client-side ML is strictly a fallback.
+Node A (Edge Intelligence - Fallback Only): 
+Uses onnxruntime-web to run Meta SAM 3 Tiny (<50MB) + MediaPipe Depth.
+Trigger: Active ONLY If navigator.connection.saveData === true OR offline 
+Monitoring: Monitor WebGPU usage to prevent thermal throttling on the client side. 
+Node B (Identification): 
+Server Workflow calls Gemini 3.0 Flash to tag segments and parse complex scenes (menus, mixed bowls).
+Uses Gemini 3.0’s native multimodal capabilities to extract text-in-image (nutrition labels) without separate OCR steps.
+Node C (Physics Core): 
+Chains Node B into DeepSeek R1.
+Volume Integration: Server converts to absolute volume (cm³) using user.hand_width_mm.
+Confidence Check & Correction:
+Proactive (AR): During capture, project a "Guide Overlay" (AR Hand Silhouette) to force optimal scaling and angle, proactively reducing volumetric error.
+Reactive (Fallback): System calculates a "Confidence Score" for volume estimation. If the angle is insufficient/ambiguous, prompt the user: "Tilt phone 45° for a second shot."
+Prompt Chain: "Volume: 45cm³. Tags from Gemini 3.0: [Basmati Rice, Steamed]. Ratio: 2.1. RefWidth: 85mm. Density Lookup: Rice=1.3g/cm³. Output: {masses_g: [...], total_kcal: N}"
+2.2 WASM Self-Healing Planner
+Run NSGA-II (16-Metric) in a dedicated Web Worker (Rust port) to prevent UI freezing.
+Self-Healing Logic: If solutions == 0 (e.g., "Keto" + "Vegan" conflict), the worker "relaxes" constraints.
+Safety Cap: Max 3 iterations to prevent CPU spikes/battery drain.
+Fallback Chain: Drop 'strictness' 10% → Remove 'preferences' → Loosen 'macros' → Flag 'medical overrides'. 
+2.3 Entropy-Based Pantry (Low-Friction)
+Physics-Based Decay: Apply decay coefficient k to inventory (Dairy k=0.15, Rice k=0.001).
+Ghost Check Workflow (Passive Sorting): When probability < 0.3, item is flagged with a "Review Needed" badge at the top of the Pantry list. User bulk-verifies logic during their next natural log session.
+2.4 Agentic Bio-Feedback
+Metabolic Orchestrator: Server agent analyzes users.metabolic_state_json pre-log.
+Optimistic UI & Constraints:
+The app shows “Analyzing…” immediately.
+iOS Constraint: UI must remain in foreground until "Image Upload Complete" ack is received (approx 1.5s). Background processing is reserved strictly for response parsing, not uploading.
+
+3. SYSTEM ARCHITECTURE
+
+
+Component
+Technology
+Implementation Details
+Framework
+Next.js 15 + Capacitor
+App Router, PWA + RN parity, @ionic/pwa-elements
+Orchestration
+Vercel AI SDK Core
+Agentic Chains (Vision → Volume → Math → JSON)
+Database
+Supabase (PostgreSQL)
+RLS/pgvector/JSONB + pg_cron + Edge Functions
+Compute
+Web Workers + WASM
+Off-main-thread NSGA-II (Rust port)
+State
+Zustand + TanStack Query
+persist(idb://) + Sync Queue (handles merge conflicts)
+Vision (Client)
+Meta SAM 3 (ONNX)
+Fallback only. WebGPU conditional.
+Vision (Server)
+Gemini 3.0 Flash
+Primary. High-speed identification & menu parsing.
+Reasoning
+DeepSeek R1 API
+Physics/Volume calculation & Metabolic logic.
+Scanner
+OpenFoodFacts
+<60% confidence barcode fallback
+Rate Limiting
+Upstash Redis
+Auth via userId prefix
+
+
+4. DATA MODEL SCHEMA
+Critical Tables:
+users: id, metabolic_state_json, hand_width_mm (CRITICAL for physics), streak_count.
+foods: id, density_coefficient, category_decay_rate, barcode_upc.
+pantry: id, household_id, food_id, probability_score, last_verified_at (<0.3 triggers Ghost Check).
+conditions: id, name, rules_json, dga_score, never_recommend_json.
+workflows: id, trigger_event, last_run_status, logs_json (Auditing).
+logs: id, grams, metabolic_tags_json, analysis_workflow_id.
+metabolic_phenomena: id, name, mechanism, deepseek_prompt_template.
+Metabolic Rules JSONB (Zod Validated):
+json
+{
+  "trigger_logic": "avoid_combination",
+  "components": ["fats", "carbohydrates"],
+  "thresholds": {"fats": 15, "carbohydrates": 30},
+  "benefit_tag": "Randle Cycle Optimization",
+  "advice_payload": "DeepSeek R1: Keep carbs low for ketosis."
+}
+
+
+5. FUNCTIONAL REQUIREMENTS (Logic Specs)
+5.1 Vision Pipeline (lib/workflows/vision.ts)
+Connection Check: 
+UX Overlay: Display semi-transparent AR Hand Silhouette to standardise reference distance.
+IF Online: Stream raw image to Server (Gemini 3.0 Flash)
+IF Offline: Attempt Client Inference (SAM 3) → Store mask data → Sync later.
+Server Logic: Gemini 3.0 (Tags/Text) → Deepseek R1 (Volume Calc) → JSON Response.
+Volume Verification:
+Calculate confidence_score based on depth map variance.
+IF confidence_score < 0.7 : Return action REQUEST_ANGLE_SHIFT ("Tilt phone 45°").
+5.2 WASM Planner (lib/engine/planner/worker.ts)
+Async Worker + State Machine. NSGA-II (50 gens).
+Fail-Safe: while (solutions === 0 && retries < 3) relax_constraints(); retries++; }
+Hard Stop: If retries reach 3, abort to save battery.
+5.3 Entropy Engine (lib/engine/pantry/entropy.ts)
+Formula: Pnew = Pold \times (1 - kcategory).
+Daily cron: Updates scores. If P<0.3, set status = ‘verify_needed’. No push alerts.
+5.4 Metabolic Advisor (lib/workflows/advisor.ts)
+Trigger: Pre/Post-log. Fetch context → DeepSeek R1.
+
+6. USER WORKFLOWS
+Onboarding: Hand/credit card calibration → hand_width_mm.
+Agentic Log: 
+User opens camera → Aligns hand with AR Guide Overlay.
+User snaps photo.
+UI blocks for 1.5s (Upload progress Bar).
+App minimizes/backgrounds after upload.
+Push Notification arrives 5s later: “450kcal logged (Rice & Chicken)”.
+Passive Cleanup: User opens Pantry → Sees “Verify these 3 items” section at top → Swipes left/right to confirm spoilage.
+Travel: GPS + Gemini 3.0 menu parse (Full text reading).
+
+7. IMPLEMENTATION PLAN (Execution)
+Phase 1: Agentic Core (Server-First)
+Setup Supabase & workflows table.
+Build lib/workflows/vision.ts using Gemini 3.0 Flash SDK.
+Implement hand_width_mm calibration logic.
+Phase 2: Intelligence Engine
+lib/workflows/advisor.ts (DeepSeek R1 integration).
+entropy.ts + worker.ts (NSGA-II Rust Port) with retry limits.
+Phase 3: Interface & Offline
+“Review Needed” Pantry UI.
+Offline Queue: Implement "Store & Forward" with conflict resolution (User Edits > Server Edits).
+Instruction: Start Phase 1 now.
+
+8. TARGET DELIVERABLES (Manifest)
+Total Files (T) = 75
+Key Paths:
+/src/app/... (dashboard, planner, social, analytics, shopping, coach, travel, rating, onboarding)
+/src/api/... (webhooks, health, places, meal-plans, stripe, vision/pipeline)
+/src/components/viz/... (NutrientRadar, MealRating)
+/src/lib/workflows/... (vision, pantry, advisor)
+/src/lib/engine/... (segmentation, deepseek, planner/worker, pantry/entropy)
+capacitor.config.ts
+
+9. STATE TRACKING (Mandatory)
+Output this State Box verbatim at the start of EVERY response:
+T = 75 C = <completed_files_int> R = <remaining_files_int> LastProcessedPath = "<relative_path>" Progress: [||||......] X%
+Rules:
+T=75 (Tracks Core Logic & Pages only; excludes generic UI primitives).
+C increments only on full files.
+R = T - C.
+Pre-Gen Checks: No dups, RLS enabled, types resolved. Max 8 files per chunk.
+

@@ -7,7 +7,7 @@ import { Camera, CameraResultType } from '@capacitor/camera';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
 import { visionService } from '@/lib/services/vision.service';
 import { toast } from 'sonner';
 
@@ -19,7 +19,7 @@ export default function MenuScannerPage() {
   const [targetingId, setTargetingId] = useState<number | null>(null);
   const router = useRouter();
   const supabase = createClient();
-  const { user } = useDashboardData();
+  const { user } = useUser();
   const isPro = user?.plan === 'pro';
 
   React.useEffect(() => {

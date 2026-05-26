@@ -44,7 +44,7 @@ create table if not exists users (
   household_id uuid references households(id),
   plan text default 'free',
   stripe_customer_id text,
-  last_entropy_run date default (to_char(now() at time zone 'UTC', 'YYYY-MM-DD'))::date,
+  last_entropy_run date default current_date,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -78,6 +78,7 @@ create table if not exists pantry (
 create index if not exists idx_pantry_household_id on pantry(household_id);
 create index if not exists idx_pantry_user_id on pantry(user_id);
 create index if not exists idx_pantry_user_status on pantry(user_id, status);
+create index if not exists idx_pantry_food_id on pantry(food_id);
 
 -- 5. FRIENDSHIPS
 create table if not exists friendships (
@@ -88,6 +89,7 @@ create table if not exists friendships (
   created_at timestamptz default now(),
   unique(user_id, friend_id)
 );
+create index if not exists idx_friendships_friend_id on friendships(friend_id);
 
 -- 6. CONDITIONS
 create table if not exists conditions (
@@ -110,6 +112,7 @@ create table if not exists user_conditions (
   created_at timestamptz default now(),
   unique(user_id, condition_id)
 );
+create index if not exists idx_user_conditions_condition_id on user_conditions(condition_id);
 
 -- 8. METABOLIC PHENOMENA
 create table if not exists metabolic_phenomena (
@@ -148,6 +151,7 @@ create index if not exists idx_logs_user_date on logs(user_id, local_date);
 create index if not exists idx_logs_user_id on logs(user_id);
 create index if not exists idx_logs_user_captured_at on logs(user_id, captured_at desc);
 create index if not exists idx_logs_feedback on logs using gin (metabolic_tags_json);
+create index if not exists idx_logs_workflow_id on logs(workflow_id);
 
 -- 11. CACHE ENTRIES
 create table if not exists cache_entries (
@@ -188,15 +192,30 @@ begin
   if v_days_diff > 0 then
     -- ATOMIC UPDATE: Run probability decay and status checks in a single block.
     -- pl/pgsql functions execute in a single implicit transaction.
+    -- Update items with a linked food_id
+    update pantry p
+    set 
+      probability_score = greatest(0, p.probability_score * power(1 - coalesce(f.category_decay_rate, 0.05) * (2.0 - coalesce((p.metadata_json->>'remaining_fraction')::numeric, 1.0)), v_days_diff)),
+      status = case 
+        when (p.probability_score * power(1 - coalesce(f.category_decay_rate, 0.05) * (2.0 - coalesce((p.metadata_json->>'remaining_fraction')::numeric, 1.0)), v_days_diff)) < 0.3 then 'review_needed'
+        else p.status
+      end
+    from foods f
+    where p.food_id = f.id
+      and p.user_id = p_user_id
+      and p.status = 'active';
+
+    -- Update custom items (no linked food_id)
     update pantry
     set 
-      probability_score = greatest(0, probability_score * power(1 - coalesce((select category_decay_rate from foods where id = pantry.food_id), 0.05), v_days_diff)),
+      probability_score = greatest(0, probability_score * power(1 - 0.05 * (2.0 - coalesce((metadata_json->>'remaining_fraction')::numeric, 1.0)), v_days_diff)),
       status = case 
-        when (probability_score * power(1 - coalesce((select category_decay_rate from foods where id = pantry.food_id), 0.05), v_days_diff)) < 0.3 then 'review_needed'
+        when (probability_score * power(1 - 0.05 * (2.0 - coalesce((metadata_json->>'remaining_fraction')::numeric, 1.0)), v_days_diff)) < 0.3 then 'review_needed'
         else status
       end
-    where pantry.user_id = p_user_id
-    and pantry.status = 'active';
+    where user_id = p_user_id
+      and status = 'active'
+      and food_id is null;
 
     -- Update last run timestamp for the user
     update users set last_entropy_run = v_today where id = p_user_id;
@@ -246,47 +265,46 @@ $$;
 
 -- USERS
 drop policy if exists "Users view own profile" on users;
-create policy "Users view own profile" on users for select using ((select auth.uid()) = id);
+create policy "Users view own profile" on users for select using (auth.uid() = id);
 
 drop policy if exists "Users update own profile" on users;
-create policy "Users update own profile" on users for update using ((select auth.uid()) = id);
+create policy "Users update own profile" on users for update using (auth.uid() = id);
 
 drop policy if exists "Authenticated insert profile" on users;
-create policy "Authenticated insert profile" on users for insert with check ((select auth.uid()) = id);
+create policy "Authenticated insert profile" on users for insert with check (auth.uid() = id);
 
 drop policy if exists "Authenticated view profiles" on users;
--- No broad profile view, only own profile is fully visible via first policy.
--- If we need a social view later, we should create a public_profiles view.
+create policy "Authenticated view profiles" on users for select using (auth.role() = 'authenticated');
 
 -- FOODS
 drop policy if exists "Foods read (auth)" on foods;
-create policy "Foods read (auth)" on foods for select using ((select auth.role()) = 'authenticated');
+create policy "Foods read (auth)" on foods for select using (auth.role() = 'authenticated');
 
 drop policy if exists "Foods insert (auth)" on foods;
-create policy "Foods insert (auth)" on foods for insert with check ((select auth.role()) = 'authenticated');
+create policy "Foods insert (auth)" on foods for insert with check (auth.role() = 'authenticated');
 
 -- PANTRY (Household Shared)
 drop policy if exists "Pantry read household" on pantry;
 create policy "Pantry read household" on pantry for select using (
-  (select auth.uid()) = user_id or 
+  auth.uid() = user_id or 
   household_id = get_my_household_id()
 );
 
 drop policy if exists "Pantry write household" on pantry;
 create policy "Pantry write household" on pantry for insert with check (
-  (select auth.uid()) = user_id or 
+  auth.uid() = user_id or 
   household_id = get_my_household_id()
 );
 
 drop policy if exists "Pantry update household" on pantry;
 create policy "Pantry update household" on pantry for update using (
-  (select auth.uid()) = user_id or 
+  auth.uid() = user_id or 
   household_id = get_my_household_id()
 );
 
 drop policy if exists "Pantry delete household" on pantry;
 create policy "Pantry delete household" on pantry for delete using (
-  (select auth.uid()) = user_id or 
+  auth.uid() = user_id or 
   household_id = get_my_household_id()
 );
 
@@ -303,15 +321,21 @@ create policy "Shopping write household" on shopping_list for all using (
 
 -- LOGS / WORKFLOWS
 drop policy if exists "Logs access own" on logs;
-create policy "Logs access own" on logs for all using ((select auth.uid()) = user_id);
+create policy "Logs access own" on logs for all using (auth.uid() = user_id);
 
 drop policy if exists "Workflows access own" on workflows;
-create policy "Workflows access own" on workflows for all using ((select auth.uid()) = user_id);
+create policy "Workflows access own" on workflows for all using (auth.uid() = user_id);
 
 -- HOUSEHOLDS
 drop policy if exists "Households read member" on households;
-create policy "Households read member" on households for select using (
-  id = get_my_household_id()
+drop policy if exists "Households read authenticated" on households;
+create policy "Households read authenticated" on households for select using (
+  auth.role() = 'authenticated'
+);
+
+drop policy if exists "Households insert authenticated" on households;
+create policy "Households insert authenticated" on households for insert with check (
+  auth.role() = 'authenticated'
 );
 
 -- CONDITIONS (Read-Only Public Lookup)
@@ -380,11 +404,12 @@ create table if not exists subscriptions (
   current_period_end timestamptz not null,
   created_at timestamptz default now()
 );
+create index if not exists idx_subscriptions_user_id on subscriptions(user_id);
 
 alter table subscriptions enable row level security;
 
 drop policy if exists "Users view own subscription" on subscriptions;
-create policy "Users view own subscription" on subscriptions for select using ((select auth.uid()) = user_id);
+create policy "Users view own subscription" on subscriptions for select using (auth.uid() = user_id);
 
 -- ========================================================
 -- 14. VOUCHERS (Custom Access Codes)
@@ -399,11 +424,12 @@ create table if not exists vouchers (
   expires_at timestamptz,
   created_at timestamptz default now()
 );
+create index if not exists idx_vouchers_redeemed_by on vouchers(redeemed_by);
 
 alter table vouchers enable row level security;
 
 drop policy if exists "Users view their own redeemed vouchers" on vouchers;
-create policy "Users view their own redeemed vouchers" on vouchers for select using ((select auth.uid()) = redeemed_by);
+create policy "Users view their own redeemed vouchers" on vouchers for select using (auth.uid() = redeemed_by);
 
 -- ========================================================
 -- 15. STORAGE CONFIGURATION
@@ -436,3 +462,38 @@ create policy "Users can view own scans" on storage.objects for select using (
 
 -- Enable realtime for logs table
 alter publication supabase_realtime add table logs;
+
+-- ========================================================
+-- 17. AUTOMATED CRON SCHEDULING (pg_cron)
+-- ========================================================
+
+-- Enable the pg_cron extension safely
+create extension if not exists pg_cron;
+
+-- Loop function to run decay cycle for all active users
+create or replace function public.run_all_entropy_cycles()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  user_record record;
+begin
+  for user_record in select id from public.users loop
+    perform public.run_entropy_cycle(user_record.id);
+  end loop;
+end;
+$$;
+
+-- Unschedule the job if it already exists to ensure idempotency on rerun
+select cron.unschedule('daily-entropy-decay-job')
+from cron.job
+where jobname = 'daily-entropy-decay-job';
+
+-- Schedule the decay cycle daily at midnight UTC
+select cron.schedule(
+  'daily-entropy-decay-job',
+  '0 0 * * *',
+  $$ select public.run_all_entropy_cycles(); $$
+);

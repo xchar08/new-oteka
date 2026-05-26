@@ -31,26 +31,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      if (sessionError || !session) {
-        setAuthorized(false);
-        setLoading(false);
-        
-        if (pathname !== '/login' && !EXEMPT_ROUTES.some(route => pathname?.startsWith(route))) {
-          router.replace('/login');
-        } else {
-          setAuthorized(true);
-        }
-        return;
-      }
-
-      // Fresh User Verification
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-         await supabase.auth.signOut();
-         router.replace('/login');
-         return;
-      }
-
       const isPremiumRoute = PREMIUM_ROUTES.some(route => pathname === route || pathname?.startsWith(`${route}/`));
       const isExemptRoute = EXEMPT_ROUTES.some(route => pathname?.startsWith(route));
       const isOnboardingRoute = pathname.startsWith('/onboarding');
@@ -147,7 +127,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Final Gate: Prevent unauthorized access during redirect
+  // Final Gate
   if (!authorized && 
       !pathname.startsWith('/onboarding') && 
       pathname !== '/login' && 

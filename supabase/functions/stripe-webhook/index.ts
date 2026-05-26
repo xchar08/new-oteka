@@ -62,14 +62,14 @@ serve(async (request: Request) => {
             .update({ plan: planType })
             .eq('id', userId);
 
-          // Insert into subscriptions table
-          await supabase.from('subscriptions').insert({
+          // Upsert into subscriptions table (handles duplicate webhook events)
+          await supabase.from('subscriptions').upsert({
             id: subscriptionId,
             user_id: userId,
             status: subscription.status,
             price_id: subscription.items.data[0].price.id,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          });
+          }, { onConflict: 'id' });
         }
         break;
       }

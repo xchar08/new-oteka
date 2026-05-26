@@ -19,6 +19,9 @@
   .glass-dark {
     @apply backdrop-blur-xl bg-zinc-950/80 border border-white/5;
   }
+  .glass-panel {
+    @apply bg-[var(--bg-surface)]/60 backdrop-blur-xl rounded-[24px] shadow-sm border border-[var(--border)];
+  }
   .shadow-smooth {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   }

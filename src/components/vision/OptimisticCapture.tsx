@@ -16,7 +16,7 @@ import { buildLogMetadata } from '@/lib/utils/metabolic.utils';
 import { normalizeError } from '@/lib/utils/errors';
 import type { ScanResult } from '@/lib/types/metabolic';
 import { set, get, del } from 'idb-keyval';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
 import { VISION_CONFIG } from '@/lib/vision/vision.config';
 
 export function OptimisticCapture({
@@ -32,7 +32,7 @@ export function OptimisticCapture({
   const router = useRouter();
   const queryClient = useQueryClient();
   const supabase = createClient();
-  const { user } = useDashboardData();
+  const { user } = useUser();
 
   const uploadMutation = useMutation({
     mutationFn: async ({ userId, blob }: { userId: string, blob: Blob }) => {
@@ -107,16 +107,42 @@ export function OptimisticCapture({
   useEffect(() => {
     const handleOnline = async () => {
       try {
-        const pending = await get('pending_capture');
-        if (pending && pending.blob && pending.userId) {
-          toast.info("Network restored. Syncing offline capture...");
-          setStatus('uploading');
-          await uploadMutation.mutateAsync({ userId: pending.userId, blob: pending.blob });
+        let queue = await get('pending_captures_queue') || [];
+        const legacyPending = await get('pending_capture');
+
+        // Migrate legacy single pending_capture to the queue
+        if (legacyPending && legacyPending.blob && legacyPending.userId) {
+          queue = [{
+            id: 'legacy-migration',
+            blob: legacyPending.blob,
+            userId: legacyPending.userId,
+            timestamp: legacyPending.timestamp || Date.now()
+          }, ...queue];
+          await set('pending_captures_queue', queue);
           await del('pending_capture');
-          toast.success("Offline capture synced successfully!");
+        }
+
+        if (queue.length > 0) {
+          toast.info(`Network restored. Syncing ${queue.length} offline capture(s)...`);
+          setStatus('uploading');
+          
+          while (queue.length > 0) {
+            const item = queue[0];
+            await uploadMutation.mutateAsync({ userId: item.userId, blob: item.blob });
+            // Remove from the queue in storage
+            queue.shift();
+            await set('pending_captures_queue', queue);
+          }
+          
+          toast.success("All offline captures synced successfully!");
+          setStatus('idle');
+          // Invalidate daily logs query to refresh dashboard
+          queryClient.invalidateQueries({ queryKey: ['daily-logs'] });
         }
       } catch (err) {
-        console.error("Failed to sync offline capture:", err);
+        console.error("Failed to sync offline captures:", err);
+        toast.error("Offline sync encountered an error. Remaining items queued.");
+        setStatus('idle');
       }
     };
 
@@ -125,7 +151,7 @@ export function OptimisticCapture({
     if (navigator.onLine) handleOnline();
 
     return () => window.removeEventListener('online', handleOnline);
-  }, [uploadMutation]);
+  }, [uploadMutation, queryClient]);
 
   const handleClick = async () => {
     if (!videoRef.current || status !== 'idle') return;
@@ -165,8 +191,11 @@ export function OptimisticCapture({
       if (!authUser) throw new Error('No authenticated user session');
 
       if (!navigator.onLine) {
-        await set('pending_capture', { blob, userId: authUser.id, timestamp: Date.now() });
-        toast.success("Saved locally. Will analyze when online.");
+        const queue = await get('pending_captures_queue') || [];
+        const newId = crypto.randomUUID();
+        queue.push({ id: newId, blob, userId: authUser.id, timestamp: Date.now() });
+        await set('pending_captures_queue', queue);
+        toast.success(`Saved locally (${queue.length} items queued). Will analyze when online.`);
         setStatus('idle');
         return;
       }

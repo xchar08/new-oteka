@@ -5,13 +5,13 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, Check, Sparkles, Zap, Flame, Crown, Loader2, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
 import { subscriptionService } from '@/lib/services/subscription.service';
 import { toast } from 'sonner';
 
 export default function PricingPage() {
   const router = useRouter();
-  const { user, loading } = useDashboardData();
+  const { user, loading } = useUser();
   const [upgrading, setUpgrading] = useState(false);
 
   const handleUpgrade = async (priceId: string) => {

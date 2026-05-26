@@ -47,6 +47,8 @@ serve(async (req) => {
     const reqBody = await req.json();
     const context = reqBody?.context || "chat";
     const userQuery = reqBody?.query || "";
+    const clientDailyTotals = reqBody?.dailyTotals;
+    const clientRecentLogs = reqBody?.recentLogs;
 
     // 1. Fetch User Profile, Conditions & Metabolic Phenomena
     const { data: profile } = await supabase
@@ -71,23 +73,30 @@ serve(async (req) => {
       .from("metabolic_phenomena")
       .select("name, mechanism");
 
-    // 2. Fetch Recent Logs (Last 24h)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    // 2. Fetch Recent Logs (Last 24h) ONLY if not provided by client
+    let logs: any[] = [];
+    if (!clientRecentLogs || !clientDailyTotals) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
 
-    const { data: logs } = await supabase
-      .from("logs")
-      .select("metabolic_tags_json, captured_at")
-      .eq("user_id", user.id)
-      .gte("captured_at", yesterday.toISOString())
-      .order("captured_at", { ascending: false });
+      const { data } = await supabase
+        .from("logs")
+        .select("metabolic_tags_json, captured_at")
+        .eq("user_id", user.id)
+        .gte("captured_at", yesterday.toISOString())
+        .order("captured_at", { ascending: false });
+      
+      logs = data || [];
+    } else {
+      logs = clientRecentLogs;
+    }
 
     // 3. Construct Context strings
     const goal = profile?.metabolic_state_json?.current_goal || "maintenance";
 
     // Aggregate Nutrients for the context
-    const dailyTotals = (logs || []).reduce((acc: any, log: any) => {
-        const m = log.metabolic_tags_json;
+    const dailyTotals = clientDailyTotals || (logs || []).reduce((acc: any, log: any) => {
+        const m = log.metabolic_tags_json || {};
         const macros = m.macros || m || {};
         acc.calories += (Number(macros.calories) || 0);
         acc.protein += (Number(macros.protein) || 0);
@@ -110,11 +119,11 @@ serve(async (req) => {
     if (logs && logs.length > 0) {
       logSummary = `Daily Totals: ${dailyTotals.calories}kcal (P:${dailyTotals.protein}g, C:${dailyTotals.carbs}g, F:${dailyTotals.fat}g). 
 Micros: Fiber:${dailyTotals.fiber}g, Sugar:${dailyTotals.sugar}g, Sodium:${dailyTotals.sodium}mg, Chol:${dailyTotals.cholesterol}mg.
-Vitamin Gaps (DV%): ${Object.entries(dailyTotals.vitamins).map(([n, v]) => `${n}:${v}%`).join(", ")}
-Mineral Gaps (DV%): ${Object.entries(dailyTotals.minerals).map(([n, v]) => `${n}:${v}%`).join(", ")}
+Vitamin Gaps (DV%): ${Object.entries(dailyTotals.vitamins || {}).map(([n, v]) => `${n}:${v}%`).join(", ")}
+Mineral Gaps (DV%): ${Object.entries(dailyTotals.minerals || {}).map(([n, v]) => `${n}:${v}%`).join(", ")}
 Recent Items:
 ` + logs.slice(0, 5).map((l: any) => {
-        const m = l.metabolic_tags_json;
+        const m = l.metabolic_tags_json || {};
         return `- [${new Date(l.captured_at).getHours()}:00] ${m.item || "Food"} (${m.calories || 0}kcal)`;
       }).join("\n");
     }

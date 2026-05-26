@@ -6,7 +6,7 @@ import { Loader2, TrendingUp, Calendar, Target, Flame, Zap, Droplets, ChevronLef
 import { motion, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useRouter } from 'next/navigation';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
 import { PricingGuard } from '@/components/ui/PricingGuard';
 
 type WeeklyStats = {
@@ -43,7 +43,7 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState(7);
   const supabase = createClient();
   const router = useRouter();
-  const { user } = useDashboardData();
+  const { user } = useUser();
 
   useEffect(() => {
     loadMetrics();

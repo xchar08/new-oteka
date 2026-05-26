@@ -20,7 +20,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
+import { usePantryData } from '@/lib/hooks/usePantryData';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -31,6 +32,8 @@ import { PricingGuard } from '@/components/ui/PricingGuard';
 import { runOptimization } from '@/lib/engine/planner/runOptimization';
 import { userService } from '@/lib/services/user.service';
 import { pantryService } from '@/lib/services/pantry.service';
+import { useAppStore } from '@/lib/state/appStore';
+import { aggregateNutrients, extractLogStats, calculateDefaultGrams } from '@/lib/utils/metabolic.utils';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -58,7 +61,10 @@ export default function PantryPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
-  const { pantryItems, user, loading, isOnline, activeConditions, globalFoods } = useDashboardData();
+  const { user, activeConditions, loading: userLoading } = useUser();
+  const { pantryItems, globalFoods, loading: pantryLoading, refetchPantry } = usePantryData();
+  const isOnline = useAppStore(s => s.isOnline);
+  const loading = userLoading || pantryLoading;
   const router = useRouter();
   const supabase = createClient();
 
@@ -86,15 +92,7 @@ export default function PantryPage() {
     const meta = item.metadata_json || {};
 
     const category = meta.category || 'Grocery';
-    let defaultGrams = 100;
-    
-    // Updated based on RFK Jr / MAHA 2025-2030 Food Guidelines (Inverted Pyramid)
-    if (['Meat', 'Proteins', 'Fish', 'Poultry', 'Beef'].some(c => category.includes(c))) defaultGrams = 200; // Increased protein emphasis
-    else if (['Dairy', 'Milk', 'Cheese'].some(c => category.includes(c))) defaultGrams = 150; // Full-fat dairy emphasis
-    else if (['Produce', 'Vegetables', 'Fruits'].some(c => category.includes(c))) defaultGrams = 150;
-    else if (['Oils', 'Fats', 'Butter', 'Tallow'].some(c => category.includes(c))) defaultGrams = 15; // Healthy fats (keep volume small due to density)
-    else if (['Grains', 'Carbs', 'Bread'].some(c => category.includes(c))) defaultGrams = 50; // Minimized grains at the bottom of pyramid
-    else if (['Snacks', 'Sweets', 'Processed'].some(c => category.includes(c))) defaultGrams = 30;
+    const defaultGrams = calculateDefaultGrams(category);
 
     // Scale macros based on defaultGrams (assuming DB stores values per 100g)
     const scale = defaultGrams / 100;
@@ -143,14 +141,27 @@ export default function PantryPage() {
   // --- PLANNER ---
   const handleRun = async (constraints: PlannerConstraints) => {
     setPlanLoading(true);
-    setPlanStatus('Analyzing Metabolism...');
+    setPlanStatus('Optimizing Nutrients (Local)...');
     setPlanError(null);
     setPlans([]);
     
     try {
+      const conditionObjects = activeConditions.map(name => ({ name, rules_json: {} }));
+      
+      const result: any = await runOptimization({
+        pantry_items: pantryItems,
+        user_profile: user,
+        conditions: conditionObjects,
+        constraints,
+        global_foods: globalFoods
+      });
+      setPlans(result.solutions || []);
+      
       if (isOnline) {
-        setPlanStatus('Optimizing Nutrients (Cloud)...');
-        const { data, error } = await supabase.functions.invoke('optimize-meals', {
+        setPlanStatus('Heuristic complete. Deep optimization in background...');
+        
+        // Fire and forget deep WASM optimization
+        supabase.functions.invoke('optimize-meals', {
           body: {
             constraints: {
               ...constraints,
@@ -158,26 +169,15 @@ export default function PantryPage() {
               generations: 30
             }
           }
-        });
-
-        if (error) throw error;
-        if (!data?.success) throw new Error(data?.error || "Optimization failed.");
-        setPlans(data.solutions || []);
+        }).then(({ data, error }) => {
+          if (!error && data?.success && data.solutions?.length > 0) {
+            setPlans(data.solutions);
+            toast.success("Deep optimization complete! Superior plans loaded.");
+          }
+        }).catch(err => console.error("Background WASM failed:", err));
       } else {
-        setPlanStatus('Optimizing Nutrients (Local)...');
-        const conditionObjects = activeConditions.map(name => ({ name, rules_json: {} }));
-        
-        const result: any = await runOptimization({
-          pantry_items: pantryItems,
-          user_profile: user,
-          conditions: conditionObjects,
-          constraints,
-          global_foods: globalFoods
-        });
-        setPlans(result.solutions || []);
+        setPlanStatus('Optimal compositions found.');
       }
-      
-      setPlanStatus('Optimal compositions found.');
       
     } catch (err: any) {
       console.error("[Planner] Optimization Failed:", err);
@@ -218,16 +218,29 @@ export default function PantryPage() {
     }, 300); // 300ms debounce
   }, []);
 
-  const handleManualPantryAdd = async (name: string, foodId?: number) => {
+  const handleManualPantryAdd = async (name: string, food?: any) => {
     if (!user || addingItem) return;
     setAddingItem(true);
     try {
-      await pantryService.addItem(user.id, user.household_id || null, name, foodId);
-      toast.success(`Added ${name} to pantry`);
+      await pantryService.addItem(user.id, user.household_id || null, name, food?.id);
+      
+      if (food) {
+        const category = food.category || 'Grocery';
+        const defaultGrams = calculateDefaultGrams(category);
+        const scale = defaultGrams / 100;
+        
+        const cals = Math.round((food.nutritional_info?.calories || 0) * scale);
+        const pro = Math.round((food.nutritional_info?.protein || 0) * scale);
+        
+        toast.success(`Added ${defaultGrams}g of ${name} (${cals} kcal, ${pro}g Protein)`);
+      } else {
+        toast.success(`Added ${name} to pantry`);
+      }
+
       setAddQuery('');
       setFoodSearchResults([]);
       // Refresh pantry list
-      window.location.reload();
+      refetchPantry();
     } catch (err) {
       toast.error('Failed to add item to pantry');
     } finally {
@@ -369,7 +382,7 @@ export default function PantryPage() {
                 {foodSearchResults.map((food: any) => (
                   <button
                     key={food.id}
-                    onClick={() => handleManualPantryAdd(food.name, food.id)}
+                    onClick={() => handleManualPantryAdd(food.name, food)}
                     className="w-full px-4 py-3 flex items-center justify-between hover:bg-[var(--primary)]/5 transition-colors text-left border-b border-[var(--border)]/30 last:border-b-0"
                   >
                     <div>

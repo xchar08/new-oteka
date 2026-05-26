@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
 import { MetabolicRecipeCard, MetabolicRecipe } from '@/components/shopping/MetabolicRecipeCard';
 
 type ShoppingItem = {
@@ -35,7 +35,7 @@ export default function ShoppingPage() {
   const [expandedRecipe, setExpandedRecipe] = useState<string | null>(null);
   const router = useRouter();
 
-  const { user: userProfile, loading: isUserLoading } = useDashboardData();
+  const { user: userProfile, loading: isUserLoading } = useUser();
   const isPro = userProfile?.plan === 'pro';
   const householdId = userProfile?.household_id;
 

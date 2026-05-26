@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
+import { useMetabolicLogs } from '@/lib/hooks/useMetabolicLogs';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -45,7 +46,9 @@ const cardVariants: Variants = {
 };
 
 export default function ProfilePage() {
-  const { user, dailyMacros, loading, refetchProfile } = useDashboardData();
+  const { user, loading: userLoading, refetchProfile } = useUser();
+  const { dailyMacros, loading: logsLoading } = useMetabolicLogs();
+  const loading = userLoading || logsLoading;
   const supabase = createClient();
   const router = useRouter();
 

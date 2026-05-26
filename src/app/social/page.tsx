@@ -174,7 +174,8 @@ export default function SocialPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 key={u.id} 
-                className={`flex items-center justify-between p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border)] shadow-sm ${
+                onClick={() => router.push(`/profile/member?id=${u.id}`)}
+                className={`flex items-center justify-between p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border)] shadow-sm cursor-pointer hover:border-[var(--primary)]/50 transition-colors ${
                   isMe ? 'ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg-app)]' : ''
                 }`}
               >

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
 
 const container: Variants = {
   hidden: { opacity: 0 },
@@ -77,7 +77,7 @@ const HUB_GROUPS = [
 ];
 
 export default function HubPage() {
-  const { user } = useDashboardData();
+  const { user } = useUser();
   const isPro = user?.plan === 'pro';
   const [mounted, setMounted] = useState(false);
 

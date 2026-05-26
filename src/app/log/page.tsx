@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useUser } from '@/lib/hooks/useUser';
+import { useMetabolicLogs } from '@/lib/hooks/useMetabolicLogs';
 import { useRouter } from 'next/navigation';
 import { LogEntryCard } from '@/components/pantry/LogEntryCard';
 import { aggregateNutrients, extractLogStats } from '@/lib/utils/metabolic.utils';
@@ -30,7 +31,9 @@ const containerVariants: Variants = {
 };
 
 export default function LogPage() {
-  const { user, dailyLogs, loading } = useDashboardData();
+  const { user, loading: userLoading } = useUser();
+  const { dailyLogs, loading: logsLoading } = useMetabolicLogs();
+  const loading = userLoading || logsLoading;
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedNutrient, setSelectedNutrient] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
