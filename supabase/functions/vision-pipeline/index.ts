@@ -880,16 +880,42 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 7. Return Result with Debug Trace
+    // 7. Compute Analysis Confidence (REQUEST_ANGLE_SHIFT support)
+    // Heuristic confidence scoring based on result quality signals
+    let analysisConfidence = 1.0;
+    if (finalResult) {
+      const hasItems = Array.isArray(finalResult.items) && finalResult.items.length > 0;
+      const hasPantry = Array.isArray(finalResult.pantry_items) && finalResult.pantry_items.length > 0;
+      const hasMacros = finalResult.macros && (finalResult.macros.calories > 0 || finalResult.macros.protein > 0);
+      const hasInsight = finalResult.metabolic_insight && finalResult.metabolic_insight.layman_explanation;
+      const sceneWasEmpty = sceneDescription === "Node B Failed - Image Analysis Unavailable";
+
+      // Start from 1.0 and deduct for missing quality signals
+      if (!hasItems && !hasPantry) analysisConfidence -= 0.4;
+      if (!hasMacros && mode !== 'pantry') analysisConfidence -= 0.25;
+      if (!hasInsight) analysisConfidence -= 0.15;
+      if (sceneWasEmpty) analysisConfidence -= 0.3;
+      // Items with 0 calories are suspicious
+      if (hasItems && finalResult.items.every((i: any) => !i.calories || i.calories === 0)) {
+        analysisConfidence -= 0.2;
+      }
+      analysisConfidence = Math.max(0, Math.min(1, analysisConfidence));
+    } else {
+      analysisConfidence = 0;
+    }
+
+    // 8. Return Result with Debug Trace
     const responseBody = {
       ...finalResult,
       persisted,
+      analysis_confidence: analysisConfidence,
       debug_trace: {
         gemini_description: sceneDescription,
         deepseek_raw: deepseekRaw || "No Output",
         model_used: "final-pipeline-v2",
         storage_path: imagePath || "base64-direct",
         timestamp: new Date().toISOString(),
+        confidence_breakdown: { analysisConfidence },
       },
     };
 

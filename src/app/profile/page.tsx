@@ -146,13 +146,24 @@ export default function ProfilePage() {
         >
           {user?.display_name || "Explorer"}
         </motion.h2>
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--primary)] mt-1"
-        >
-          Metabolic Score: {(user?.streak_count || 0) > 0 ? 88 + (user?.streak_count || 0) : 88} • {(user?.streak_count || 0) > 5 ? 'ELITE' : 'ACTIVE'}
-        </motion.p>
+        
+        <div className="flex flex-col items-center gap-3 mt-4">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="flex items-center gap-1.5 text-[var(--primary)] font-bold bg-[var(--bg-surface)] px-3 py-1.5 rounded-xl shadow-sm border border-[var(--primary)]/10"
+          >
+            <Flame size={14} fill="currentColor" />
+            <span className="text-[9px] uppercase tracking-widest">{user?.streak_count || 0} Day Streak</span>
+          </motion.div>
+          
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--primary)] opacity-60"
+          >
+            Metabolic Score: {(user?.streak_count || 0) > 0 ? 88 + (user?.streak_count || 0) : 88} • {(user?.streak_count || 0) > 5 ? 'ELITE' : 'ACTIVE'}
+          </motion.p>
+        </div>
       </section>
 
       {/* Main Content */}

@@ -321,7 +321,21 @@ create policy "Shopping write household" on shopping_list for all using (
 
 -- LOGS / WORKFLOWS
 drop policy if exists "Logs access own" on logs;
-create policy "Logs access own" on logs for all using (auth.uid() = user_id);
+create policy "Logs manage own" on logs for all using (auth.uid() = user_id);
+
+drop policy if exists "Logs read shared" on logs;
+create policy "Logs read shared" on logs for select using (
+  auth.uid() = user_id or 
+  (select household_id from users where id = logs.user_id) = get_my_household_id() or
+  exists (
+    select 1 from friendships 
+    where friendships.status = 'accepted' 
+      and (
+        (friendships.user_id = auth.uid() and friendships.friend_id = logs.user_id) or 
+        (friendships.user_id = logs.user_id and friendships.friend_id = auth.uid())
+      )
+  )
+);
 
 drop policy if exists "Workflows access own" on workflows;
 create policy "Workflows access own" on workflows for all using (auth.uid() = user_id);
@@ -392,6 +406,44 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Streak calculation trigger
+create or replace function public.calculate_streak_on_log()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_last_log_date date;
+  v_today date := (to_char(now() at time zone 'UTC', 'YYYY-MM-DD'))::date;
+  v_days_diff integer;
+begin
+  select max(local_date::date) into v_last_log_date 
+  from public.logs 
+  where user_id = new.user_id and local_date::date < v_today;
+
+  if v_last_log_date is null then
+    update public.users set streak_count = greatest(1, coalesce(streak_count, 0)) where id = new.user_id;
+  else
+    v_days_diff := v_today - v_last_log_date;
+    if v_days_diff = 1 then
+      if (select count(*) from public.logs where user_id = new.user_id and local_date::date = v_today) = 1 then
+        update public.users set streak_count = coalesce(streak_count, 0) + 1 where id = new.user_id;
+      end if;
+    elsif v_days_diff > 1 then
+      update public.users set streak_count = 1 where id = new.user_id;
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_log_inserted on public.logs;
+create trigger on_log_inserted
+  after insert on public.logs
+  for each row execute procedure public.calculate_streak_on_log();
 
 -- ========================================================
 -- 13. SUBSCRIPTIONS (Stripe)

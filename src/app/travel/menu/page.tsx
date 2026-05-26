@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useUser } from '@/lib/hooks/useUser';
 import { visionService } from '@/lib/services/vision.service';
+import { useGeolocation, getNearbyPlacesContext } from '@/lib/hooks/useGeolocation';
 import { toast } from 'sonner';
 
 export default function MenuScannerPage() {
@@ -21,10 +22,18 @@ export default function MenuScannerPage() {
   const supabase = createClient();
   const { user } = useUser();
   const isPro = user?.plan === 'pro';
+  const geo = useGeolocation();
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Auto-request location on mount for restaurant context
+  React.useEffect(() => {
+    if (mounted && geo.permissionStatus !== 'denied') {
+      geo.requestLocation();
+    }
+  }, [mounted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNativeCamera = async () => {
     try {
@@ -49,11 +58,20 @@ export default function MenuScannerPage() {
       toast.info('Uploading menu data...', { duration: 2000 });
       const { path } = await visionService.uploadScan(user.id, blob);
 
-      // 3. Invoke Edge Function with Path
+      // 2b. Gap 3: Fetch nearby restaurant context if location available
+      let locationContext = '';
+      if (geo.hasLocation && geo.latitude && geo.longitude) {
+        locationContext = await getNearbyPlacesContext(geo.latitude, geo.longitude);
+      }
+
+      // 3. Invoke Edge Function with Path + Location Context
       const { data, error: functionError } = await supabase.functions.invoke('vision-menu', {
         body: { 
           imagePath: path, 
-          goal: user?.metabolic_state_json?.current_goal || 'maintenance' 
+          goal: user?.metabolic_state_json?.current_goal || 'maintenance',
+          location_context: locationContext || undefined,
+          latitude: geo.latitude || undefined,
+          longitude: geo.longitude || undefined,
         },
       });
 
@@ -141,6 +159,9 @@ export default function MenuScannerPage() {
               <p className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 mt-0.5 text-[var(--primary)]`}>
                 <span className={`w-1.5 h-1.5 rounded-full animate-pulse bg-[var(--primary)]`} />
                 {isPro ? 'Priority Vision Active' : 'Standard Optical Core'}
+                {geo.hasLocation && (
+                  <span className="ml-2 text-emerald-500 text-[8px]">• GPS Locked</span>
+                )}
               </p>
             </div>
           </div>

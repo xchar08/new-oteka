@@ -3,12 +3,32 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Users, UserPlus, Copy, Check, LogOut, ChevronLeft, Home, Flame } from 'lucide-react';
+import { Users, UserPlus, Copy, Check, LogOut, ChevronLeft, Home, Flame, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.3,
+    },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { 
+    opacity: 1, 
+    y: 0,
+    transition: { type: 'spring', stiffness: 100 }
+  }
+} as const;
 
 export default function HouseholdPage() {
     const router = useRouter();
@@ -127,118 +147,135 @@ export default function HouseholdPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[var(--bg-app)] p-6 pb-32 space-y-8 animate-in fade-in duration-500 overflow-x-hidden transition-colors">
+        <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] pb-32 font-sans overflow-x-hidden transition-colors">
             {/* Header */}
-            <header className="flex items-center justify-between pt-safe relative z-10">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-secondary)] shadow-sm">
-                        <ChevronLeft size={24} />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">Household</h1>
-                        <p className="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest">Shared Vitality</p>
+            <motion.header 
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="px-6 pt-12 pb-8 bg-gradient-to-b from-[var(--primary)]/10 to-transparent rounded-b-[40px]"
+            >
+                <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => router.back()} className="w-10 h-10 bg-[var(--bg-surface)] rounded-xl flex items-center justify-center shadow-sm border border-[var(--primary)]/10 text-[var(--text-secondary)]">
+                            <ChevronLeft size={20} />
+                        </button>
+                        <div>
+                            <h1 className="text-2xl font-black tracking-tight">Household</h1>
+                            <p className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest opacity-60">Shared Vitality</p>
+                        </div>
+                    </div>
+                    <div className="w-12 h-12 bg-[var(--bg-surface)] border border-[var(--primary)]/10 rounded-2xl flex items-center justify-center text-[var(--primary)] shadow-xl shadow-[var(--primary)]/10">
+                        <Home size={24} />
                     </div>
                 </div>
-                <div className="w-12 h-12 bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl flex items-center justify-center text-[var(--primary)] shadow-sm">
-                    <Home size={24} />
-                </div>
-            </header>
+            </motion.header>
 
-            <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-6 relative z-10"
+            <motion.main 
+                variants={container}
+                initial="hidden"
+                animate="show"
+                className="px-6 -mt-4 space-y-6"
             >
                 {/* Current Household Status */}
-                <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[32px] p-6 shadow-sm space-y-6">
-                    <div className="flex justify-between items-start">
+                <motion.div variants={item} className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[40px] p-8 shadow-sm space-y-8 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <Users size={80} strokeWidth={1} />
+                    </div>
+                    
+                    <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <h2 className="text-xl font-black text-[var(--text-primary)]">{household?.name || 'Private Sanctuary'}</h2>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--primary)] mt-1">Active Cluster</p>
+                            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-[var(--primary)]">Active Cluster</span>
+                            <h2 className="text-2xl font-black text-[var(--text-primary)] mt-1">{household?.name || 'Private Sanctuary'}</h2>
                         </div>
-                        <Users className="text-[var(--text-secondary)] opacity-20" size={32} />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--primary)]/5 flex items-center justify-center text-[var(--primary)]">
+                            <Sparkles size={18} />
+                        </div>
                     </div>
 
                     {/* Join Code Section */}
-                    <div className="p-4 rounded-2xl bg-[var(--bg-app)] border border-[var(--border)] flex items-center justify-between shadow-inner">
+                    <div className="p-6 rounded-[32px] bg-[var(--bg-app)] border border-[var(--border)] flex items-center justify-between shadow-inner group transition-all hover:border-[var(--primary)]/20">
                         <div>
-                            <Label className="text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-widest">Household Join Code</Label>
-                            <div className="text-lg font-mono font-black text-[var(--text-primary)] tracking-widest uppercase mt-1">
+                            <Label className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-[0.2em] opacity-40">Cluster Join Code</Label>
+                            <div className="text-xl font-mono font-black text-[var(--text-primary)] tracking-[0.3em] uppercase mt-2">
                                 {household?.join_code || '---'}
                             </div>
                         </div>
-                        <button 
+                        <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={handleCopyCode}
-                            className={`h-12 w-12 rounded-xl border flex items-center justify-center transition-all active:scale-90 ${copied ? 'bg-[var(--primary)] border-[var(--primary)] text-white' : 'bg-[var(--bg-surface)] border-[var(--border)] text-[var(--text-secondary)] shadow-sm'}`}
+                            className={`h-14 w-14 rounded-2xl border flex items-center justify-center transition-all ${copied ? 'bg-[var(--primary)] border-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--bg-surface)] border-[var(--border)] text-[var(--text-secondary)] shadow-sm'}`}
                         >
-                            {copied ? <Check size={20} /> : <Copy size={20} />}
-                        </button>
+                            {copied ? <Check size={22} /> : <Copy size={22} />}
+                        </motion.button>
                     </div>
 
                     {/* Member List */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between px-1">
-                            <Label className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-[0.2em]">Members ({members.length})</Label>
-                            <UserPlus size={14} className="text-[var(--primary)]" />
+                            <Label className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-[0.3em] opacity-40">Crew Manifest ({members.length})</Label>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             {members.map((m) => (
-                                <div 
+                                <motion.div 
+                                    whileHover={{ x: 5 }}
                                     key={m.id} 
                                     onClick={() => router.push(`/profile/member?id=${m.id}`)}
-                                    className="flex items-center justify-between p-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border)] cursor-pointer hover:border-[var(--primary)]/50 transition-colors"
+                                    className="flex items-center justify-between p-4 rounded-3xl bg-[var(--bg-app)] border border-[var(--border)] cursor-pointer hover:border-[var(--primary)]/30 transition-all group"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-xl overflow-hidden bg-[var(--primary)]/10 border border-[var(--primary)]/20 flex items-center justify-center">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-12 w-12 rounded-2xl overflow-hidden bg-[var(--primary)]/5 border border-[var(--primary)]/10 flex items-center justify-center shadow-sm">
                                             {m.avatar_url ? (
                                                 <img src={m.avatar_url} className="w-full h-full object-cover" />
                                             ) : (
-                                                <span className="text-xs font-black text-[var(--primary)]">{m.display_name?.[0]?.toUpperCase()}</span>
+                                                <span className="text-sm font-black text-[var(--primary)]">{m.display_name?.[0]?.toUpperCase()}</span>
                                             )}
                                         </div>
-                                        <span className="text-sm font-black text-[var(--text-primary)] capitalize">{m.display_name}</span>
+                                        <span className="text-sm font-black text-[var(--text-primary)] capitalize group-hover:text-[var(--primary)] transition-colors">{m.display_name}</span>
                                     </div>
-                                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--primary)]/5 text-[var(--primary)] border border-[var(--primary)]/10">
-                                        <Flame size={12} fill="currentColor" />
-                                        <span className="text-[10px] font-black">{m.streak_count || 0}</span>
+                                    <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--primary)]/5 text-[var(--primary)] border border-[var(--primary)]/10 font-black text-xs">
+                                        <Flame size={14} fill="currentColor" />
+                                        <span>{m.streak_count || 0}</span>
                                     </div>
-                                </div>
+                                </motion.div>
                             ))}
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Join Existing */}
-                <div className="bg-[var(--bg-surface)] border border-dashed border-[var(--border)] rounded-[32px] p-8 space-y-6">
+                <motion.div variants={item} className="bg-[var(--bg-surface)] border border-dashed border-[var(--border)] rounded-[40px] p-8 space-y-8">
                     <div className="text-center space-y-2">
-                        <h3 className="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">Sync with another Cluster</h3>
-                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Enter a join code to merge your metabolic data and pantry with a household.</p>
+                        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--text-primary)]">Sync with Cluster</h3>
+                        <p className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-40 leading-relaxed">Enter a join code to merge your metabolic data and pantry with a household.</p>
                     </div>
                     
-                    <form onSubmit={handleJoinHousehold} className="flex gap-3">
+                    <form onSubmit={handleJoinHousehold} className="flex flex-col gap-4">
                         <input 
                             placeholder="CODE" 
                             value={joinCode}
                             onChange={e => setJoinCode(e.target.value)}
-                            className="flex-1 bg-[var(--bg-app)] border border-[var(--border)] rounded-2xl h-14 px-6 text-center font-mono font-black text-lg focus:border-[var(--primary)] outline-none transition-all shadow-inner"
+                            className="w-full bg-[var(--bg-app)] border border-[var(--border)] rounded-[24px] h-16 px-6 text-center font-mono font-black text-xl tracking-[0.5em] focus:border-[var(--primary)] outline-none transition-all shadow-inner"
                         />
                         <button 
                             type="submit" 
                             disabled={isJoining || !joinCode.trim()} 
-                            className="h-14 px-8 bg-[var(--primary)] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg active:scale-95 disabled:opacity-30 transition-all"
+                            className="h-16 w-full bg-[var(--primary)] text-white rounded-[24px] font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-[var(--primary)]/20 active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3"
                         >
-                            {isJoining ? '...' : 'Merge'}
+                            {isJoining ? <Loader2 className="animate-spin" size={20} /> : <Users size={20} />}
+                            {isJoining ? 'SYCHRONIZING...' : 'Initiate Merge'}
                         </button>
                     </form>
-                </div>
+                </motion.div>
 
-                <button 
+                <motion.button 
+                    variants={item}
                     onClick={handleLeaveHousehold}
-                    className="w-full flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors py-8"
+                    className="w-full flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)] opacity-40 hover:opacity-100 hover:text-[var(--error)] transition-all py-12"
                 >
                     <LogOut size={14} /> Solo Protocol
-                </button>
-            </motion.div>
+                </motion.button>
+            </motion.main>
 
             <BottomNav />
         </div>

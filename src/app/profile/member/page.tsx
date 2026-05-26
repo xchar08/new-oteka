@@ -53,7 +53,17 @@ function ProfileContent() {
         .eq('id', id)
         .single();
       
-      if (data) setProfile(data);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const isoDate = thirtyDaysAgo.toISOString().split('T')[0];
+      
+      const { data: logsData } = await supabase
+        .from('logs')
+        .select('local_date')
+        .eq('user_id', id)
+        .gte('local_date', isoDate);
+      
+      if (data) setProfile({ ...data, logs: logsData || [] });
       setLoading(false);
     }
     loadProfile();
@@ -86,16 +96,16 @@ function ProfileContent() {
       <motion.header 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="px-6 pt-8 pb-4 flex justify-between items-center bg-[var(--bg-app)]/80 backdrop-blur-md sticky top-0 z-40"
+        className="px-6 pt-12 pb-8 bg-gradient-to-b from-[var(--primary)]/10 to-transparent rounded-b-[40px]"
       >
         <div className="flex items-center gap-4">
           <button 
               onClick={() => router.back()}
-              className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-secondary)] transition-colors"
+              className="w-10 h-10 bg-[var(--bg-surface)] rounded-xl flex items-center justify-center shadow-sm border border-[var(--primary)]/10 text-[var(--text-secondary)]"
           >
-              <ChevronLeft size={24} />
+              <ChevronLeft size={20} />
           </button>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] capitalize">{profile.display_name}&apos;s Profile</h1>
+          <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)] capitalize">{profile.display_name}&apos;s Profile</h1>
         </div>
       </motion.header>
 
@@ -140,13 +150,24 @@ function ProfileContent() {
         >
           {profile.display_name || "Explorer"}
         </motion.h2>
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--primary)] mt-1"
-        >
-          Metabolic Score: {streak > 0 ? 88 + streak : 88} • {isElite ? 'ELITE' : 'ACTIVE'}
-        </motion.p>
+        
+        <div className="flex flex-col items-center gap-3 mt-4">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="flex items-center gap-1.5 text-[var(--primary)] font-bold bg-[var(--bg-surface)] px-3 py-1.5 rounded-xl shadow-sm border border-[var(--primary)]/10"
+          >
+            <Flame size={14} fill="currentColor" />
+            <span className="text-[9px] uppercase tracking-widest">{streak} Day Streak</span>
+          </motion.div>
+          
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--primary)] opacity-60"
+          >
+            Metabolic Score: {streak > 0 ? 88 + streak : 88} • {isElite ? 'ELITE' : 'ACTIVE'}
+          </motion.p>
+        </div>
       </section>
 
       {/* Main Content */}
@@ -158,23 +179,48 @@ function ProfileContent() {
       >
         <motion.div 
           variants={cardVariants}
-          className="bg-[var(--primary)] rounded-[32px] p-8 text-white relative overflow-hidden shadow-2xl shadow-[var(--primary)]/30"
+          className="bg-[var(--primary)] rounded-[40px] p-10 text-white relative overflow-hidden shadow-2xl shadow-[var(--primary)]/30"
         >
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Activity size={120} strokeWidth={1} />
           </div>
           
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-white/20 rounded-xl"><Flame size={24} /></div>
-            <div>
-              <p className="text-[10px] opacity-70 uppercase font-bold tracking-widest">Active Streak</p>
-              <p className="font-black text-3xl">{streak} <span className="text-lg opacity-80 font-bold">days</span></p>
-            </div>
+          <div className="flex flex-col items-center text-center">
+            <div className="p-4 bg-white/20 rounded-2xl mb-4 shadow-inner"><Flame size={32} fill="currentColor" /></div>
+            <p className="text-[10px] opacity-70 uppercase font-black tracking-[0.25em] mb-1">Active Streak</p>
+            <p className="font-black text-5xl">{streak} <span className="text-lg opacity-80 font-bold uppercase tracking-widest ml-1">Days</span></p>
           </div>
         </motion.div>
 
-        <motion.div variants={cardVariants} className="text-center text-[var(--text-secondary)] opacity-40 text-[10px] font-black uppercase tracking-widest mt-12">
-            Joined {new Date(profile.created_at).toLocaleDateString()}
+        {/* Activity Heatmap */}
+        <motion.div variants={cardVariants} className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[40px] p-8 space-y-6 shadow-sm">
+           <div className="flex items-center gap-2">
+             <div className="w-6 h-6 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)]">
+                <Activity size={14} />
+             </div>
+             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-60">30-Day Pulse</h3>
+           </div>
+           <div className="grid grid-cols-7 gap-2">
+             {Array.from({ length: 28 }).map((_, i) => {
+               const d = new Date();
+               d.setDate(d.getDate() - (27 - i));
+               const dateStr = d.toISOString().split('T')[0];
+               const hasLog = profile.logs?.some((l: any) => l.local_date === dateStr);
+               return (
+                 <div 
+                   key={i} 
+                   className={`aspect-square rounded-xl ${hasLog ? 'bg-[var(--primary)] shadow-sm' : 'bg-[var(--bg-app)] border border-[var(--border)] opacity-30'} transition-all flex items-center justify-center`}
+                   title={dateStr}
+                 >
+                   {hasLog && <div className="w-1.5 h-1.5 rounded-full bg-white/50" />}
+                 </div>
+               );
+             })}
+           </div>
+        </motion.div>
+
+        <motion.div variants={cardVariants} className="text-center text-[var(--text-secondary)] opacity-30 text-[9px] font-black uppercase tracking-[0.4em] mt-12">
+            Protocol Initiated {new Date(profile.created_at).toLocaleDateString()}
         </motion.div>
 
       </motion.div>

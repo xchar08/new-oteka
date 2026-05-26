@@ -9,6 +9,7 @@ import { visionService } from '@/lib/services/vision.service';
 import { Sparkles, CheckCircle2, Loader2, Minus, Plus, X, Layers, Microscope, Activity, ChevronRight, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { NeuralScanOverlay } from './NeuralScanOverlay';
+import { HandOverlay } from './HandOverlay';
 import { MetabolicBadge } from '../ui/MetabolicBadge';
 import { SafetyAlert } from '../ui/SafetyAlert';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,8 +26,9 @@ export function OptimisticCapture({
   // onCapture is now optional/fallback, we handle upload internally here
   onCapture?: (blob: Blob) => Promise<any>;
 }) {
-  const [status, setStatus] = useState<'idle' | 'uploading' | 'complete'>('idle');
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'complete' | 'low_confidence'>('idle');
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [lowConfidenceData, setLowConfidenceData] = useState<{ result: ScanResult; confidence: number } | null>(null);
   const [editableResult, setEditableResult] = useState<ScanResult | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const router = useRouter();
@@ -65,6 +67,14 @@ export function OptimisticCapture({
       return { ...data, imagePath: path };
     },
     onSuccess: (data) => {
+      // Gap 4: Check confidence for REQUEST_ANGLE_SHIFT
+      const confidence = data.analysis_confidence ?? 1;
+      if (confidence < 0.5) {
+        console.warn(`[Capture] Low confidence (${confidence}). Prompting re-capture.`);
+        setLowConfidenceData({ result: data, confidence });
+        setStatus('low_confidence');
+        return;
+      }
       setScanResult(data);
       setStatus('complete');
     },
@@ -96,7 +106,7 @@ export function OptimisticCapture({
       }
     }
 
-    if (status === 'idle') startCamera();
+    if (status === 'idle' || status === 'low_confidence') startCamera();
 
     return () => {
       stream?.getTracks().forEach((t) => t.stop());
@@ -658,6 +668,49 @@ export function OptimisticCapture({
       
       {/* High-Fidelity Design System Overlay */}
       <NeuralScanOverlay status="idle" show={true} />
+      
+      {/* Gap 2: AR Hand Overlay for calibration reference */}
+      <HandOverlay 
+        status={status === 'uploading' ? 'scanning' : (status === 'complete' ? 'locked' : 'idle')} 
+        show={status === 'idle' || status === 'uploading' || status === 'low_confidence'}
+      />
+
+      {/* Gap 4: Low Confidence Re-capture Prompt (REQUEST_ANGLE_SHIFT) */}
+      {status === 'low_confidence' && lowConfidenceData && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-80 p-8 rounded-[3rem] bg-[var(--bg-surface)] border border-amber-500/30 shadow-2xl flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center border-2 border-amber-500/30">
+              <Sparkles className="h-8 w-8 text-amber-500" />
+            </div>
+            <div className="space-y-2 text-center">
+              <h3 className="text-lg font-black uppercase tracking-tight text-[var(--text-primary)]">Low Confidence</h3>
+              <p className="text-[10px] text-amber-500 font-bold uppercase tracking-[0.2em]">Confidence: {Math.round(lowConfidenceData.confidence * 100)}%</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-2">Try a different angle or better lighting for more accurate results.</p>
+            </div>
+            <div className="w-full space-y-3">
+              <button
+                onClick={() => {
+                  setLowConfidenceData(null);
+                  setStatus('idle');
+                }}
+                className="w-full h-14 rounded-2xl bg-[var(--primary)] text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-lg active:scale-95 transition-transform"
+              >
+                Retake Photo
+              </button>
+              <button
+                onClick={() => {
+                  setScanResult(lowConfidenceData.result);
+                  setLowConfidenceData(null);
+                  setStatus('complete');
+                }}
+                className="w-full h-12 rounded-2xl border border-[var(--border)] text-[var(--text-secondary)] font-bold uppercase tracking-[0.15em] text-[9px] hover:bg-[var(--bg-surface-2)] transition-colors"
+              >
+                Use Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="absolute bottom-20 left-0 right-0 flex flex-col items-center gap-10 z-50 pb-safe">
         <div className="text-center space-y-2">

@@ -58,8 +58,14 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { image, imagePath, bucket = 'food_scans', goal } = body;
+    const { image, imagePath, bucket = 'food_scans', goal, location_context, latitude, longitude } = body;
     const userGoal = goal || profile?.metabolic_state_json?.current_goal || "maintenance";
+
+    // Build location hint if GPS context is available
+    let locationHint = "";
+    if (location_context) {
+      locationHint = `\nLOCATION CONTEXT: ${location_context}\nUse this to inform your analysis — if user is at a known restaurant, prioritize menu items from that establishment.`;
+    }
 
     let finalImageBase64 = image;
     if (imagePath) {
@@ -74,7 +80,7 @@ Deno.serve(async (req) => {
     const ocrPrompt = `TRANSCRIPTION PROTOCOL: 
     Examine this menu image. 
     Extract EVERY single visible menu item, including its name, price (if visible), and description.
-    Output a raw, structured text list of everything you see. Do not skip items.`;
+    Output a raw, structured text list of everything you see. Do not skip items.${locationHint}`;
 
     const ocrPayload = {
       contents: [{
@@ -103,6 +109,7 @@ You are the OTEKA Metabolic Engine. You are analyzing a restaurant menu for a us
 USER GOAL: ${userGoal}
 USER MEDICAL CONDITIONS:
 ${safetyContext}
+${locationHint ? `\n${locationHint}` : ''}
 
 MENU TEXT:
 ${rawMenuText}
