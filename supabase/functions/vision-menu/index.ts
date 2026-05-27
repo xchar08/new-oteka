@@ -72,7 +72,12 @@ Deno.serve(async (req) => {
       const { data: fileData, error: downloadError } = await supabase.storage.from(bucket).download(imagePath);
       if (downloadError) throw new Error(`Download failed: ${downloadError.message}`);
       const arrayBuffer = await fileData.arrayBuffer();
-      finalImageBase64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      finalImageBase64 = btoa(binary);
     }
 
     // 3. Step 1: High-Fidelity OCR (Gemini 1.5 Flash)
