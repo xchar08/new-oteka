@@ -41,67 +41,67 @@ export default function SocialPage() {
   const supabase = createClient();
 
   // Load Data based on Active Tab
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setCurrentUserId(user.id);
-      // Fetch Pending Requests
-      const { data: pendingData } = await supabase
+  const loadData = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setCurrentUserId(user.id);
+    // Fetch Pending Requests
+    const { data: pendingData } = await supabase
+      .from('friendships')
+      .select(`
+        id, 
+        user_id,
+        users!friendships_user_id_fkey ( display_name, avatar_url )
+      `)
+      .eq('friend_id', user.id)
+      .eq('status', 'pending');
+    setPendingRequests(pendingData || []);
+
+    let query = supabase
+      .from('users')
+      .select('id, streak_count, display_name, household_id');
+
+    if (activeTab === 'global') {
+      query = query.order('streak_count', { ascending: false }).limit(50);
+    } 
+    else if (activeTab === 'friends') {
+      const { data: friendships } = await supabase
         .from('friendships')
-        .select(`
-          id, 
-          user_id,
-          users!friendships_user_id_fkey ( display_name, avatar_url )
-        `)
-        .eq('friend_id', user.id)
-        .eq('status', 'pending');
-      setPendingRequests(pendingData || []);
+        .select('user_id, friend_id')
+        .eq('status', 'accepted')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
 
-      let query = supabase
+      const friendIds = friendships?.map(f => 
+        f.user_id === user.id ? f.friend_id : f.user_id
+      ) || [];
+      
+      friendIds.push(user.id);
+      query = query.in('id', friendIds).order('streak_count', { ascending: false });
+    } 
+    else if (activeTab === 'household') {
+      const { data: me } = await supabase
         .from('users')
-        .select('id, streak_count, display_name, household_id');
+        .select('household_id')
+        .eq('id', user.id)
+        .single();
 
-      if (activeTab === 'global') {
-        query = query.order('streak_count', { ascending: false }).limit(50);
-      } 
-      else if (activeTab === 'friends') {
-        const { data: friendships } = await supabase
-          .from('friendships')
-          .select('user_id, friend_id')
-          .eq('status', 'accepted')
-          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
-
-        const friendIds = friendships?.map(f => 
-          f.user_id === user.id ? f.friend_id : f.user_id
-        ) || [];
-        
-        friendIds.push(user.id);
-        query = query.in('id', friendIds).order('streak_count', { ascending: false });
-      } 
-      else if (activeTab === 'household') {
-        const { data: me } = await supabase
-          .from('users')
-          .select('household_id')
-          .eq('id', user.id)
-          .single();
-
-        if (me?.household_id) {
-          query = query.eq('household_id', me.household_id).order('streak_count', { ascending: false });
-        } else {
-          setLeaders([]);
-          setLoading(false);
-          return;
-        }
+      if (me?.household_id) {
+        query = query.eq('household_id', me.household_id).order('streak_count', { ascending: false });
+      } else {
+        setLeaders([]);
+        setLoading(false);
+        return;
       }
-
-      const { data } = await query;
-      setLeaders(data || []);
-      setLoading(false);
     }
 
-    load();
+    const { data } = await query;
+    setLeaders(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
   }, [activeTab]);
 
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -143,12 +143,7 @@ export default function SocialPage() {
   async function handleAccept(friendshipId: string) {
     await supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId);
     setPendingRequests(prev => prev.filter(req => req.id !== friendshipId));
-    // Trigger re-fetch of leaders
-    setActiveTab(prev => {
-      const current = prev;
-      setTimeout(() => setActiveTab(current), 10);
-      return 'global';
-    });
+    loadData();
   }
 
   async function handleDecline(friendshipId: string) {

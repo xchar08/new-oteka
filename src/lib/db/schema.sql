@@ -367,6 +367,12 @@ create policy "Users view own friendships" on friendships for select using (auth
 drop policy if exists "Users manage own friendships" on friendships;
 create policy "Users manage own friendships" on friendships for all using (auth.uid() = user_id);
 
+-- Allow the recipient (friend_id) to accept/decline friend requests
+drop policy if exists "Friend can accept request" on friendships;
+create policy "Friend can accept request" on friendships for update
+  using (auth.uid() = friend_id)
+  with check (auth.uid() = friend_id);
+
 -- ========================================================
 -- TRIGGERS
 -- ========================================================

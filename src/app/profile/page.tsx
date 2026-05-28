@@ -3,6 +3,7 @@
 import React from 'react';
 import { 
   User, 
+  Users,
   Settings, 
   Target, 
   Shield, 
@@ -133,9 +134,11 @@ export default function ProfilePage() {
           />
           <motion.div 
             whileHover={{ scale: 1.2 }}
-            className="absolute -bottom-2 -right-2 w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center shadow-lg z-20"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => router.push('/social')}
+            className="absolute -bottom-2 -right-2 w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center shadow-lg z-20 cursor-pointer"
           >
-            <Sparkles size={18} />
+            <Users size={18} />
           </motion.div>
         </motion.div>
         
@@ -270,6 +273,7 @@ export default function ProfilePage() {
         >
           <div className="px-6 py-2">
             {[
+              { icon: Users, label: 'Friends & Rankings', onClick: () => router.push('/social') },
               { icon: Ruler, label: 'Hand Calibration', onClick: () => router.push('/onboarding/calibration') },
               { icon: RefreshCw, label: 'Sync Plan Status', onClick: async () => {
                   const res = await refetchProfile();

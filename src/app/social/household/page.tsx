@@ -56,7 +56,15 @@ export default function HouseholdPage() {
             .single();
 
         if (userData?.households) {
-            setHousehold(userData.households);
+            let house = (Array.isArray(userData.households) ? userData.households[0] : userData.households) as any;
+            if (house) {
+                if (!house.join_code) {
+                    const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                    await supabase.from('households').update({ join_code: newCode }).eq('id', house.id);
+                    house.join_code = newCode;
+                }
+                setHousehold(house);
+            }
             const { data: memberData } = await supabase
                 .from('users')
                 .select('id, display_name, streak_count, avatar_url')
@@ -263,7 +271,7 @@ export default function HouseholdPage() {
                             className="h-16 w-full bg-[var(--primary)] text-white rounded-[24px] font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-[var(--primary)]/20 active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3"
                         >
                             {isJoining ? <Loader2 className="animate-spin" size={20} /> : <Users size={20} />}
-                            {isJoining ? 'SYCHRONIZING...' : 'Initiate Merge'}
+                            {isJoining ? 'SYNCHRONIZING...' : 'Initiate Merge'}
                         </button>
                     </form>
                 </motion.div>

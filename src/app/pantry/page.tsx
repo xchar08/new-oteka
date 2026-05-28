@@ -11,6 +11,7 @@ import {
   Target,
   ShoppingCart,
   ShoppingBag,
+  Users,
   Loader2,
   WifiOff,
   XCircle,
@@ -300,6 +301,14 @@ export default function PantryPage() {
                 ) : (
                 <User size={20} className="text-[var(--text-secondary)]" />
                 )}
+            </motion.div>
+            <motion.div 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => router.push('/social/household')}
+              className="w-10 h-10 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center cursor-pointer shadow-sm border border-[var(--primary)]/20"
+            >
+              <Users size={20} />
             </motion.div>
         </div>
       </motion.header>
