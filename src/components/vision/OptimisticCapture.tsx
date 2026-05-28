@@ -671,8 +671,8 @@ export function OptimisticCapture({
       
       {/* Gap 2: AR Hand Overlay for calibration reference */}
       <HandOverlay 
-        status={status === 'uploading' ? 'scanning' : (status === 'complete' ? 'locked' : 'idle')} 
-        show={status === 'idle' || status === 'uploading' || status === 'low_confidence'}
+        status={status === 'complete' ? 'locked' : 'idle'} 
+        show={status === 'idle' || status === 'low_confidence'}
       />
 
       {/* Gap 4: Low Confidence Re-capture Prompt (REQUEST_ANGLE_SHIFT) */}
