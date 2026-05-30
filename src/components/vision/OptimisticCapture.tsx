@@ -19,6 +19,7 @@ import type { ScanResult } from '@/lib/types/metabolic';
 import { set, get, del } from 'idb-keyval';
 import { useUser } from '@/lib/hooks/useUser';
 import { VISION_CONFIG } from '@/lib/vision/vision.config';
+import { fetchProductByBarcode } from '@/lib/vision/scanner';
 
 export function OptimisticCapture({
   onCapture,
@@ -30,6 +31,9 @@ export function OptimisticCapture({
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [lowConfidenceData, setLowConfidenceData] = useState<{ result: ScanResult; confidence: number } | null>(null);
   const [editableResult, setEditableResult] = useState<ScanResult | null>(null);
+  const [showBarcodeFallback, setShowBarcodeFallback] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [isBarcodeLoading, setIsBarcodeLoading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -67,10 +71,10 @@ export function OptimisticCapture({
       return { ...data, imagePath: path };
     },
     onSuccess: (data) => {
-      // Gap 4: Check confidence for REQUEST_ANGLE_SHIFT
+      // Gap 4: Check confidence for REQUEST_ANGLE_SHIFT and Barcode Fallback
       const confidence = data.analysis_confidence ?? 1;
-      if (confidence < 0.5) {
-        console.warn(`[Capture] Low confidence (${confidence}). Prompting re-capture.`);
+      if (confidence < 0.6) {
+        console.warn(`[Capture] Low confidence (${confidence}). Prompting re-capture or barcode fallback.`);
         setLowConfidenceData({ result: data, confidence });
         setStatus('low_confidence');
         return;
@@ -345,6 +349,57 @@ export function OptimisticCapture({
         toast.error(otekaErr.userMessage);
     } finally {
         setIsLogging(false);
+    }
+  };
+
+  const handleBarcodeLookup = async () => {
+    if (!barcodeInput) return;
+    setIsBarcodeLoading(true);
+    try {
+      const product = await fetchProductByBarcode(barcodeInput);
+      if (product) {
+        // Map OpenFoodFacts product to ScanResult
+        const mappedResult: ScanResult = {
+          items: [{
+            name: product.product_name,
+            quantity: '1 serving',
+            calories: product.nutriments?.['energy-kcal_100g'] || 0,
+            protein: product.nutriments?.proteins_100g || 0,
+            carbs: product.nutriments?.carbohydrates_100g || 0,
+            fat: product.nutriments?.fat_100g || 0,
+            multiplier: 1
+          }],
+          macros: {
+            calories: product.nutriments?.['energy-kcal_100g'] || 0,
+            protein: product.nutriments?.proteins_100g || 0,
+            carbs: product.nutriments?.carbohydrates_100g || 0,
+            fat: product.nutriments?.fat_100g || 0,
+          },
+          ingredients: [{ name: product.product_name }],
+          volume_cm3: 100, // rough assumption for 100g
+          metabolic_insight: {
+            score: 50,
+            impact_level: 'neutral',
+            layman_explanation: "Barcode successfully identified via OpenFoodFacts.",
+            triggered_phenomena: []
+          },
+          vitamins: [],
+          minerals: [],
+          micros: [],
+          safety_alerts: []
+        };
+        setScanResult(mappedResult);
+        setLowConfidenceData(null);
+        setShowBarcodeFallback(false);
+        setStatus('complete');
+        toast.success("Product identified from barcode!");
+      } else {
+        toast.error("Product not found in OpenFoodFacts database.");
+      }
+    } catch (e) {
+      toast.error("Barcode lookup failed.");
+    } finally {
+      setIsBarcodeLoading(false);
     }
   };
 
@@ -688,15 +743,42 @@ export function OptimisticCapture({
               <p className="text-xs text-[var(--text-secondary)] mt-2">Try a different angle or better lighting for more accurate results.</p>
             </div>
             <div className="w-full space-y-3">
-              <button
-                onClick={() => {
-                  setLowConfidenceData(null);
-                  setStatus('idle');
-                }}
-                className="w-full h-14 rounded-2xl bg-[var(--primary)] text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-lg active:scale-95 transition-transform"
-              >
-                Retake Photo
-              </button>
+              {showBarcodeFallback ? (
+                <div className="w-full flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Enter UPC barcode..." 
+                    className="flex-1 border border-[var(--border)] bg-black/20 rounded-xl px-4 py-3 text-xs text-[var(--text-primary)]"
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                  />
+                  <button 
+                    onClick={handleBarcodeLookup}
+                    disabled={isBarcodeLoading || !barcodeInput}
+                    className="bg-[var(--primary)] text-white px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50 transition-all shadow-lg shadow-[var(--primary)]/20"
+                  >
+                    {isBarcodeLoading ? '...' : 'Go'}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowBarcodeFallback(true)}
+                    className="w-full h-12 rounded-2xl border border-[var(--primary)] text-[var(--primary)] font-black uppercase tracking-[0.2em] text-[10px] hover:bg-[var(--primary)]/10 transition-colors shadow-lg shadow-[var(--primary)]/5"
+                  >
+                    Scan Barcode Fallback
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLowConfidenceData(null);
+                      setStatus('idle');
+                    }}
+                    className="w-full h-14 rounded-2xl bg-[var(--primary)] text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-lg active:scale-95 transition-transform"
+                  >
+                    Retake Photo
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => {
                   setScanResult(lowConfidenceData.result);

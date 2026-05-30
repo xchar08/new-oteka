@@ -45,7 +45,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         // FETCH USER PROFILE & PLAN
         const { data: profile } = await supabase
           .from('users')
-          .select('id, hand_width_mm, metabolic_state_json, plan')
+          .select('id, hand_width_mm, metabolic_state_json, taste_profile_json, plan')
           .eq('id', session.user.id)
           .single();
 

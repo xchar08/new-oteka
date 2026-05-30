@@ -106,13 +106,14 @@ export const userService = {
 
     const { data, error } = await supabase
       .from('users')
-      .update({ taste_profile_json: tasteProfile })
-      .eq('id', userId)
-      .select('taste_profile_json')
-      .single();
+      .upsert({ 
+        id: userId,
+        taste_profile_json: tasteProfile 
+      }, { onConflict: 'id' })
+      .select('taste_profile_json');
 
     if (error) throw normalizeError(error);
-    return data.taste_profile_json;
+    return data?.[0]?.taste_profile_json;
   },
 
   /**

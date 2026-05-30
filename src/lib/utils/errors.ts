@@ -31,7 +31,11 @@ export function normalizeError(error: unknown): OtekaError {
     return error;
   }
   
-  const msg = error instanceof Error ? error.message : String(error);
+  const msg = error instanceof Error 
+    ? error.message 
+    : typeof error === 'object' && error !== null 
+      ? JSON.stringify(error) 
+      : String(error);
   
   // Network/Connection mappings
   if (msg.includes('Failed to fetch') || msg.includes('Network Error') || msg.includes('offline')) {
