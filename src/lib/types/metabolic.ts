@@ -4,6 +4,20 @@
  * vision → storage → UI rendering.
  */
 
+// ─── Taste Profile (FART-inspired) ───────────────────────────
+
+export interface TasteVector {
+  sweet: number;   // 0.0 to 1.0 intensity
+  bitter: number;
+  sour: number;
+  umami: number;
+}
+
+export interface UserTasteProfile extends TasteVector {
+  confidence: number;          // Number of feedback samples incorporated
+  last_updated?: string;
+}
+
 // ─── Nutrient Data ───────────────────────────────────────────
 
 export interface NutrientEntry {
@@ -62,6 +76,7 @@ export interface FoodItem {
   carbs: number;
   fat: number;
   multiplier?: number; // Added for UI adjustments
+  taste_vector?: TasteVector; // FART-derived taste profile
 }
 
 export interface ScanResult {
@@ -158,6 +173,7 @@ export interface MetabolicState {
   sex?: 'male' | 'female' | 'other';
   current_goal?: 'maintenance' | 'loss' | 'gain';
   medical_verified?: boolean;
+  taste_profile?: UserTasteProfile;
 }
 
 export interface UserProfile {
@@ -165,6 +181,7 @@ export interface UserProfile {
   display_name: string;
   avatar_url: string | null;
   metabolic_state_json: MetabolicState;
+  taste_profile_json: UserTasteProfile | null;
   hand_width_mm: number | null;
   streak_count: number;
   calorie_target: number;

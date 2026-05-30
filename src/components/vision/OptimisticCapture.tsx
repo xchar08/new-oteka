@@ -161,7 +161,7 @@ export function OptimisticCapture({
     if (navigator.onLine) handleOnline();
 
     return () => window.removeEventListener('online', handleOnline);
-  }, [uploadMutation, queryClient]);
+  }, [queryClient]); // Removed uploadMutation since useMutation's mutateAsync is used directly
 
   const handleClick = async () => {
     if (!videoRef.current || status !== 'idle') return;

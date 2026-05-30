@@ -1,13 +1,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export function optimize_meal_plan(val: any): any;
+export function optimize_meal_plan_wasm(val: any, now_ms: bigint): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly optimize_meal_plan: (a: any) => any;
+    readonly optimize_meal_plan_wasm: (a: any, b: bigint) => any;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

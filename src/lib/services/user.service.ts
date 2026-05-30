@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { normalizeError } from '@/lib/utils/errors';
+import { UserTasteProfile } from '@/lib/types/metabolic';
+import { getFoodTasteProfile, updateTasteProfileFromFeedback } from '@/lib/engine/taste/taste-engine';
 
 const getSupabase = () => createClient();
 
@@ -88,5 +90,56 @@ export const userService = {
     if (linkError) throw normalizeError(linkError);
 
     return true;
+  },
+
+  /**
+   * Updates the user's taste profile preferences.
+   */
+  async updateTasteProfile(userId: string, tasteProfile: UserTasteProfile) {
+    const supabase = getSupabase();
+    
+    // Validate that the authenticated user matches the userId being updated
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== userId) {
+      throw new Error('Unauthorized: Cannot update taste profile for another user.');
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .update({ taste_profile_json: tasteProfile })
+      .eq('id', userId)
+      .select('taste_profile_json')
+      .single();
+
+    if (error) throw normalizeError(error);
+    return data.taste_profile_json;
+  },
+
+  /**
+   * Refines the user's taste profile based on feedback for a specific food.
+   */
+  async refineTasteFromFeedback(userId: string, foodName: string, tasteRating: number) {
+    // 1. Get the food's taste vector
+    const foodTaste = getFoodTasteProfile(foodName);
+    if (!foodTaste) return null; // Can't learn if we don't know the food's taste
+
+    const supabase = getSupabase();
+
+    // 2. Fetch current taste profile
+    const { data: user } = await supabase
+      .from('users')
+      .select('taste_profile_json')
+      .eq('id', userId)
+      .single();
+
+    const currentProfile: UserTasteProfile = user?.taste_profile_json || {
+      sweet: 0.5, bitter: 0.5, sour: 0.5, umami: 0.5, confidence: 0
+    };
+
+    // 3. Calculate new profile
+    const updatedProfile = updateTasteProfileFromFeedback(currentProfile, foodTaste, tasteRating);
+
+    // 4. Save to DB
+    return await this.updateTasteProfile(userId, updatedProfile);
   }
 };

@@ -69,6 +69,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         const hasProfile = !!(metabolic.age && metabolic.height_cm);
         const hasMedical = !!metabolic.medical_verified;
         const hasCalibration = !!(userProfile?.hand_width_mm);
+        const hasTaste = !!(userProfile?.taste_profile_json && userProfile.taste_profile_json.confidence > 0);
 
         if (isOnboardingRoute) {
           setAuthorized(true);
@@ -86,11 +87,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         } else if (hasProfile && hasMedical && !hasCalibration && pathname !== '/onboarding/calibration') {
           router.replace('/onboarding/calibration');
           setAuthorized(false);
+        } else if (hasProfile && hasMedical && hasCalibration && !hasTaste && pathname !== '/onboarding/taste') {
+          router.replace('/onboarding/taste');
+          setAuthorized(false);
         } else {
           setAuthorized(true);
         }
       } else {
-        setAuthorized(true);
+        const isExempt = EXEMPT_ROUTES.some(r => pathname?.startsWith(r)) || pathname === '/login' || pathname?.startsWith('/onboarding');
+        if (!isExempt) {
+          router.replace('/login');
+          setAuthorized(false);
+        } else {
+          setAuthorized(true);
+        }
       }
     } catch (err) {
       console.error("AuthGuard critical error:", err);

@@ -68,7 +68,7 @@ export default function CalibrationPage() {
     }
 
     setLoading(false);
-    window.location.href = '/dashboard'; 
+    router.push('/onboarding/taste');
   };
 
   return (
@@ -167,7 +167,7 @@ export default function CalibrationPage() {
         disabled={loading}
         className="w-full h-14 bg-[var(--primary)] text-[var(--primary-fg)] hover:opacity-90 rounded-2xl font-semibold shadow-lg text-lg flex items-center justify-center gap-2 mt-8"
       >
-        {loading ? 'Finalizing...' : 'Complete Setup'} <ChevronRight size={20} />
+        {loading ? 'Finalizing...' : 'Next Step'} <ChevronRight size={20} />
       </Button>
 
       <button 

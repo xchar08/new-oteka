@@ -30,7 +30,42 @@ async function getWasmInstance() {
   }
 }
 
-// DETERMINISTIC TS LOGIC
+// ─── Taste Scoring (FART-inspired) ────────────────────────────
+
+type TasteVector = {
+  sweet: number;
+  bitter: number;
+  sour: number;
+  umami: number;
+};
+
+const TASTE_WEIGHT = 300;
+const TASTE_MIN_CONFIDENCE = 5;
+const FATIGUE_WEIGHT = 500;
+const CATEGORY_COOLDOWN_WEIGHT = 300;
+
+function calculateTasteAffinity(user: TasteVector, food: TasteVector): number {
+  // Ensure non-negative magnitudes to keep cosine similarity in [0, 1] range
+  const u = [Math.max(0, user.sweet), Math.max(0, user.bitter), Math.max(0, user.sour), Math.max(0, user.umami)];
+  const f = [Math.max(0, food.sweet), Math.max(0, food.bitter), Math.max(0, food.sour), Math.max(0, food.umami)];
+  let dot = 0, nU = 0, nF = 0;
+  for (let i = 0; i < 4; i++) {
+    dot += u[i] * f[i];
+    nU += u[i] * u[i];
+    nF += f[i] * f[i];
+  }
+  const denominator = Math.sqrt(nU) * Math.sqrt(nF);
+  return denominator === 0 ? 0.5 : dot / denominator;
+}
+
+function computeTastePenalty(userTaste: TasteVector | null, foodTaste: TasteVector | null, confidence: number): number {
+  if (!userTaste || !foodTaste) return 0;
+  const affinity = calculateTasteAffinity(userTaste, foodTaste);
+  const weight = TASTE_WEIGHT * Math.min(1.0, confidence / TASTE_MIN_CONFIDENCE);
+  return (1 - affinity) * weight;
+}
+
+// ─── DETERMINISTIC TS LOGIC ───────────────────────────────────
 type Gene = {
   name: string;
   calories: number;
@@ -46,6 +81,9 @@ type Gene = {
   logged_at?: string;
   sodium?: number;
   sugar?: number;
+  taste_vector?: TasteVector;
+  ingredients?: string[];
+  category?: string;
 };
 
 type Individual = {
@@ -56,15 +94,18 @@ type Individual = {
 function runTSOptimization(
   profile: any,
   constraints: any,
-  pantry: Gene[],
+  pool: Gene[],
   recentFeedback: any[],
   userConditions: any[],
+  userTasteProfile: TasteVector | null = null,
+  tasteConfidence: number = 0,
+  recentHistory: Array<{ item_name: string; days_ago: number; category?: string }> = [],
 ) {
   // GREEDY HEURISTIC — replaces full NSGA-II to avoid edge function CPU timeouts.
   // Iteratively selects the food that best closes the remaining macro gap.
   const targetCal = profile?.calorie_target || 2000;
   const targetProt = profile?.metabolic_state_json?.protein_target || 150;
-  const MAX_ITEMS = 7;
+  const MAX_ITEMS = 3; // FORCED TO 3 SLOTS
 
   // Pre-filter banned foods from medical conditions
   const conditions = userConditions || [];
@@ -73,7 +114,7 @@ function runTSOptimization(
       (c.never_recommend_json || []).map((s: string) => s.toLowerCase())
     ),
   );
-  const safePool = pantry.filter((g) => !bannedNames.has(g.name.toLowerCase()));
+  const safePool = pool.filter((g) => !bannedNames.has(g.name.toLowerCase()));
   if (safePool.length === 0) return [];
 
   // Build medical threshold limits
@@ -93,7 +134,15 @@ function runTSOptimization(
   let totalSugar = 0;
   const used = new Set<number>();
   const selectedNames = new Set<string>();
-  const selectedCategories = new Map<string, number>(); // Track category counts for diversity
+  const selectedCategories = new Map<string, number>();
+
+  // Track recent history for fatigue
+  const historyMap = new Map<string, number>();
+  const recentCategories = new Set<string>();
+  recentHistory.forEach(h => {
+    historyMap.set(h.item_name.toLowerCase(), h.days_ago);
+    if (h.days_ago <= 2 && h.category) recentCategories.add(h.category.toLowerCase());
+  });
 
   for (let i = 0; i < MAX_ITEMS && remainCal > 50; i++) {
     let bestIdx = -1;
@@ -105,25 +154,27 @@ function runTSOptimization(
       if (selectedNames.has(g.name.toLowerCase())) continue;
 
       // Medical constraint check
+      const containsAllergen = g.ingredients?.some(ing => bannedNames.has(ing.toLowerCase()));
+      if (containsAllergen) continue; 
+      
       if (totalSodium + (g.sodium || 0) > maxSodium) continue;
       if (totalSugar + (g.sugar || 0) > maxSugar) continue;
 
-      // Normalize gaps so calories and protein are balanced relative to their total targets
       const calGap = (Math.abs(remainCal - g.calories) / targetCal) * 1000;
       const protGap = (Math.max(0, remainProt - g.protein) / targetProt) * 1000 * 2.5;
       const pantryBonus = g.inPantry ? 0 : (constraints.strictness ? 5000 : 50);
 
-      // Reward high protein density (protein per calorie) when protein target is still unfulfilled
+      // Continuous Protein Density Multiplier: scales down as remainProt approaches zero
       const proteinDensity = g.protein / (g.calories || 1);
-      const densityBonus = remainProt > 0 ? (proteinDensity * 1200) : 0;
+      const densityMultiplier = Math.max(0, Math.min(1.0, remainProt / targetProt));
+      const densityBonus = (proteinDensity * 1200) * densityMultiplier;
 
-      // Freshness bonus: prioritize items expiring soon
+      // Freshness bonus: capped at -50 as a tie-breaker
       let expiryBonus = 0;
       if (g.expiry) {
-        const daysLeft = (new Date(g.expiry).getTime() - Date.now()) /
-          (1000 * 60 * 60 * 24);
-        if (daysLeft > 0 && daysLeft <= 2) expiryBonus = -500; // Encourage use-soon
-        if (daysLeft < 0) continue; // Skip expired
+        const daysLeft = (new Date(g.expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+        if (daysLeft > 0 && daysLeft <= 2) expiryBonus = -50; 
+        if (daysLeft < 0) continue; 
       }
 
       // Feedback penalty
@@ -131,15 +182,21 @@ function runTSOptimization(
       const pastRating = recentFeedback.find((f: any) => f.item === g.name);
       if (pastRating && pastRating.score < 3) fbPenalty = 500;
 
-      // Category diversity penalty — penalize selecting many items from the same food group
-      const itemCategory = (g as any).category || 'general';
+      // Category diversity & cooldown
+      const itemCategory = (g.category || 'general').toLowerCase();
       const categoryCount = selectedCategories.get(itemCategory) || 0;
-      const diversityPenalty = categoryCount * 300; // Each duplicate category adds a penalty
+      const diversityPenalty = categoryCount * 300; 
+      const categoryCooldownPenalty = recentCategories.has(itemCategory) ? CATEGORY_COOLDOWN_WEIGHT : 0;
 
-      // Add a stochastic exploration factor so the greedy algorithm doesn't always pick the exact same sequence
-      const explorationBonus = Math.random() * 800;
+      // Fatigue Penalty
+      const daysAgo = historyMap.get(g.name.toLowerCase());
+      const fatiguePenalty = daysAgo !== undefined ? (FATIGUE_WEIGHT / (daysAgo + 1)) : 0;
 
-      const score = calGap + protGap + pantryBonus + expiryBonus + fbPenalty + diversityPenalty - densityBonus - explorationBonus;
+      const tastePenalty = computeTastePenalty(userTasteProfile, g.taste_vector || null, tasteConfidence);
+
+      const explorationBonus = Math.random() * 100;
+
+      const score = calGap + protGap + pantryBonus + expiryBonus + fbPenalty + diversityPenalty + categoryCooldownPenalty + fatiguePenalty + tastePenalty - densityBonus - explorationBonus;
       if (score < bestScore) {
         bestScore = score;
         bestIdx = j;
@@ -151,7 +208,7 @@ function runTSOptimization(
     selected.push(pick);
     used.add(bestIdx);
     selectedNames.add(pick.name.toLowerCase());
-    const pickCategory = (pick as any).category || 'general';
+    const pickCategory = (pick.category || 'general').toLowerCase();
     selectedCategories.set(pickCategory, (selectedCategories.get(pickCategory) || 0) + 1);
     remainCal -= pick.calories;
     remainProt -= pick.protein;
@@ -409,9 +466,18 @@ serve(async (req) => {
     // 1. Fetch Profile & Medical
     const { data: profile } = await supabase
       .from("users")
-      .select("metabolic_state_json, calorie_target")
+      .select("metabolic_state_json, calorie_target, taste_profile_json")
       .eq("id", user.id)
       .single();
+
+    // Parse user taste profile
+    const userTasteProfile: TasteVector | null = profile?.taste_profile_json ? {
+      sweet: profile.taste_profile_json.sweet ?? 0.5,
+      bitter: profile.taste_profile_json.bitter ?? 0.5,
+      sour: profile.taste_profile_json.sour ?? 0.5,
+      umami: profile.taste_profile_json.umami ?? 0.5,
+    } : null;
+    const tasteConfidence = profile?.taste_profile_json?.confidence ?? 0;
 
     const proteinTarget = profile?.metabolic_state_json?.protein_target || 150;
 
@@ -460,6 +526,7 @@ serve(async (req) => {
           category: ni.category || (p.metadata_json?.category) || "general",
           decay_coefficient: p.foods?.category_decay_rate || 0.05,
           logged_at: p.created_at,
+          taste_vector: ni.taste_vector || undefined,
         };
       });
 
@@ -484,6 +551,7 @@ serve(async (req) => {
           vitamin_d: f.nutritional_info?.vitamin_d || 0,
           inPantry: false,
           decay_coefficient: f.category_decay_rate || 0.05,
+          taste_vector: f.nutritional_info?.taste_vector || undefined,
         }));
 
       if (pantryPool.length === 0) {
@@ -575,6 +643,8 @@ serve(async (req) => {
         pantryPool,
         recentFeedback,
         conditions,
+        userTasteProfile,
+        tasteConfidence,
       );
       if (solutions.length === 0) {
         if (iteration === 0) constraints.strictness *= 0.9;

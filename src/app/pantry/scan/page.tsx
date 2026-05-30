@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NeuralScanOverlay } from '@/components/vision/NeuralScanOverlay';
 import { Loader2, RefreshCw, ChevronLeft, Check, Camera, Plus, Trash2, Edit2, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Camera as CapacitorCamera } from '@capacitor/camera';
 import { ScanningGrid } from '@/components/vision/ScanningGrid';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,6 +26,7 @@ interface PantryItemDraft {
 export default function PantryScanPage() {
   const supabase = createClient();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [analyzing, setAnalyzing] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   
@@ -93,6 +95,8 @@ export default function PantryScanPage() {
       const { error } = await supabase.from('pantry').insert(inserts);
 
       if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['pantry-items', user.id] });
 
       await stopCamera();
       router.push('/pantry');

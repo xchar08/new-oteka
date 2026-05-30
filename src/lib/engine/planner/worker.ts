@@ -3,6 +3,13 @@
 
 export {};
 
+type TasteVector = {
+  sweet: number;
+  bitter: number;
+  sour: number;
+  umami: number;
+};
+
 type Gene = {
   name: string;
   calories: number;
@@ -12,12 +19,21 @@ type Gene = {
   inPantry: boolean;
   sodium?: number;
   sugar?: number;
+  taste_vector?: TasteVector;
+  expiry_ms?: number;
+  decay_k?: number;
+  logged_at_ms?: number;
+  category?: string;
 };
 
 type Individual = {
   chromosome: Gene[];
   fitness: number;
 };
+
+const FATIGUE_WEIGHT = 500;
+const CATEGORY_COOLDOWN_WEIGHT = 300;
+const FRESHNESS_BONUS_CAP = 50;
 
 const ASSUMED_STAPLES: Gene[] = [
   { name: "Olive Oil", calories: 119, protein: 0, carbs: 0, fats: 13.5, sodium: 0, sugar: 0, inPantry: true },
@@ -40,7 +56,16 @@ const DEFAULT_FALLBACK_FOODS = [
 ];
 
 addEventListener("message", async (event) => {
-  const { pantry_items, user_profile, conditions, constraints, global_foods } = event.data;
+  const { pantry_items, user_profile, conditions, constraints, global_foods, recent_history } = event.data;
+
+  // Extract taste profile from user_profile if available
+  const userTaste: TasteVector | null = user_profile?.taste_profile_json ? {
+    sweet: Math.max(0, user_profile.taste_profile_json.sweet ?? 0.5),
+    bitter: Math.max(0, user_profile.taste_profile_json.bitter ?? 0.5),
+    sour: Math.max(0, user_profile.taste_profile_json.sour ?? 0.5),
+    umami: Math.max(0, user_profile.taste_profile_json.umami ?? 0.5),
+  } : null;
+  const tasteConfidence = user_profile?.taste_profile_json?.confidence ?? 0;
 
   try {
     const targets = {
@@ -50,19 +75,36 @@ addEventListener("message", async (event) => {
 
     const POPSIZE = 40;
     const GENERATIONS = 20;
+
+    // Track recent categories for cooldown
+    const recentCategories = new Set<string>();
+    if (recent_history) {
+      recent_history.forEach((h: any) => {
+        if (h.days_ago <= 2 && h.category) recentCategories.add(h.category.toLowerCase());
+      });
+    }
+
+    // Optimization: Hoist eaten set for Epsilon-Greedy initialization
+    const eatenNames = new Set((recent_history || []).map((h: any) => h.item_name.toLowerCase()));
     
     let pool: Gene[] = pantry_items && pantry_items.length > 0 
       ? pantry_items.map((p: any) => {
+          const ni = p.nutritional_info || p.foods?.nutritional_info;
           const frac = p.metadata_json?.remaining_fraction ?? 1.0;
           return {
-            name: p.foods?.name || p.name || "Unknown",
-            calories: (p.foods?.nutritional_info?.calories || p.nutritional_info?.calories || 100) * frac,
-            protein: (p.foods?.nutritional_info?.protein || p.nutritional_info?.protein || 5) * frac,
-            carbs: (p.foods?.nutritional_info?.carbs || p.nutritional_info?.carbs || 10) * frac,
-            fats: (p.foods?.nutritional_info?.fats || p.nutritional_info?.fats || 2) * frac,
-            sodium: (p.foods?.nutritional_info?.sodium || p.nutritional_info?.sodium || 0) * frac,
-            sugar: (p.foods?.nutritional_info?.sugar || p.nutritional_info?.sugar || 0) * frac,
-            inPantry: true
+            name: p.food_name || p.foods?.name || p.name || "Unknown",
+            calories: (ni?.calories || 100) * frac,
+            protein: (ni?.protein || 5) * frac,
+            carbs: (ni?.carbs || 10) * frac,
+            fats: (ni?.fats || 2) * frac,
+            sodium: (ni?.sodium || 0) * frac,
+            sugar: (ni?.sugar || 0) * frac,
+            inPantry: true,
+            expiry_ms: p.expiry_date ? new Date(p.expiry_date).getTime() : (p.expiry ? new Date(p.expiry).getTime() : undefined),
+            decay_k: p.foods?.category_decay_rate || 0.05,
+            logged_at_ms: p.created_at ? new Date(p.created_at).getTime() : undefined,
+            category: (ni?.category || p.metadata_json?.category || "general").toLowerCase(),
+            taste_vector: ni?.taste_vector || undefined,
           };
         })
       : (global_foods && global_foods.length > 0
@@ -74,19 +116,29 @@ addEventListener("message", async (event) => {
               fats: f.nutritional_info?.fats || 2,
               sodium: f.nutritional_info?.sodium || 0,
               sugar: f.nutritional_info?.sugar || 0,
-              inPantry: false
+              inPantry: false,
+              category: (f.nutritional_info?.category || "general").toLowerCase(),
+              taste_vector: f.nutritional_info?.taste_vector || undefined,
             }))
-          : DEFAULT_FALLBACK_FOODS.map(f => ({ ...f, inPantry: false }))
+          : DEFAULT_FALLBACK_FOODS.map(f => ({ ...f, inPantry: false, category: "general" }))
         );
 
     // Inject staples to prevent constraint failure
     pool = [...pool, ...ASSUMED_STAPLES];
 
     // Initialize Population
-    let population: Individual[] = Array.from({ length: POPSIZE }, () => ({
-      chromosome: getRandomGenes(pool, 3),
-      fitness: 0
-    }));
+    let population: Individual[] = Array.from({ length: POPSIZE }, (_, i) => {
+      const forceNovel = i < Math.floor(POPSIZE * 0.1);
+      let validPool = pool;
+      if (forceNovel && eatenNames.size > 0) {
+        const novelPool = pool.filter(f => !eatenNames.has(f.name.toLowerCase()));
+        if (novelPool.length >= 3) validPool = novelPool;
+      }
+      return {
+        chromosome: getRandomGenes(validPool, 3),
+        fitness: 0
+      };
+    });
 
     // Evolution Loop
     for (let g = 0; g < GENERATIONS; g++) {
@@ -96,12 +148,42 @@ addEventListener("message", async (event) => {
         const dProt = Math.abs(targets.protein - totals.protein);
         const pantryViolations = ind.chromosome.filter(g => !g.inPantry).length;
         
+        // Freshness bonus: capped total
+        let wasteBonus = 0;
+        const now = Date.now();
+        ind.chromosome.forEach(f => {
+            if (f.expiry_ms) {
+                const msLeft = f.expiry_ms - now;
+                const daysLeft = msLeft / (1000 * 60 * 60 * 24);
+                if (daysLeft <= 2 && daysLeft > 0) wasteBonus += 25;
+            } else if (f.decay_k && f.logged_at_ms) {
+                const daysSince = (now - f.logged_at_ms) / (1000 * 60 * 60 * 24);
+                const freshness = Math.exp(-f.decay_k * daysSince);
+                if (freshness < 0.3) wasteBonus += 15;
+            }
+        });
+        wasteBonus = Math.min(FRESHNESS_BONUS_CAP, wasteBonus);
+
         let medicalPenalty = 0;
         if (conditions) {
             conditions.forEach((cond: any) => {
                 const rules = cond.rules_json || {};
-                if (rules.max_sodium && totals.sodium > rules.max_sodium) medicalPenalty += 10000;
-                if (rules.max_sugar && totals.sugar > rules.max_sugar) medicalPenalty += 10000;
+                if (rules.max_sodium && totals.sodium > rules.max_sodium) medicalPenalty += 50000;
+                if (rules.max_sugar && totals.sugar > rules.max_sugar) medicalPenalty += 50000;
+            });
+        }
+
+        let fatiguePenalty = 0;
+        let categoryCooldownPenalty = 0;
+        if (recent_history) {
+            ind.chromosome.forEach(g => {
+                const hit = recent_history.find((h: any) => h.item_name.toLowerCase() === g.name.toLowerCase());
+                if (hit) {
+                    fatiguePenalty += (FATIGUE_WEIGHT / (hit.days_ago + 1));
+                }
+                if (g.category && recentCategories.has(g.category.toLowerCase())) {
+                  categoryCooldownPenalty += CATEGORY_COOLDOWN_WEIGHT;
+                }
             });
         }
 
@@ -110,7 +192,23 @@ addEventListener("message", async (event) => {
         const protMultiplier = (isLateGeneration && !constraints?.strictness) ? 1 : 2;
         const calMultiplier = (isLateGeneration && !constraints?.strictness) ? 0.5 : 1;
 
-        ind.fitness = (dCal * calMultiplier) + (dProt * protMultiplier) + (pantryViolations * (constraints?.strictness ? 1000 : 50)) + medicalPenalty;
+        ind.fitness = (dCal * calMultiplier) + (dProt * protMultiplier) + (pantryViolations * (constraints?.strictness ? 1000 : 50)) + medicalPenalty + fatiguePenalty + categoryCooldownPenalty - wasteBonus;
+
+        // Taste affinity penalty
+        if (userTaste && tasteConfidence > 0) {
+          const confFactor = Math.min(1.0, tasteConfidence / 5);
+          ind.chromosome.forEach(g => {
+            if (g.taste_vector) {
+              const u = [userTaste.sweet, userTaste.bitter, userTaste.sour, userTaste.umami];
+              const f = [Math.max(0, g.taste_vector.sweet), Math.max(0, g.taste_vector.bitter), Math.max(0, g.taste_vector.sour), Math.max(0, g.taste_vector.umami)];
+              let dot = 0, nU = 0, nF = 0;
+              for (let i = 0; i < 4; i++) { dot += u[i]*f[i]; nU += u[i]*u[i]; nF += f[i]*f[i]; }
+              const denom = Math.sqrt(nU) * Math.sqrt(nF);
+              const affinity = denom === 0 ? 0.5 : dot / denom;
+              ind.fitness += (1 - affinity) * 300 * confFactor;
+            }
+          });
+        }
       });
 
       population.sort((a, b) => a.fitness - b.fitness);

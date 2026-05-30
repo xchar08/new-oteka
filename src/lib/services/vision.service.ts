@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { normalizeError } from '@/lib/utils/errors';
+import { userService } from './user.service';
 
 const getSupabase = () => createClient();
 
@@ -129,6 +130,8 @@ export const visionService = {
    */
   async updateLogFeedback(logId: string, currentTags: any, feedback: { taste: number, satiety: number, digestion: number }) {
     const supabase = getSupabase();
+    
+    // 1. Update log feedback
     const { error } = await supabase.from('logs').update({
       metabolic_tags_json: {
         ...currentTags,
@@ -137,6 +140,17 @@ export const visionService = {
     }).eq('id', logId);
 
     if (error) throw normalizeError(error);
+
+    // 2. Refine taste profile from feedback
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.id && currentTags?.food_name) {
+      try {
+        await userService.refineTasteFromFeedback(user.id, currentTags.food_name, feedback.taste);
+      } catch (e) {
+        console.warn("[Taste Engine] Failed to refine taste profile:", e);
+      }
+    }
+
     return true;
   }
 };

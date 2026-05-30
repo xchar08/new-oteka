@@ -149,12 +149,25 @@ export default function PantryPage() {
     try {
       const conditionObjects = activeConditions.map(name => ({ name, rules_json: {} }));
       
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: logData } = await supabase
+        .from('logs')
+        .select('food_name, created_at')
+        .eq('user_id', user!.id)
+        .gte('created_at', fourteenDaysAgo);
+
+      const recent_history = (logData || []).map(log => ({
+        item_name: log.food_name,
+        days_ago: (Date.now() - new Date(log.created_at).getTime()) / (1000 * 60 * 60 * 24)
+      }));
+      
       const result: any = await runOptimization({
         pantry_items: pantryItems,
         user_profile: user,
         conditions: conditionObjects,
         constraints,
-        global_foods: globalFoods
+        global_foods: globalFoods,
+        recent_history
       });
       setPlans(result.solutions || []);
       

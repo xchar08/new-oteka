@@ -10,6 +10,7 @@ export interface OptimizationInput {
   conditions: any[];
   constraints: any;
   global_foods?: any[];
+  recent_history?: Array<{ item_name: string; days_ago: number }>;
 }
 
 export interface OptimizationResult {
