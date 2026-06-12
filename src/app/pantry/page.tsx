@@ -110,7 +110,7 @@ export default function PantryPage() {
       });
 
       toast.success(`Logged ${defaultGrams}g of ${item.name || food.name}`);
-      router.push('/log');
+      router.push('/dashboard');
     } catch (err) {
       toast.error("Failed to log meal");
     }
@@ -150,16 +150,20 @@ export default function PantryPage() {
       const conditionObjects = activeConditions.map(name => ({ name, rules_json: {} }));
       
       const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      // logs stores the food name inside metabolic_tags_json (item / food_name)
+      // and timestamps in captured_at — there are no food_name/created_at columns.
       const { data: logData } = await supabase
         .from('logs')
-        .select('food_name, created_at')
+        .select('metabolic_tags_json, captured_at')
         .eq('user_id', user!.id)
-        .gte('created_at', fourteenDaysAgo);
+        .gte('captured_at', fourteenDaysAgo);
 
-      const recent_history = (logData || []).map(log => ({
-        item_name: log.food_name,
-        days_ago: (Date.now() - new Date(log.created_at).getTime()) / (1000 * 60 * 60 * 24)
-      }));
+      const recent_history = (logData || [])
+        .map(log => ({
+          item_name: log.metabolic_tags_json?.item || log.metabolic_tags_json?.food_name,
+          days_ago: (Date.now() - new Date(log.captured_at).getTime()) / (1000 * 60 * 60 * 24)
+        }))
+        .filter(h => !!h.item_name);
       
       const result: any = await runOptimization({
         pantry_items: pantryItems,

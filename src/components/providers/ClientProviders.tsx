@@ -7,6 +7,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 
 import { useAppStore } from '@/lib/state/appStore';
+import { useConnectionMode } from '@/lib/hooks/useConnectionMode';
 
 // These components MUST be loaded only on the client because they use browser APIs
 // (navigator, localStorage, etc.) which are not available during static export/SSR.
@@ -16,7 +17,9 @@ const NotificationHandler = dynamic(() => import('@/components/providers/Notific
 
 function ThemeWrapper({ children }: { children: React.ReactNode }) {
   const colorTheme = useAppStore((s) => s.colorTheme);
-  
+  // Keep appStore.isOnline / saveData in sync app-wide (not just on dashboard).
+  useConnectionMode();
+
   useEffect(() => {
     const root = document.documentElement;
     // Remove existing theme classes

@@ -32,7 +32,7 @@ export const shoppingService = {
     // 2. Fetch User Names for the list
     const userIds = Array.from(new Set(sharedList.map((i: any) => i.added_by).filter(Boolean)));
     const { data: memberNames } = await supabase
-      .from('users')
+      .from('public_profiles')
       .select('id, display_name')
       .in('id', userIds);
     

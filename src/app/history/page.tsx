@@ -86,8 +86,8 @@ export default function HistoryPage() {
             </div>
             <h3 className="text-xl font-bold text-[var(--text-primary)]">No history yet</h3>
             <p className="text-[var(--text-secondary)] mt-2">Start your journey today.</p>
-            <button 
-               onClick={() => router.push('/log')}
+            <button
+               onClick={() => router.push('/vision')}
                className="mt-6 px-8 py-3 bg-[var(--primary)] text-white rounded-2xl font-bold shadow-lg"
             >
               Log First Meal

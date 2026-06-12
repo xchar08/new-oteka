@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, Target, Lightbulb, Info } from 'lucide-react';
+import { useRef } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { X, Zap, Target, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useModalA11y } from '@/lib/hooks/useModalA11y';
 
 export interface NutrientInfo {
   name: string;
@@ -104,11 +105,24 @@ interface NutrientInfoModalProps {
 }
 
 export function NutrientInfoModal({ nutrientName, isOpen, onClose, currentDv }: NutrientInfoModalProps) {
-  // Try to find exact match, or case-insensitive match
-  const info = NUTRIENT_DATABASE[nutrientName] || 
-               Object.values(NUTRIENT_DATABASE).find(v => v.name.toLowerCase() === nutrientName.toLowerCase());
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
 
-  if (!info) return null;
+  // Try to find exact match, or case-insensitive match; unknown nutrients
+  // still get a modal (a dead tap is worse than a sparse one)
+  const info: NutrientInfo = NUTRIENT_DATABASE[nutrientName] ||
+               Object.values(NUTRIENT_DATABASE).find(v => v.name.toLowerCase() === nutrientName.toLowerCase()) ||
+               {
+                 name: nutrientName,
+                 bioOptimizer: 'Detailed reference data for this nutrient is on the way.',
+                 benefits: [],
+                 sources: [],
+                 category: 'other',
+               };
+
+  useModalA11y(isOpen, onClose, dialogRef);
+
+  if (!nutrientName) return null;
 
   return (
     <AnimatePresence>
@@ -121,11 +135,17 @@ export function NutrientInfoModal({ nutrientName, isOpen, onClose, currentDv }: 
             onClick={onClose}
             className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]"
           />
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed inset-x-6 top-[15%] bottom-[15%] max-w-lg mx-auto bg-[#1a1206] border border-[var(--primary)]/30 rounded-[40px] z-[101] shadow-[0_0_50px_rgba(255,140,0,0.15)] overflow-hidden flex flex-col font-sans"
+          <motion.div
+            ref={dialogRef}
+            tabIndex={-1}
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 16 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 16 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="nutrient-modal-title"
+            className="fixed inset-x-6 top-[15%] bottom-[15%] max-w-lg mx-auto bg-[var(--bg-surface)] border border-[var(--primary)]/30 rounded-[40px] z-[101] shadow-[0_0_50px_rgba(var(--ring),0.15)] overflow-hidden flex flex-col font-sans focus:outline-none"
           >
             {/* Glass Highlight */}
             <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-[var(--primary)]/5 to-transparent pointer-events-none" />
@@ -134,16 +154,16 @@ export function NutrientInfoModal({ nutrientName, isOpen, onClose, currentDv }: 
             <div className="p-8 pb-4 flex justify-between items-start relative z-10">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center border border-[var(--primary)]/20 shadow-inner">
-                  <Zap className="text-[var(--primary)] w-7 h-7" />
+                  <Zap className="text-[var(--primary-text)] w-7 h-7" />
                 </div>
                 <div>
-                   <h2 className="text-3xl font-black tracking-tight text-[var(--text-primary)]">{info.name}</h2>
-                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)] opacity-70">
-                     {info.category} Optimization
+                   <h2 id="nutrient-modal-title" className="text-3xl font-black tracking-tight text-[var(--text-primary)]">{info.name}</h2>
+                   <span className="text-[11px] font-semibold text-[var(--primary-text)] capitalize">
+                     {info.category} optimization
                    </span>
                 </div>
               </div>
-              <button onClick={onClose} className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors">
+              <button onClick={onClose} aria-label="Close" className="p-2 rounded-full bg-[var(--bg-surface-2)] hover:bg-[var(--border)] transition-colors">
                 <X size={20} className="text-[var(--text-secondary)]" />
               </button>
             </div>
@@ -151,54 +171,59 @@ export function NutrientInfoModal({ nutrientName, isOpen, onClose, currentDv }: 
             {/* Content */}
             <div className="p-8 pt-0 flex-1 overflow-y-auto space-y-8 relative z-10 scrollbar-hide">
               {/* Summary */}
-              <div className="p-5 rounded-3xl bg-white/5 border border-white/10 shadow-sm">
-                <p className="text-sm font-medium leading-relaxed text-[var(--text-secondary)] italic">
+              <div className="p-5 rounded-3xl bg-[var(--bg-surface-2)] border border-[var(--border)] shadow-sm">
+                <p className="text-sm font-medium leading-relaxed text-[var(--text-primary)] italic">
                   "{info.bioOptimizer}"
                 </p>
               </div>
 
               {/* Benefits */}
+              {info.benefits.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)] flex items-center gap-2">
-                  <Target size={14} /> Metabolic Wins
+                <h3 className="text-[13px] font-semibold text-[var(--primary-text)] flex items-center gap-2">
+                  <Target size={14} /> Metabolic wins
                 </h3>
                 <div className="space-y-3">
                   {info.benefits.map((benefit, i) => (
                     <div key={i} className="flex items-center gap-3 group">
-                       <div className="w-2 h-2 rounded-full bg-[var(--primary)] shadow-[0_0_8px_rgba(255,140,0,0.5)]" />
-                       <span className="text-sm font-bold text-[var(--text-primary)] opacity-90">{benefit}</span>
+                       <div className="w-2 h-2 rounded-full bg-[var(--primary)] shadow-[0_0_8px_rgba(var(--ring),0.5)]" />
+                       <span className="text-sm font-bold text-[var(--text-primary)]">{benefit}</span>
                     </div>
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Sources */}
+              {info.sources.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)] flex items-center gap-2">
-                  <Lightbulb size={14} /> Biological Prime Sources
+                <h3 className="text-[13px] font-semibold text-[var(--primary-text)] flex items-center gap-2">
+                  <Lightbulb size={14} /> Prime sources
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
                   {info.sources.map((source, i) => (
-                    <div key={i} className="px-4 py-3 rounded-2xl bg-white/5 border border-white/5 text-xs font-bold text-[var(--text-secondary)] flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]/30" />
+                    <div key={i} className="px-4 py-3 rounded-2xl bg-[var(--bg-surface-2)] border border-[var(--border)] text-xs font-bold text-[var(--text-primary)] flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]/40" />
                       {source}
                     </div>
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Progress */}
               {currentDv !== undefined && (
-                <div className="pt-4 border-t border-white/5">
+                <div className="pt-4 border-t border-[var(--border)]">
                    <div className="flex justify-between items-end mb-3">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Daily Target Progress</span>
-                      <span className="text-lg font-black text-[var(--primary)] font-mono">{Math.round(currentDv)}%</span>
+                      <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Daily target progress</span>
+                      <span className="text-lg font-black text-[var(--primary-text)] font-mono tabular-nums">{Math.round(currentDv)}%</span>
                    </div>
-                   <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
-                      <motion.div 
+                   <div className="h-2 w-full bg-[var(--bg-app)] rounded-full overflow-hidden border border-[var(--border)]">
+                      <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${Math.min(currentDv, 100)}%` }}
-                        className="h-full bg-[var(--primary)] shadow-[0_0_15px_rgba(255,140,0,0.5)]"
+                        transition={reduceMotion ? { duration: 0 } : undefined}
+                        className="h-full bg-[var(--primary)] shadow-[0_0_15px_rgba(var(--ring),0.5)]"
                       />
                    </div>
                 </div>
@@ -207,9 +232,9 @@ export function NutrientInfoModal({ nutrientName, isOpen, onClose, currentDv }: 
 
             {/* Footer */}
             <div className="p-6 pt-0 relative z-10">
-               <Button 
+               <Button
                 onClick={onClose}
-                className="w-full h-14 bg-[var(--primary)] text-white rounded-[20px] font-black uppercase tracking-widest text-xs active:scale-95 shadow-xl shadow-[var(--primary)]/20"
+                className="w-full h-14 bg-[var(--primary)] text-[var(--primary-fg)] rounded-[20px] font-black uppercase tracking-widest text-xs active:scale-95 shadow-xl shadow-[var(--primary)]/20"
                >
                  Dismiss
                </Button>

@@ -1,4 +1,8 @@
 // supabase/functions/stripe-webhook/index.ts
+// @ts-nocheck — the stripe import uses esm.sh's `?no-check` (Stripe's types
+// target Node and don't check under Deno), so editors infer minified garbage
+// types and can't find the `Stripe` type namespace. Runtime and deploy are
+// unaffected.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.0.0?target=deno&no-check";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -8,6 +12,11 @@ const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
+// LANDMINE: this handler reads `subscription.current_period_end`, which only
+// exists through API version 2024-11-20. From 2025-03-31.basil onward Stripe
+// moved it to subscription items (items.data[0].current_period_end). Do NOT
+// bump apiVersion without updating those reads, or period ends will silently
+// persist as Invalid Date.
 const stripe = new Stripe(STRIPE_API_KEY, {
   apiVersion: "2024-11-20",
   httpClient: Stripe.createFetchHttpClient(),
@@ -56,10 +65,11 @@ serve(async (request: Request) => {
           const planType = session.metadata?.plan_type || 'pro';
           console.log("Plan type from metadata:", planType);
 
-          // Update user plan
+          // Update user plan. plan_expires_at is cleared: paid subscriptions
+          // never expire client-side (voucher passes do; see expire_premium_passes)
           await supabase
             .from('users')
-            .update({ plan: planType })
+            .update({ plan: planType, plan_expires_at: null })
             .eq('id', userId);
 
           // Upsert into subscriptions table (handles duplicate webhook events)
@@ -96,8 +106,12 @@ serve(async (request: Request) => {
             if (subData) {
                 await supabase
                     .from('users')
-                    .update({ plan: 'free' })
+                    .update({ plan: 'free', plan_expires_at: null })
                     .eq('id', subData.user_id);
+
+                // If they were a coach, tear down their team's seats too
+                // (members with their own active subscription are spared)
+                await supabase.rpc('revoke_coach_team', { p_owner: subData.user_id });
             }
         }
         break;
@@ -115,9 +129,12 @@ serve(async (request: Request) => {
         if (subData) {
             await supabase
                 .from('users')
-                .update({ plan: 'free' })
+                .update({ plan: 'free', plan_expires_at: null })
                 .eq('id', subData.user_id);
-                
+
+            // If they were a coach, tear down their team's seats too
+            await supabase.rpc('revoke_coach_team', { p_owner: subData.user_id });
+
             await supabase
                 .from('subscriptions')
                 .delete()

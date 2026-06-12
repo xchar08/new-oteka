@@ -13,7 +13,7 @@ export default function VisionPage() {
       <OptimisticCapture />
       <button
         onClick={() => router.back()}
-        className="absolute top-12 left-6 z-20 text-white/80 font-medium text-sm bg-palenight-surface/40 px-3 py-1 rounded-full backdrop-blur-md border border-white/5"
+        className="absolute top-12 left-6 z-20 text-white/80 font-medium text-sm bg-black/40 px-3 py-1 rounded-full backdrop-blur-md border border-white/10"
       >
         ← Back
       </button>

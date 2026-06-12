@@ -16,11 +16,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // 'headers()' are technically ignored in static export (served by Nginx/Vercel usually), 
-  // but keeping it here doesn't hurt build. Capacitor ignores it.
-  typescript: {
-    ignoreBuildErrors: true,
-  },
 };
 
 export default nextConfig;

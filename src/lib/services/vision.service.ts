@@ -125,6 +125,51 @@ export const visionService = {
   },
 
   /**
+   * Applies a user correction to a logged meal (name, portion, nutrients).
+   * The patch replaces grams and metabolic_tags_json wholesale; callers are
+   * responsible for preserving fields they don't intend to change.
+   */
+  async updateLog(logId: string, patch: { grams: number; metabolic_tags_json: Record<string, unknown> }) {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('logs').update({
+      grams: patch.grams,
+      metabolic_tags_json: patch.metabolic_tags_json,
+    }).eq('id', logId);
+
+    if (error) throw normalizeError(error);
+    return true;
+  },
+
+  /**
+   * Permanently removes a logged meal. The meal's calibration feedback goes
+   * with it (the optimizer drops that sample). Storage image cleanup is a
+   * separate concern (deferred).
+   */
+  async deleteLog(logId: string) {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('logs').delete().eq('id', logId);
+    if (error) throw normalizeError(error);
+    return true;
+  },
+
+  /**
+   * Re-inserts a deleted log row verbatim — the undo path for deleteLog.
+   */
+  async restoreLog(log: { id: string; user_id: string; grams: number | null; metabolic_tags_json: unknown; captured_at: string; local_date: string | null }) {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('logs').insert({
+      id: log.id,
+      user_id: log.user_id,
+      grams: log.grams,
+      metabolic_tags_json: log.metabolic_tags_json,
+      captured_at: log.captured_at,
+      local_date: log.local_date,
+    });
+    if (error) throw normalizeError(error);
+    return true;
+  },
+
+  /**
    * Updates a specific log entry with user feedback (Taste, Satiety, Digestion).
    * This data is used by the NSGA-II Optimization Algorithm.
    */
@@ -141,11 +186,13 @@ export const visionService = {
 
     if (error) throw normalizeError(error);
 
-    // 2. Refine taste profile from feedback
+    // 2. Refine taste profile from feedback.
+    // Vision logs store the food under `item`; manual logs use `food_name`.
+    const foodName = currentTags?.food_name || currentTags?.item;
     const { data: { user } } = await supabase.auth.getUser();
-    if (user?.id && currentTags?.food_name) {
+    if (user?.id && foodName) {
       try {
-        await userService.refineTasteFromFeedback(user.id, currentTags.food_name, feedback.taste);
+        await userService.refineTasteFromFeedback(user.id, foodName, feedback.taste);
       } catch (e) {
         console.warn("[Taste Engine] Failed to refine taste profile:", e);
       }

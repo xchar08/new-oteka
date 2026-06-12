@@ -27,11 +27,12 @@ export default function LoginPage() {
         setLoading(false)
         return
       }
+      const isNative = typeof window !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.()
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: 'com.oteka.app://login'
+          emailRedirectTo: isNative ? 'com.oteka.app://login' : `${window.location.origin}/login`
         }
       })
       if (error) {
@@ -61,20 +62,23 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
+    // Native (Capacitor): deep-link back into the app via custom scheme.
+    // Web: standard browser redirect back to this origin.
+    const isNative = typeof window !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.()
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: 'com.oteka.app://login',
-        skipBrowserRedirect: true
-      }
+      options: isNative
+        ? { redirectTo: 'com.oteka.app://login', skipBrowserRedirect: true }
+        : { redirectTo: `${window.location.origin}/dashboard` }
     })
-    
+
     if (error) {
       alert(error.message)
       return
     }
 
-    if (data?.url) {
+    if (isNative && data?.url) {
       const { Browser } = await import('@capacitor/browser')
       await Browser.open({ url: data.url })
     }
@@ -111,14 +115,20 @@ export default function LoginPage() {
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.5 }}
-                  className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-[var(--primary)]/10 text-[var(--primary)] mb-6 shadow-2xl shadow-[var(--primary)]/20 border border-[var(--primary)]/20"
+                  className="relative inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-[var(--primary)]/10 text-[var(--primary)] mb-6 shadow-2xl shadow-[var(--primary)]/20 border border-[var(--primary)]/20"
                 >
+                  {/* Orbiting halo */}
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
+                    className="absolute -inset-2 rounded-[28px] border border-dashed border-[var(--primary)]/30"
+                  />
                   <Sparkles size={40} strokeWidth={2.5} />
                 </motion.div>
-                <h1 className="text-6xl font-black tracking-tighter text-[var(--text-primary)] mb-2 uppercase">
-                  Oteka
+                <h1 className="font-display text-6xl font-extrabold tracking-tighter mb-2 uppercase">
+                  <span className="gradient-text">Oteka</span>
                 </h1>
-                <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--primary)] opacity-80">
+                <p className="hud-label text-[var(--primary)] opacity-80 tracking-[0.4em]">
                   Metabolic Optimization Engine
                 </p>
             </div>
@@ -186,9 +196,9 @@ export default function LoginPage() {
                       </div>
                     </div>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full font-black text-sm uppercase tracking-widest h-14 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-fg)] rounded-[24px] shadow-xl shadow-[var(--primary)]/20 transition-all flex items-center justify-center gap-2 mt-2 active:scale-95 group" 
+                    <Button
+                      type="submit"
+                      className="relative overflow-hidden shine w-full font-black text-sm uppercase tracking-widest h-14 bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] hover:opacity-95 text-[var(--primary-fg)] rounded-[24px] shadow-xl shadow-[var(--primary)]/25 transition-all flex items-center justify-center gap-2 mt-2 active:scale-95 group"
                       disabled={loading}
                     >
                       {loading ? (

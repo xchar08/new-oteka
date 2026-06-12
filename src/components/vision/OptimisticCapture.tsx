@@ -119,6 +119,32 @@ export function OptimisticCapture({
 
   // Offline Sync Listener
   useEffect(() => {
+    // Background sync persists directly (mode: 'log') because there is no
+    // interactive review step to call handleLog — using the interactive
+    // 'analyze' mutation here would silently discard the result.
+    const syncOfflineCapture = async (item: { userId: string; blob: Blob }) => {
+      const { path } = await visionService.uploadScan(item.userId, item.blob);
+      const { data, error } = await supabase.functions.invoke('vision-pipeline', {
+        body: {
+          imagePath: path,
+          mode: 'log', // server-side persist
+          local_date: new Date().toLocaleDateString('en-CA'),
+          timezone_offset: new Date().getTimezoneOffset(),
+        },
+      });
+      if (error) throw new Error(error.message || 'Offline sync failed');
+      // Fallback: if the edge function didn't persist, log it client-side.
+      if (data && !data.persisted) {
+        await supabase.from('logs').insert({
+          user_id: item.userId,
+          grams: data.volume_cm3 || 0,
+          local_date: new Date().toLocaleDateString('en-CA'),
+          metabolic_tags_json: buildLogMetadata({ ...data, imagePath: path }),
+          captured_at: new Date().toISOString(),
+        });
+      }
+    };
+
     const handleOnline = async () => {
       try {
         let queue = await get('pending_captures_queue') || [];
@@ -139,15 +165,15 @@ export function OptimisticCapture({
         if (queue.length > 0) {
           toast.info(`Network restored. Syncing ${queue.length} offline capture(s)...`);
           setStatus('uploading');
-          
+
           while (queue.length > 0) {
             const item = queue[0];
-            await uploadMutation.mutateAsync({ userId: item.userId, blob: item.blob });
+            await syncOfflineCapture({ userId: item.userId, blob: item.blob });
             // Remove from the queue in storage
             queue.shift();
             await set('pending_captures_queue', queue);
           }
-          
+
           toast.success("All offline captures synced successfully!");
           setStatus('idle');
           // Invalidate daily logs query to refresh dashboard
@@ -165,7 +191,7 @@ export function OptimisticCapture({
     if (navigator.onLine) handleOnline();
 
     return () => window.removeEventListener('online', handleOnline);
-  }, [queryClient]); // Removed uploadMutation since useMutation's mutateAsync is used directly
+  }, [queryClient, supabase]);
 
   const handleClick = async () => {
     if (!videoRef.current || status !== 'idle') return;

@@ -21,6 +21,7 @@ import {
 import Link from 'next/link';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useUser } from '@/lib/hooks/useUser';
+import { isPaidPlan } from '@/lib/utils/plan';
 
 const container: Variants = {
   hidden: { opacity: 0 },
@@ -54,13 +55,13 @@ const HUB_GROUPS = [
     title: 'Biometric Tools',
     items: [
       { name: 'Menu Scanner', href: '/travel/menu', icon: Plane, color: 'var(--primary)', isPremium: true },
-      { name: 'Offline Log', href: '/log/offline', icon: Activity, color: 'var(--text-secondary)' },
+      { name: 'Vision Scan', href: '/vision', icon: Activity, color: 'var(--text-secondary)' },
     ]
   },
   {
     title: 'Insights & Neural Core',
     items: [
-      { name: 'Analytics', href: '/analytics', icon: TrendingUp, color: 'var(--primary)', isPremium: true },
+      { name: 'Analytics', href: '/dashboard', icon: TrendingUp, color: 'var(--primary)', isPremium: true },
       { name: 'History', href: '/history', icon: History, color: 'var(--primary)' },
       { name: 'Household', href: '/social', icon: Users, color: 'var(--primary)' },
       { name: 'AI Coach', href: '/coach', icon: MessageSquare, color: 'var(--primary)', isPremium: true },
@@ -78,7 +79,7 @@ const HUB_GROUPS = [
 
 export default function HubPage() {
   const { user } = useUser();
-  const isPro = user?.plan === 'pro';
+  const isPro = isPaidPlan(user?.plan);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -89,10 +90,10 @@ export default function HubPage() {
     <div className="min-h-screen bg-[var(--bg-app)] pb-32 text-[var(--text-primary)] transition-colors duration-500">
       <header className="pt-safe px-6 pb-8 bg-gradient-to-b from-[var(--primary)]/5 to-transparent">
         <div className="flex items-center gap-2 mt-8 mb-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary)]" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--primary)]">Neural Interface</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary)] animate-pulse" />
+            <span className="hud-label text-[var(--primary)] tracking-[0.4em]">Neural Interface</span>
         </div>
-        <h1 className="text-4xl font-light tracking-tight text-[var(--text-primary)]">Control Center</h1>
+        <h1 className="font-display text-4xl font-extrabold tracking-tight text-[var(--text-primary)]">Control <span className="gradient-text">Center</span></h1>
         <p className="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-1 opacity-60">
             System uptime: {mounted ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'} • Mode: {isPro ? 'SOLAR_ELITE' : 'CORE_ACTIVE'}
         </p>

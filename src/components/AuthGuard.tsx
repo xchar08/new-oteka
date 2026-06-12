@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { useAppStore } from '@/lib/state/appStore';
 import { UserProfile, MetabolicState } from '@/lib/types/metabolic';
+import { isPaidPlan, normalizePlan } from '@/lib/utils/plan';
 
 const PROTECTED_ROUTES = ['/pantry', '/log', '/dashboard', '/analytics', '/coach', '/shopping', '/history', '/profile', '/settings', '/pricing', '/vision', '/social'];
 const PREMIUM_ROUTES = ['/analytics', '/coach', '/travel/menu', '/shopping'];
@@ -50,11 +51,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           .single();
 
         const userProfile = profile as any as UserProfile; // Cast to profile for safety
-        const currentPlan = userProfile?.plan || 'free';
-        const isPro = currentPlan === 'pro';
+        const currentPlan = normalizePlan(userProfile?.plan);
+        const isPro = isPaidPlan(currentPlan);
 
         // Sync plan with global store
-        setPlan(currentPlan === 'pro' ? 'pro' : 'free');
+        setPlan(currentPlan);
 
         // 1. PROTECT PREMIUM ROUTES
         if (isPremiumRoute && !isPro) {

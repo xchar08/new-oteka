@@ -36,9 +36,15 @@ Deno.serve(async (req) => {
       return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 
+    // Run as the calling user (anon key + their JWT) so RLS governs both the
+    // DB reads and — critically — the storage download below. A service-role
+    // client here would let any caller download arbitrary storage objects.
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: `Bearer ${token}` } } },
+    );
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
@@ -96,7 +102,7 @@ Deno.serve(async (req) => {
       }],
     };
 
-    const ocrRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`, {
+    const ocrRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(ocrPayload),
@@ -147,8 +153,8 @@ RETURN JSON ONLY:
 }
 `.trim();
 
-    // Use Gemini 3.0 Flash for superior reasoning if available, else 1.5 Pro/Flash
-    const models = ["gemini-3-flash-preview", "gemini-1.5-pro"];
+    // Use Gemini 3.0 Flash for superior reasoning if available, else 2.5 Flash
+    const models = ["gemini-3-flash-preview", "gemini-2.5-flash"];
     let finalParsed: any = null;
 
     for (const model of models) {

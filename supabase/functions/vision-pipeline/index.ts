@@ -1,14 +1,233 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { Ratelimit } from "https://esm.sh/@upstash/ratelimit@2.0.5";
+import { Redis } from "https://esm.sh/@upstash/redis@1.34.3";
 
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY") ?? "";
 
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// CRITICAL CONFIGURATION (env-overridable; change approved by owner 2026-06-11)
+// 1. Model chain is configured via secrets so a preview retirement is a
+//    `supabase secrets set` away, never a redeploy:
+//      VISION_MODELS  — comma-separated Gemini model ids, tried in order
+//      PHYSICS_MODEL  — Nebius model id for the nutrition/physics stage
+// 2. Defaults preserve the verified chain: Gemini 3 Flash (preview)
+//    -> Gemini 2.5 Flash -> Qwen-VL; physics DeepSeek V3.2 -> Gemini.
+// 3. 429/503 circuit-breaker + retry logic is REQUIRED for Gemini.
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+const VISION_MODELS = (Deno.env.get("VISION_MODELS") ?? "gemini-3-flash-preview,gemini-2.5-flash")
+  .split(",").map((s) => s.trim()).filter(Boolean);
+const PHYSICS_MODEL = Deno.env.get("PHYSICS_MODEL") ?? "deepseek-ai/DeepSeek-V3.2";
+
+// Free-tier scan limiter (Upstash REST Redis). Fails OPEN with a warning when
+// UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN aren't configured, so a
+// missing secret degrades to "unlimited" rather than bricking scanning.
+// 3/day = breakfast, lunch, dinner — a complete free habit loop while
+// capping free-tier AI spend at ~$0.50–0.90/user/month
+const FREE_SCANS_PER_DAY = Number(Deno.env.get("FREE_SCANS_PER_DAY") ?? "3");
+let scanLimiter: { limit: (id: string) => Promise<{ success: boolean; remaining: number; reset: number }> } | null = null;
+try {
+  if (Deno.env.get("UPSTASH_REDIS_REST_URL") && Deno.env.get("UPSTASH_REDIS_REST_TOKEN")) {
+    scanLimiter = new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.fixedWindow(FREE_SCANS_PER_DAY, "1 d"),
+      prefix: "oteka:scan",
+    });
+  }
+} catch (e) {
+  console.warn("[RateLimit] Upstash init failed — free-tier limit not enforced:", e);
+}
+
+// ---------------------------------------------------------------------------
+// GROUNDING LAYER 2: cuisine-agnostic per-100g bands by universal food
+// category. Categories describe physics, not cuisine — a Nigerian egusi soup
+// is still `soup_stew`, a Peruvian lomo saltado is still `curry_mixed_dish` —
+// so grounding never restricts WHAT can be scanned; it only catches
+// physically or categorically impossible numbers from the LLM.
+// ---------------------------------------------------------------------------
+const FOOD_CATEGORY_BANDS: Record<string, { kcalMin: number; kcalMax: number; proteinMax: number }> = {
+  leafy_vegetable:    { kcalMin: 5,   kcalMax: 60,  proteinMax: 6 },
+  vegetable:          { kcalMin: 10,  kcalMax: 110, proteinMax: 6 },
+  starchy_vegetable:  { kcalMin: 50,  kcalMax: 180, proteinMax: 6 },
+  fruit:              { kcalMin: 20,  kcalMax: 120, proteinMax: 3 },
+  dried_fruit:        { kcalMin: 180, kcalMax: 400, proteinMax: 6 },
+  grain_cooked:       { kcalMin: 80,  kcalMax: 250, proteinMax: 12 },
+  bread_bakery:       { kcalMin: 180, kcalMax: 450, proteinMax: 16 },
+  legume_cooked:      { kcalMin: 60,  kcalMax: 220, proteinMax: 15 },
+  red_meat:           { kcalMin: 100, kcalMax: 400, proteinMax: 40 },
+  poultry:            { kcalMin: 90,  kcalMax: 320, proteinMax: 40 },
+  fish_seafood:       { kcalMin: 60,  kcalMax: 320, proteinMax: 35 },
+  egg:                { kcalMin: 120, kcalMax: 220, proteinMax: 16 },
+  dairy:              { kcalMin: 30,  kcalMax: 180, proteinMax: 12 },
+  cheese:             { kcalMin: 150, kcalMax: 480, proteinMax: 40 },
+  fried_food:         { kcalMin: 180, kcalMax: 550, proteinMax: 30 },
+  dessert_sweet:      { kcalMin: 150, kcalMax: 600, proteinMax: 12 },
+  nuts_seeds:         { kcalMin: 400, kcalMax: 720, proteinMax: 35 },
+  oil_fat:            { kcalMin: 600, kcalMax: 900, proteinMax: 3 },
+  sauce_condiment:    { kcalMin: 10,  kcalMax: 550, proteinMax: 15 },
+  beverage:           { kcalMin: 0,   kcalMax: 150, proteinMax: 5 },
+  beverage_alcoholic: { kcalMin: 25,  kcalMax: 350, proteinMax: 2 },
+  soup_stew:          { kcalMin: 25,  kcalMax: 180, proteinMax: 12 },
+  curry_mixed_dish:   { kcalMin: 70,  kcalMax: 320, proteinMax: 25 },
+  other:              { kcalMin: 0,   kcalMax: 900, proteinMax: 50 },
+};
+const CATEGORY_IDS = Object.keys(FOOD_CATEGORY_BANDS).join(" | ");
+
+function clampNum(v: unknown, min: number, max: number): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(max, Math.max(min, n));
+}
+
+// Single-meal hard caps — anything above these is a hallucination, full stop
+const MACRO_CAPS = { calories: 8000, protein: 1000, carbs: 1500, fat: 800, fiber: 300, sugar: 1000, sodium: 30000, cholesterol: 5000 };
+
+// ---------------------------------------------------------------------------
+// VALIDATION + GROUNDING: runs on every parsed model output before it is
+// persisted or returned. Layer 1 = physical invariants (corrected when the
+// fix is unambiguous, e.g. deriving missing calories via Atwater 4/4/9).
+// Layer 2 = category bands (flag + confidence penalty, never rewritten, so
+// unusual-but-real foods survive). Everything is reported in `grounding`.
+// ---------------------------------------------------------------------------
+function sanitizeAndGround(result: Record<string, any>): Record<string, any> {
+  const flags: string[] = [];
+  const adjustments: string[] = [];
+  let confidencePenalty = 0;
+
+  const m = result.macros || {};
+  const macros = {
+    calories: clampNum(m.calories, 0, MACRO_CAPS.calories),
+    protein: clampNum(m.protein, 0, MACRO_CAPS.protein),
+    carbs: clampNum(m.carbs, 0, MACRO_CAPS.carbs),
+    fat: clampNum(m.fat ?? m.fats, 0, MACRO_CAPS.fat),
+    fiber: clampNum(m.fiber, 0, MACRO_CAPS.fiber),
+    sugar: clampNum(m.sugar, 0, MACRO_CAPS.sugar),
+    sodium: clampNum(m.sodium, 0, MACRO_CAPS.sodium),
+    cholesterol: clampNum(m.cholesterol, 0, MACRO_CAPS.cholesterol),
+  };
+
+  const items = Array.isArray(result.items)
+    ? result.items.map((it: any) => {
+      const item = {
+        ...it,
+        name: String(it?.name ?? "Unknown"),
+        quantity: String(it?.quantity ?? ""),
+        grams: clampNum(it?.grams, 0, 5000),
+        category: typeof it?.category === "string" && FOOD_CATEGORY_BANDS[it.category] ? it.category : "other",
+        calories: clampNum(it?.calories, 0, MACRO_CAPS.calories),
+        protein: clampNum(it?.protein, 0, MACRO_CAPS.protein),
+        carbs: clampNum(it?.carbs, 0, MACRO_CAPS.carbs),
+        fat: clampNum(it?.fat ?? it?.fats, 0, MACRO_CAPS.fat),
+      };
+      if (item.grams > 0) {
+        // Layer 1: nothing edible exceeds pure fat (~9 kcal/g)
+        const per100 = (item.calories / item.grams) * 100;
+        if (per100 > 900) {
+          const corrected = Math.round((900 * item.grams) / 100);
+          adjustments.push(`${item.name}: ${item.calories} kcal impossible for ${item.grams} g → corrected to ${corrected}`);
+          item.calories = corrected;
+          confidencePenalty += 0.15;
+        }
+        // Layer 2: category plausibility band (flag only)
+        const band = FOOD_CATEGORY_BANDS[item.category];
+        const per100c = (item.calories / item.grams) * 100;
+        if (per100c > band.kcalMax * 1.5 || (band.kcalMin > 0 && per100c < band.kcalMin * 0.5)) {
+          flags.push(`${item.name}: ${Math.round(per100c)} kcal/100g outside ${item.category} band [${band.kcalMin}–${band.kcalMax}]`);
+          confidencePenalty += 0.1;
+        }
+        const proteinPer100 = (item.protein / item.grams) * 100;
+        if (proteinPer100 > band.proteinMax * 1.5) {
+          flags.push(`${item.name}: ${Math.round(proteinPer100)} g protein/100g exceeds ${item.category} max ${band.proteinMax}`);
+          confidencePenalty += 0.1;
+        }
+      } else {
+        flags.push(`${item.name}: no mass estimate — density checks skipped`);
+      }
+      return item;
+    })
+    : [];
+
+  // Layer 1 cross-checks
+  const itemKcalSum = items.reduce((s: number, i: any) => s + i.calories, 0);
+  if (items.length > 0 && itemKcalSum > 0) {
+    if (macros.calories === 0) {
+      macros.calories = itemKcalSum;
+      adjustments.push(`total calories derived from item sum (${itemKcalSum})`);
+    } else {
+      const drift = Math.abs(macros.calories - itemKcalSum) / Math.max(macros.calories, itemKcalSum);
+      if (drift > 0.4) {
+        flags.push(`total ${macros.calories} kcal vs item sum ${itemKcalSum} kcal (${Math.round(drift * 100)}% drift)`);
+        confidencePenalty += 0.15;
+      }
+    }
+  }
+
+  const atwater = 4 * macros.protein + 4 * macros.carbs + 9 * macros.fat;
+  if (macros.calories === 0 && atwater > 0) {
+    macros.calories = Math.round(atwater);
+    adjustments.push(`calories derived from Atwater 4/4/9 (${Math.round(atwater)})`);
+  } else if (atwater > 0 && macros.calories > 0) {
+    const drift = Math.abs(atwater - macros.calories) / Math.max(atwater, macros.calories);
+    if (drift > 0.6) {
+      flags.push(`calories ${macros.calories} vs Atwater ${Math.round(atwater)} (${Math.round(drift * 100)}% drift)`);
+      confidencePenalty += 0.15;
+    }
+  }
+
+  const itemGramsSum = items.reduce((s: number, i: any) => s + i.grams, 0);
+  const totalGrams = clampNum(result.total_grams, 0, 10000) || itemGramsSum || clampNum(result.volume_cm3, 0, 10000);
+  if (totalGrams > 0) {
+    if (macros.calories / totalGrams > 9) {
+      flags.push(`overall energy density ${(macros.calories / totalGrams).toFixed(1)} kcal/g exceeds physical max`);
+      confidencePenalty += 0.2;
+    }
+    const macroMass = macros.protein + macros.carbs + macros.fat;
+    if (macroMass > totalGrams * 1.1) {
+      flags.push(`macro mass ${Math.round(macroMass)} g exceeds total mass ${Math.round(totalGrams)} g`);
+      confidencePenalty += 0.2;
+    }
+  }
+
+  const cleanNutrients = (arr: any[]) =>
+    Array.isArray(arr)
+      ? arr
+        .filter((e) => e && typeof e.name === "string" && e.name.trim())
+        .map((e) => ({
+          ...e,
+          name: e.name.trim(),
+          amount: e.amount != null ? String(e.amount) : "",
+          daily_value_pct: clampNum(e.daily_value_pct, 0, 5000),
+        }))
+      : [];
+
+  const ingredients = Array.isArray(result.ingredients)
+    ? result.ingredients
+      .filter((i: any) => i && (typeof i === "string" || i.name))
+      .map((i: any) => typeof i === "string" ? { name: i, ratio: 0 } : { ...i, name: String(i.name), ratio: clampNum(i.ratio, 0, 1) })
+    : [];
+
+  if (result.metabolic_insight) {
+    result.metabolic_insight.score = clampNum(result.metabolic_insight.score, -10, 10);
+  }
+
+  return {
+    ...result,
+    macros,
+    items,
+    ingredients,
+    vitamins: cleanNutrients(result.vitamins),
+    minerals: cleanNutrients(result.minerals),
+    micros: cleanNutrients(result.micros),
+    total_grams: Math.round(totalGrams),
+    grounding: {
+      checked: true,
+      adjustments,
+      flags,
+      confidence_penalty: Math.min(0.6, confidencePenalty),
+    },
+  };
+}
+
 Deno.serve(async (req) => {
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // CRITICAL CONFIGURATION - DO NOT MODIFY WITHOUT USER APPROVAL
-  // 1. Node B (ID): MUST be Gemini 3.0 Flash/Pro ONLY. No 2.0/1.5 Fallbacks.
-  // 2. Node C (Physics): DeepSeek R1 Primary. Fallback MUST be Gemini 3.0 ONLY.
-  // 3. Error Handling: 429 Retry Logic (2s wait) is REQUIRED for Gemini.
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   // CORS Headers
   const corsHeaders = {
@@ -141,19 +360,38 @@ Deno.serve(async (req) => {
       locationHint = `\n\n## LOCATION CONTEXT (User is near these places):\n${location_context}\nUse this to inform identification - if user is at a specific restaurant, prioritize menu items from that establishment.`;
     }
 
-    // 3. Fetch User Profile for Calibration
+    // 3. Fetch User Profile for Calibration + plan (free tier is rate limited)
     const { data: profile } = await supabase
       .from("users")
-      .select("hand_width_mm, metabolic_state_json")
+      .select("hand_width_mm, metabolic_state_json, plan")
       .eq("id", user.id)
       .single();
 
     const userHandMm = profile?.hand_width_mm || 85; // Default 85mm
 
+    // 3b. Free-tier scan limit — enforced BEFORE any AI spend
+    const isPremiumUser = profile?.plan === "pro" || profile?.plan === "coach";
+    if (!isPremiumUser) {
+      if (scanLimiter) {
+        const { success, reset } = await scanLimiter.limit(user.id);
+        if (!success) {
+          return new Response(
+            JSON.stringify({
+              error: `Daily scan limit reached (${FREE_SCANS_PER_DAY}/day on the free plan). Upgrade to Oteka Solar for unlimited scans.`,
+              code: "SCAN_LIMIT_REACHED",
+              limit: FREE_SCANS_PER_DAY,
+              resets_at: new Date(reset).toISOString(),
+            }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      } else {
+        console.warn("[RateLimit] Upstash not configured — free-tier scan limit NOT enforced");
+      }
+    }
+
     // Environment Variables
     const NEBIUS_API_KEY = Deno.env.get("NEBIUS_API_KEY");
-    // Standardized DeepSeek Model ID (Verified Working)
-    const DEEPSEEK_MODEL_ID = "deepseek-ai/DeepSeek-V3.2";
     const DEEPSEEK_BASE_URL =
       "https://api.studio.nebius.ai/v1/chat/completions";
 
@@ -267,11 +505,8 @@ Deno.serve(async (req) => {
     }
 
     // 4b. Execute Node B (Description)
-    // User Request: Gemini 3.0 Primary. Fallbacks: 2.5 Flash -> Qwen-VL (Nebius)
-    const nodeBModels = [
-      "gemini-3-flash-preview",
-      "gemini-2.5-flash",
-    ];
+    // Model order comes from VISION_MODELS (env-overridable; see header)
+    const nodeBModels = VISION_MODELS;
 
     // Retry Loop for Gemini (Rate Limits)
     for (const model of nodeBModels) {
@@ -416,8 +651,10 @@ Deno.serve(async (req) => {
           
           Task:
           1. Provide a detailed nutritional breakdown for the entire scene.
-          2. CRITICAL MULTI-FOOD RULE: If there are multiple distinct food items (e.g., eggs, bacon, and toast), you MUST include ALL of them in the \`items\` array. 
+          2. CRITICAL MULTI-FOOD RULE: If there are multiple distinct food items (e.g., eggs, bacon, and toast), you MUST include ALL of them in the \`items\` array.
           3. CRITICAL MULTI-FOOD RULE: The final \`macros\` object MUST be the SUM TOTAL of all items combined. Do not just return the macros for the largest item.
+          4. MASS RULE: Estimate edible mass in grams — per-item \`grams\` and overall \`total_grams\` (food only, never the container). This is distinct from \`volume_cm3\`.
+          5. CATEGORY RULE: Classify each item into exactly one \`category\` from: ${CATEGORY_IDS}. Pick the closest physical match for regional/unfamiliar dishes (e.g., any thick stew → soup_stew or curry_mixed_dish).
 
           If Mode is 'pantry':
           - Identify ALL distinct items.
@@ -434,14 +671,15 @@ Deno.serve(async (req) => {
                 { "name": "Brand Product", "quantity": "string", "expiry": "string or null", "ingredients": ["string"] }
             ],
             "items": [
-                { "name": "string", "quantity": "string (e.g., 2 medium, 150g)", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
-            ], 
-            "ingredients": [{"name": "string", "ratio": 0.0}], 
-            "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0, "sugar": 0, "sodium": 0, "cholesterol": 0 }, 
+                { "name": "string", "quantity": "string (e.g., 2 medium, 150g)", "grams": 0, "category": "string (one of the allowed categories)", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
+            ],
+            "ingredients": [{"name": "string", "ratio": 0.0}],
+            "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0, "sugar": 0, "sodium": 0, "cholesterol": 0 },
             "vitamins": [{"name": "Vitamin X", "amount": "string (e.g. 2.5mg)", "daily_value_pct": 0}],
             "minerals": [{"name": "Mineral X", "amount": "string (e.g. 150mg)", "daily_value_pct": 0}],
-            "micros": [{"name": "string", "amount": "string", "daily_value_pct": 0}], 
-            "volume_cm3": 0, 
+            "micros": [{"name": "string", "amount": "string", "daily_value_pct": 0}],
+            "volume_cm3": 0,
+            "total_grams": 0,
             "reasoning_trace": "Brief explanation of how the total macros were summed",
             "metabolic_insight": {
                 "score": 0,
@@ -464,9 +702,9 @@ Deno.serve(async (req) => {
           - Use "METABOLIC KNOWLEDGE BASE" terms (e.g. Randle Cycle) in layman_explanation if relevant. KEEP EXPLANATION CONCISE (Max 2-3 sentences).
         `;
 
-      // Use standard ID
+      // Physics model id comes from PHYSICS_MODEL (env-overridable)
       const dsModels = [
-        DEEPSEEK_MODEL_ID,
+        PHYSICS_MODEL,
       ];
 
       for (const dsModel of dsModels) {
@@ -610,6 +848,8 @@ Deno.serve(async (req) => {
 
             If pantry: Identify ALL items with Quantity/Expiry.
             If food: List EVERY item in \`items\` array. The \`macros\` MUST be the SUM TOTAL of all items combined.
+            Estimate edible mass in grams (per-item \`grams\` + overall \`total_grams\`, food only).
+            Classify each item's \`category\` as one of: ${CATEGORY_IDS}.
             
             ## PRIORITY MICRONUTRIENTS (Always attempt to estimate if relevant to the food):
             - Vitamins: A, C, D, E, K, B6, B12, Folate, Thiamin, Riboflavin, Niacin.
@@ -620,14 +860,15 @@ Deno.serve(async (req) => {
             { 
                 "pantry_items": [{ "name": "string", "quantity": "string", "expiry": "string" }],
                 "items": [
-                    { "name": "string", "quantity": "string", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
-                ], 
-                "ingredients": [{"name": "string", "ratio": 0.0}], 
-                "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0, "sugar": 0, "sodium": 0, "cholesterol": 0 }, 
+                    { "name": "string", "quantity": "string", "grams": 0, "category": "string", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
+                ],
+                "ingredients": [{"name": "string", "ratio": 0.0}],
+                "macros": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0, "sugar": 0, "sodium": 0, "cholesterol": 0 },
                 "vitamins": [{"name": "Vitamin X", "amount": "string", "daily_value_pct": 0}],
                 "minerals": [{"name": "Mineral X", "amount": "string", "daily_value_pct": 0}],
-                "micros": [{"name": "string", "amount": "string", "daily_value_pct": 0}], 
+                "micros": [{"name": "string", "amount": "string", "daily_value_pct": 0}],
                 "volume_cm3": 0,
+                "total_grams": 0,
                 "metabolic_insight": { "score": 0, "impact_level": "neutral", "layman_explanation": "string" }
             }
             
@@ -649,11 +890,8 @@ Deno.serve(async (req) => {
       let fbData;
       const fbErrors: string[] = [];
 
-      // Fallback Models: 3.0 (Primary) -> 2.5 Flash -> Qwen-VL
-      const fbModels = [
-        "gemini-3-flash-preview",
-        "gemini-2.5-flash",
-      ];
+      // Fallback model order also comes from VISION_MODELS (env-overridable)
+      const fbModels = VISION_MODELS;
 
       // Try Gemini Logic
       for (const model of fbModels) {
@@ -815,7 +1053,7 @@ Deno.serve(async (req) => {
       const UNIT_MULT: Record<string, number> = { g: 1000, mg: 1, mcg: 0.001, "µg": 0.001, ug: 0.001, iu: 1 };
       return entries.map((e: any) => {
         if (e.amount_mg != null) return e; // Already normalized
-        const match = (e.amount || "").match(/^([\d.]+)\s*([a-zA-Zµ]*)$/);
+        const match = String(e.amount || "").replace(/,/g, "").match(/^([\d.]+)\s*([a-zA-Zµ]*)$/);
         if (!match) return { ...e, amount_mg: 0 };
         const val = parseFloat(match[1]);
         const unit = (match[2] || "").toLowerCase();
@@ -824,6 +1062,10 @@ Deno.serve(async (req) => {
     }
 
     if (finalResult) {
+      // Validate + ground the model output before anything touches the DB:
+      // type coercion, hard caps, physical invariants, category bands
+      finalResult = sanitizeAndGround(finalResult);
+
       // Normalize all nutrient arrays at the API boundary
       if (finalResult.vitamins) finalResult.vitamins = normalizeNutrientAmounts(finalResult.vitamins);
       if (finalResult.minerals) finalResult.minerals = normalizeNutrientAmounts(finalResult.minerals);
@@ -841,7 +1083,9 @@ Deno.serve(async (req) => {
         
         const logEntry = {
           user_id: user.id,
-          grams: finalResult.volume_cm3 || 0,
+          // Mass, not volume: model-estimated total_grams (sanitizeAndGround
+          // falls back to item-gram sum, then volume_cm3 for legacy parity)
+          grams: finalResult.total_grams || 0,
           local_date: logLocalDate,
           metabolic_tags_json: {
             item: finalResult.items?.[0]?.name || 'Unknown Food',
@@ -859,6 +1103,8 @@ Deno.serve(async (req) => {
             ingredients: finalResult.ingredients || [],
             reasoning: finalResult.reasoning_trace,
             metabolic_insight: finalResult.metabolic_insight,
+            volume_cm3: finalResult.volume_cm3 || null,
+            grounding: finalResult.grounding || null,
             image_path: imagePath || null
           },
           captured_at: new Date().toISOString()
@@ -899,6 +1145,9 @@ Deno.serve(async (req) => {
       if (hasItems && finalResult.items.every((i: any) => !i.calories || i.calories === 0)) {
         analysisConfidence -= 0.2;
       }
+      // Grounding penalties: physical-invariant corrections and
+      // category-band flags lower confidence proportionally
+      analysisConfidence -= finalResult.grounding?.confidence_penalty || 0;
       analysisConfidence = Math.max(0, Math.min(1, analysisConfidence));
     } else {
       analysisConfidence = 0;

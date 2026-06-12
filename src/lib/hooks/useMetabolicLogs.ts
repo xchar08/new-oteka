@@ -15,7 +15,7 @@ export function useMetabolicLogs() {
   const isOnline = useAppStore((s) => s.isOnline);
   const { authUser } = useUser();
 
-  const { data: dailyLogs = [], isLoading: isLogsLoading } = useQuery({
+  const { data: dailyLogs = [], isLoading: isLogsLoading, isError: isLogsError, refetch: refetchLogs } = useQuery({
     queryKey: ['daily-logs', authUser?.id],
     queryFn: async () => {
       if (!authUser) return [];
@@ -80,7 +80,7 @@ export function useMetabolicLogs() {
     minerals: {}
   });
 
-  const { data: advice = 'Analyzing metabolic state...', isLoading: isAdviceLoading } = useQuery({
+  const { data: advice = 'Analyzing metabolic state...', isLoading: isAdviceLoading, isError: isAdviceError } = useQuery({
     queryKey: ['metabolic-advice', authUser?.id],
     queryFn: async () => {
       if (!navigator.onLine) return 'Offline Mode: Sync pending.';
@@ -102,7 +102,12 @@ export function useMetabolicLogs() {
   return {
     dailyLogs,
     dailyMacros,
-    advice,
+    // The advisor query is disabled offline, so say so instead of
+    // showing "Analyzing..." forever
+    advice: !isOnline ? 'Offline — the advisor returns when you reconnect.' : advice,
+    adviceError: isAdviceError,
+    logsError: isLogsError,
+    refetchLogs,
     loading: isLogsLoading || isAdviceLoading
   };
 }

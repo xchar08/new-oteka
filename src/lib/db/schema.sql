@@ -283,6 +283,10 @@ returns uuid language sql stable security definer set search_path = public as $$
 $$;
 
 -- USERS
+-- Users can read their OWN full row only. Cross-user reads (leaderboards, search,
+-- household + friend lists) go through the public_profiles view below, which
+-- exposes only non-sensitive columns. Do NOT add a broad "authenticated can read
+-- all users" policy — it leaks medical data, taste profiles and stripe ids.
 drop policy if exists "Users view own profile" on users;
 create policy "Users view own profile" on users for select using (auth.uid() = id);
 
@@ -293,7 +297,22 @@ drop policy if exists "Authenticated insert profile" on users;
 create policy "Authenticated insert profile" on users for insert with check (auth.uid() = id);
 
 drop policy if exists "Authenticated view profiles" on users;
-create policy "Authenticated view profiles" on users for select using (auth.role() = 'authenticated');
+
+-- Column-level write grants prevent users from self-escalating plan / billing.
+-- `plan`, `stripe_customer_id`, `streak_count`, `last_entropy_run` stay writable
+-- only by the service role (Stripe webhook) and SECURITY DEFINER triggers.
+revoke update on public.users from authenticated;
+grant update (
+  display_name, avatar_url, metabolic_state_json, taste_profile_json,
+  hand_width_mm, calorie_target, household_id, updated_at
+) on public.users to authenticated;
+
+-- Safe public projection for cross-user reads.
+create or replace view public.public_profiles
+with (security_invoker = false) as
+  select id, display_name, avatar_url, streak_count, household_id, created_at
+  from public.users;
+grant select on public.public_profiles to authenticated;
 
 -- FOODS
 drop policy if exists "Foods read (auth)" on foods;
@@ -364,10 +383,13 @@ drop policy if exists "Workflows access own" on workflows;
 create policy "Workflows access own" on workflows for all using (auth.uid() = user_id);
 
 -- HOUSEHOLDS
+-- Members can only read their own household. Joining/leaving is done via the
+-- SECURITY DEFINER RPCs below so clients can't enumerate join codes.
 drop policy if exists "Households read member" on households;
 drop policy if exists "Households read authenticated" on households;
-create policy "Households read authenticated" on households for select using (
-  auth.role() = 'authenticated'
+drop policy if exists "Households read own" on households;
+create policy "Households read own" on households for select using (
+  id = get_my_household_id()
 );
 
 drop policy if exists "Households insert authenticated" on households;
@@ -375,9 +397,47 @@ create policy "Households insert authenticated" on households for insert with ch
   auth.role() = 'authenticated'
 );
 
--- CONDITIONS (Read-Only Public Lookup)
+create or replace function public.join_household_by_code(p_code text)
+returns public.households
+language plpgsql security definer set search_path = public as $$
+declare v_house public.households;
+begin
+  if auth.uid() is null then raise exception 'Not authenticated'; end if;
+  select * into v_house from public.households
+    where lower(join_code) = lower(btrim(p_code)) limit 1;
+  if v_house.id is null then raise exception 'Invalid join code'; end if;
+  update public.users set household_id = v_house.id where id = auth.uid();
+  return v_house;
+end; $$;
+
+create or replace function public.create_private_household(p_name text)
+returns public.households
+language plpgsql security definer set search_path = public as $$
+declare v_house public.households;
+begin
+  if auth.uid() is null then raise exception 'Not authenticated'; end if;
+  insert into public.households (name)
+    values (coalesce(nullif(btrim(p_name), ''), 'Private Household'))
+    returning * into v_house;
+  update public.users set household_id = v_house.id where id = auth.uid();
+  return v_house;
+end; $$;
+
+grant execute on function public.join_household_by_code(text) to authenticated;
+grant execute on function public.create_private_household(text) to authenticated;
+
+-- CONDITIONS (Read-Only Public Lookup, except a user's own neural-block row)
 drop policy if exists "Conditions are viewable by everyone" on conditions;
 create policy "Conditions are viewable by everyone" on conditions for select using (true);
+
+drop policy if exists "Users manage own neural block insert" on conditions;
+create policy "Users manage own neural block insert" on conditions for insert
+  with check (id = 'neural-block-' || auth.uid()::text);
+
+drop policy if exists "Users manage own neural block update" on conditions;
+create policy "Users manage own neural block update" on conditions for update
+  using (id = 'neural-block-' || auth.uid()::text)
+  with check (id = 'neural-block-' || auth.uid()::text);
 
 -- USER CONDITIONS (User Scoped)
 drop policy if exists "Users manage own conditions" on user_conditions;
@@ -513,6 +573,103 @@ alter table vouchers enable row level security;
 drop policy if exists "Users view their own redeemed vouchers" on vouchers;
 create policy "Users view their own redeemed vouchers" on vouchers for select using (auth.uid() = redeemed_by);
 
+-- Premium passes: vouchers grant a time-limited 'pro' plan. Paid (Stripe)
+-- subscriptions have plan_expires_at = null; only voucher passes expire.
+alter table users add column if not exists plan_expires_at timestamptz;
+
+-- Redeem a voucher code. SECURITY DEFINER: bypasses the column-grant lockdown
+-- on users.plan (which is otherwise service-role-only) and the absence of
+-- voucher write policies. Row locks make double-redemption race-safe.
+-- Supported types: anything ending in '_<N>d' grants an N-day pro pass
+-- (e.g. 'oteka_plus_30d' = 30 days). Passes stack on an existing pass.
+create or replace function public.redeem_voucher(p_code text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_voucher public.vouchers;
+  v_days int;
+  v_user public.users;
+  v_new_expiry timestamptz;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select * into v_voucher
+  from public.vouchers
+  where lower(code) = lower(btrim(p_code))
+  for update;
+
+  if v_voucher.id is null then
+    raise exception 'Invalid voucher code';
+  end if;
+  if v_voucher.is_redeemed then
+    raise exception 'This voucher has already been redeemed';
+  end if;
+  if v_voucher.expires_at is not null and v_voucher.expires_at < now() then
+    raise exception 'This voucher has expired';
+  end if;
+
+  v_days := (regexp_match(v_voucher.type, '_(\d+)d$'))[1]::int;
+  if v_days is null then
+    raise exception 'Unsupported voucher type: %', v_voucher.type;
+  end if;
+
+  select * into v_user from public.users where id = auth.uid() for update;
+
+  -- Paid subscribers (no expiry on their plan) already have full access
+  if v_user.plan in ('pro', 'coach') and v_user.plan_expires_at is null then
+    raise exception 'Your account already has full access';
+  end if;
+
+  v_new_expiry := greatest(coalesce(v_user.plan_expires_at, now()), now())
+                  + make_interval(days => v_days);
+
+  update public.users
+     set plan = 'pro', plan_expires_at = v_new_expiry
+   where id = auth.uid();
+
+  update public.vouchers
+     set is_redeemed = true, redeemed_by = auth.uid(), redeemed_at = now()
+   where id = v_voucher.id;
+
+  return jsonb_build_object('plan', 'pro', 'expires_at', v_new_expiry, 'days_granted', v_days);
+end;
+$$;
+
+grant execute on function public.redeem_voucher(text) to authenticated;
+
+-- Hourly downgrade of expired premium passes (paid plans are untouched:
+-- the Stripe webhook always sets plan_expires_at = null on purchase)
+create or replace function public.expire_premium_passes()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.users
+     set plan = 'free', plan_expires_at = null
+   where plan_expires_at is not null
+     and plan_expires_at < now();
+$$;
+
+-- pg_cron is created in section 17, which runs after this on a fresh DB —
+-- guard locally so this file stays order-safe
+create extension if not exists pg_cron;
+
+select cron.unschedule('expire-premium-passes')
+from cron.job
+where jobname = 'expire-premium-passes';
+
+select cron.schedule(
+  'expire-premium-passes',
+  '15 * * * *',
+  'select public.expire_premium_passes()'
+);
+
 -- ========================================================
 -- 15. STORAGE CONFIGURATION
 -- ========================================================
@@ -537,6 +694,215 @@ create policy "Users can view own scans" on storage.objects for select using (
   auth.role() = 'authenticated' and
   (storage.foldername(name))[1] = auth.uid()::text
 );
+
+-- ========================================================
+-- 15B. BILLING PLANS (Stripe price allowlist)
+-- ========================================================
+-- Single source of truth for purchasable Stripe prices. The
+-- create-checkout-session edge function validates the client-supplied
+-- priceId against this table, and the pricing page reads its priceIds
+-- from here — so going live (or rotating prices) is an INSERT, not a
+-- code deploy. Rows are written by the service role only.
+
+create table if not exists plans (
+  price_id text primary key,          -- Stripe Price ID (price_...)
+  plan_type text not null check (plan_type in ('pro', 'coach')),
+  billing_interval text not null default 'month' check (billing_interval in ('month', 'year')),
+  amount_cents int,                   -- display price; Stripe stays authoritative for billing
+  currency text not null default 'usd',
+  name text not null,
+  seat_count int not null default 1,
+  active boolean not null default true,
+  sort_order int not null default 0,
+  created_at timestamptz default now()
+);
+
+-- Columns added after the table first shipped (no-ops on fresh databases)
+alter table plans add column if not exists billing_interval text not null default 'month'
+  check (billing_interval in ('month', 'year'));
+alter table plans add column if not exists amount_cents int;
+alter table plans add column if not exists currency text not null default 'usd';
+
+alter table plans enable row level security;
+
+drop policy if exists "Plans readable by authenticated" on plans;
+create policy "Plans readable by authenticated" on plans
+  for select using (auth.role() = 'authenticated' and active);
+-- No insert/update/delete policies: only the service role manages plans.
+
+-- To go live, insert your real Stripe Price IDs (SQL editor or psql):
+-- insert into plans (price_id, plan_type, billing_interval, amount_cents, name, seat_count, sort_order) values
+--   ('price_SOLAR_M', 'pro',   'month', 1299,   'Oteka Solar',  1, 1),
+--   ('price_SOLAR_Y', 'pro',   'year',  7999,   'Oteka Solar',  1, 2),
+--   ('price_COACH_M', 'coach', 'month', 14900,  'Oteka Coach', 15, 3),
+--   ('price_COACH_Y', 'coach', 'year',  119900, 'Oteka Coach', 15, 4);
+
+-- ========================================================
+-- 15C. AUTO-TRIAL DEFAULTS + COACH TEAMS (seat provisioning)
+-- ========================================================
+
+-- Every NEW user starts with a 7-day Solar trial: onboarding upserts never
+-- pass `plan`, so these defaults apply on row creation, and the hourly
+-- expire-premium-passes cron downgrades them. Existing rows are untouched.
+alter table users alter column plan set default 'pro';
+alter table users alter column plan_expires_at set default (now() + interval '7 days');
+
+-- Coach teams: a coach-plan buyer owns one team with a join code; athletes
+-- claim seats via join_coach_team. Seats are revoked (revoke_coach_team,
+-- called by the Stripe webhook) when the coach subscription ends.
+create table if not exists coach_teams (
+  id uuid default gen_random_uuid() primary key,
+  owner_id uuid not null unique references users(id) on delete cascade,
+  seat_limit int not null default 15,
+  join_code text unique not null default upper(substring(replace(gen_random_uuid()::text, '-', '') from 1 for 8)),
+  created_at timestamptz default now()
+);
+
+alter table users add column if not exists coach_team_id uuid references coach_teams(id);
+create index if not exists idx_users_coach_team_id on users(coach_team_id);
+
+alter table coach_teams enable row level security;
+
+drop policy if exists "Coach team visible to owner and members" on coach_teams;
+create policy "Coach team visible to owner and members" on coach_teams for select using (
+  owner_id = auth.uid()
+  or id = (select coach_team_id from users where id = auth.uid())
+);
+-- All writes go through SECURITY DEFINER RPCs / the service role.
+
+create or replace function public.get_my_coach_team()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_team public.coach_teams;
+  v_used int;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+  if (select plan from public.users where id = auth.uid()) <> 'coach' then
+    raise exception 'Coach plan required';
+  end if;
+
+  select * into v_team from public.coach_teams where owner_id = auth.uid();
+  if v_team.id is null then
+    insert into public.coach_teams (owner_id) values (auth.uid()) returning * into v_team;
+  end if;
+
+  select count(*) into v_used from public.users where coach_team_id = v_team.id;
+  return jsonb_build_object(
+    'join_code', v_team.join_code,
+    'seat_limit', v_team.seat_limit,
+    'seats_used', v_used
+  );
+end;
+$$;
+grant execute on function public.get_my_coach_team() to authenticated;
+
+create or replace function public.join_coach_team(p_code text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_me public.users;
+  v_team public.coach_teams;
+  v_owner public.users;
+  v_used int;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select * into v_me from public.users where id = auth.uid() for update;
+  if v_me.plan = 'coach' then
+    raise exception 'Coach accounts cannot join a team';
+  end if;
+  if v_me.plan = 'pro' and v_me.plan_expires_at is null and v_me.coach_team_id is null then
+    raise exception 'Your account already has full access';
+  end if;
+
+  select * into v_team from public.coach_teams
+   where upper(join_code) = upper(btrim(p_code))
+   for update;
+  if v_team.id is null then
+    raise exception 'Invalid team code';
+  end if;
+
+  select * into v_owner from public.users where id = v_team.owner_id;
+  if v_owner.plan <> 'coach' then
+    raise exception 'This team is no longer active';
+  end if;
+
+  select count(*) into v_used from public.users
+   where coach_team_id = v_team.id and id <> auth.uid();
+  if v_used >= v_team.seat_limit then
+    raise exception 'This team has no seats left';
+  end if;
+
+  update public.users
+     set plan = 'pro', plan_expires_at = null, coach_team_id = v_team.id
+   where id = auth.uid();
+
+  return jsonb_build_object('plan', 'pro', 'team_owner', coalesce(v_owner.display_name, 'your coach'));
+end;
+$$;
+grant execute on function public.join_coach_team(text) to authenticated;
+
+create or replace function public.leave_coach_team()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+  update public.users u
+     set coach_team_id = null,
+         plan_expires_at = null,
+         plan = case
+           when exists (select 1 from public.subscriptions s
+                         where s.user_id = u.id and s.status = 'active') then u.plan
+           else 'free'
+         end
+   where u.id = auth.uid()
+     and u.coach_team_id is not null;
+end;
+$$;
+grant execute on function public.leave_coach_team() to authenticated;
+
+create or replace function public.revoke_coach_team(p_owner uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_team_id uuid;
+begin
+  select id into v_team_id from public.coach_teams where owner_id = p_owner;
+  if v_team_id is null then
+    return;
+  end if;
+
+  update public.users u
+     set plan = 'free', plan_expires_at = null
+   where u.coach_team_id = v_team_id
+     and not exists (select 1 from public.subscriptions s
+                      where s.user_id = u.id and s.status = 'active');
+
+  update public.users set coach_team_id = null where coach_team_id = v_team_id;
+  delete from public.coach_teams where id = v_team_id;
+end;
+$$;
+revoke execute on function public.revoke_coach_team(uuid) from public, anon, authenticated;
+grant execute on function public.revoke_coach_team(uuid) to service_role;
 
 -- ========================================================
 -- 16. REALTIME CONFIGURATION

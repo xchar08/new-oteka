@@ -3,6 +3,7 @@
 import React, { useRef } from 'react';
 import { Lock, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { isPaidPlan } from '@/lib/utils/plan';
 
 interface PricingGuardProps {
   plan?: string;
@@ -12,7 +13,7 @@ interface PricingGuardProps {
 
 export function PricingGuard({ plan = 'free', children, featureName = 'This feature' }: PricingGuardProps) {
   const lastToastTime = useRef<number>(0);
-  const isPro = plan === 'pro';
+  const isPro = isPaidPlan(plan);
 
   const handleClickCapture = (e: React.MouseEvent) => {
     if (isPro) return;
@@ -45,7 +46,7 @@ export function PricingGuard({ plan = 'free', children, featureName = 'This feat
             toast.dismiss(t);
             window.location.href = '/pricing';
           }}
-          className="bg-[var(--primary)] text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg ml-2 active:scale-95 transition-transform"
+          className="bg-[var(--primary)] text-[var(--primary-fg)] text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg ml-2 active:scale-95 transition-transform"
         >
           Upgrade
         </button>
@@ -60,7 +61,7 @@ export function PricingGuard({ plan = 'free', children, featureName = 'This feat
     <div onClickCapture={handleClickCapture} className="relative group cursor-pointer h-full">
       {children}
       {!isPro && (
-        <div className="absolute top-0 right-0 -mt-1 -mr-1 bg-[var(--primary)] text-white p-1 rounded-full shadow-lg border border-[var(--bg-app)] z-20 scale-75 group-hover:scale-100 transition-transform">
+        <div className="absolute top-0 right-0 -mt-1 -mr-1 bg-[var(--primary)] text-[var(--primary-fg)] p-1 rounded-full shadow-lg border border-[var(--bg-app)] z-20 scale-75 group-hover:scale-100 transition-transform">
           <Lock size={8} fill="currentColor" />
         </div>
       )}

@@ -1,0 +1,148 @@
+# Auto-generated. Do not edit manually.
+checkpoints:
+  - checkpoint: 1
+    at: '2026-06-11T02:47:06.427Z'
+    triggered_by: nodes/architecture/architecture-overview
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/standards/coding-conventions: 1
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+    checkpoint_hash: sha256:6c7625ac08225f3dc3f876a38dccb26d3993178ab39fbd27d386f16b86726ffb
+  - checkpoint: 2
+    at: '2026-06-11T02:47:06.681Z'
+    triggered_by: nodes/onboarding/getting-started
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/onboarding/getting-started: 1
+      nodes/standards/coding-conventions: 1
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+      nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
+    checkpoint_hash: sha256:e9490dcca8b0805425761edf5efa4f54484e228feb6db1ab43345768080dce90
+  - checkpoint: 3
+    at: '2026-06-11T02:47:06.865Z'
+    triggered_by: nodes/standards/coding-conventions
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/onboarding/getting-started: 1
+      nodes/standards/coding-conventions: 1
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+      nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
+      nodes/standards/coding-conventions: sha256:1cbc57fd6a188bbeb29a955d33b98c1f28764101a7f72251d28486fc30d4d616
+    checkpoint_hash: sha256:05c8710a8bcccec96c0247b136d90de730ae0ab0fbda7e30bdc0ac64ae3bcf3d
+  - checkpoint: 4
+    at: '2026-06-11T04:33:42.755Z'
+    triggered_by: nodes/design-doctrine-init
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/design-doctrine-init: 2
+      nodes/onboarding/getting-started: 1
+      nodes/standards/coding-conventions: 1
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+      nodes/design-doctrine-init: sha256:81cf575e309170b164ce7acb1e59d645ff285abd4690b0718ab010d30399cd41
+      nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
+      nodes/standards/coding-conventions: sha256:1cbc57fd6a188bbeb29a955d33b98c1f28764101a7f72251d28486fc30d4d616
+    checkpoint_hash: sha256:46869dc414dbe91f86470d243a0e5b247683f9cb42b17c88ab59b6a146e1698f
+  - checkpoint: 5
+    at: '2026-06-11T05:36:04.700Z'
+    triggered_by: nodes/on-primary-contrast-tokens
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/design-doctrine-init: 2
+      nodes/on-primary-contrast-tokens: 2
+      nodes/onboarding/getting-started: 1
+      nodes/standards/coding-conventions: 1
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+      nodes/design-doctrine-init: sha256:81cf575e309170b164ce7acb1e59d645ff285abd4690b0718ab010d30399cd41
+      nodes/on-primary-contrast-tokens: sha256:149c3078a51d34cfa7b8928cc6d0756cd0815bee915fbd92d60f886600648303
+      nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
+      nodes/standards/coding-conventions: sha256:1cbc57fd6a188bbeb29a955d33b98c1f28764101a7f72251d28486fc30d4d616
+    checkpoint_hash: sha256:bf1163ce201a748a399e6026fa6351c1d30cf525dc89c57a57c1869c434a1421
+  - checkpoint: 6
+    at: '2026-06-11T15:04:21.577Z'
+    triggered_by: nodes/dashboard-hardening-decisions
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/dashboard-hardening-decisions: 2
+      nodes/design-doctrine-init: 2
+      nodes/on-primary-contrast-tokens: 2
+      nodes/onboarding/getting-started: 1
+      nodes/standards/coding-conventions: 1
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+      nodes/dashboard-hardening-decisions: sha256:5437358dcc1ccc8f0cce8651078021430c43d57b21602b593d4fe2b107096100
+      nodes/design-doctrine-init: sha256:81cf575e309170b164ce7acb1e59d645ff285abd4690b0718ab010d30399cd41
+      nodes/on-primary-contrast-tokens: sha256:149c3078a51d34cfa7b8928cc6d0756cd0815bee915fbd92d60f886600648303
+      nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
+      nodes/standards/coding-conventions: sha256:1cbc57fd6a188bbeb29a955d33b98c1f28764101a7f72251d28486fc30d4d616
+    checkpoint_hash: sha256:3e0f672598cc280046b37a0af28cc4f68ee155c9192e2320706c29a715dba018
+  - checkpoint: 7
+    at: '2026-06-11T16:05:51.151Z'
+    triggered_by: nodes/logs-week-navigation
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/dashboard-hardening-decisions: 2
+      nodes/design-doctrine-init: 2
+      nodes/logs-week-navigation: 2
+      nodes/on-primary-contrast-tokens: 2
+      nodes/onboarding/getting-started: 1
+      nodes/standards/coding-conventions: 1
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+      nodes/dashboard-hardening-decisions: sha256:5437358dcc1ccc8f0cce8651078021430c43d57b21602b593d4fe2b107096100
+      nodes/design-doctrine-init: sha256:81cf575e309170b164ce7acb1e59d645ff285abd4690b0718ab010d30399cd41
+      nodes/logs-week-navigation: sha256:7dc51f0023459f1f3eec144a74dd6588b1175bc72f8f00fd205e852d394a1e5c
+      nodes/on-primary-contrast-tokens: sha256:149c3078a51d34cfa7b8928cc6d0756cd0815bee915fbd92d60f886600648303
+      nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
+      nodes/standards/coding-conventions: sha256:1cbc57fd6a188bbeb29a955d33b98c1f28764101a7f72251d28486fc30d4d616
+    checkpoint_hash: sha256:d9556eeafc6568a804c29b6b882932a84089d4d1b827052416518c01d3344ecd
+  - checkpoint: 8
+    at: '2026-06-11T20:34:30.891Z'
+    triggered_by: nodes/meal-editing
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/dashboard-hardening-decisions: 2
+      nodes/design-doctrine-init: 2
+      nodes/logs-week-navigation: 2
+      nodes/meal-editing: 2
+      nodes/on-primary-contrast-tokens: 2
+      nodes/onboarding/getting-started: 1
+      nodes/standards/coding-conventions: 1
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+      nodes/dashboard-hardening-decisions: sha256:5437358dcc1ccc8f0cce8651078021430c43d57b21602b593d4fe2b107096100
+      nodes/design-doctrine-init: sha256:81cf575e309170b164ce7acb1e59d645ff285abd4690b0718ab010d30399cd41
+      nodes/logs-week-navigation: sha256:7dc51f0023459f1f3eec144a74dd6588b1175bc72f8f00fd205e852d394a1e5c
+      nodes/meal-editing: sha256:4b3e7fdb22b0ed233bba58ac2a9ce6816cc87df52cc451d87850c0be32790462
+      nodes/on-primary-contrast-tokens: sha256:149c3078a51d34cfa7b8928cc6d0756cd0815bee915fbd92d60f886600648303
+      nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
+      nodes/standards/coding-conventions: sha256:1cbc57fd6a188bbeb29a955d33b98c1f28764101a7f72251d28486fc30d4d616
+    checkpoint_hash: sha256:0f4d4c697cf9f7544a20e8c8b7652d36b8c7546bba74895014a8303a582fe824
+  - checkpoint: 9
+    at: '2026-06-11T21:24:41.244Z'
+    triggered_by: nodes/billing-plans-and-backend-audit
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/billing-plans-and-backend-audit: 2
+      nodes/dashboard-hardening-decisions: 2
+      nodes/design-doctrine-init: 2
+      nodes/logs-week-navigation: 2
+      nodes/meal-editing: 2
+      nodes/on-primary-contrast-tokens: 2
+      nodes/onboarding/getting-started: 1
+      nodes/standards/coding-conventions: 1
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+      nodes/billing-plans-and-backend-audit: sha256:a7d468774738c1093d092a91aa64c7d666a900e7a3aa78486a3214e0b1c7f57d
+      nodes/dashboard-hardening-decisions: sha256:5437358dcc1ccc8f0cce8651078021430c43d57b21602b593d4fe2b107096100
+      nodes/design-doctrine-init: sha256:81cf575e309170b164ce7acb1e59d645ff285abd4690b0718ab010d30399cd41
+      nodes/logs-week-navigation: sha256:7dc51f0023459f1f3eec144a74dd6588b1175bc72f8f00fd205e852d394a1e5c
+      nodes/meal-editing: sha256:4b3e7fdb22b0ed233bba58ac2a9ce6816cc87df52cc451d87850c0be32790462
+      nodes/on-primary-contrast-tokens: sha256:149c3078a51d34cfa7b8928cc6d0756cd0815bee915fbd92d60f886600648303
+      nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
+      nodes/standards/coding-conventions: sha256:1cbc57fd6a188bbeb29a955d33b98c1f28764101a7f72251d28486fc30d4d616
+    checkpoint_hash: sha256:a52a807991a4db76adf1e078d1365787599b1151bb033655d9910d732c100f4a

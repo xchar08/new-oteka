@@ -22,11 +22,16 @@ export function useLogFeedback(logId: string | undefined, initialMeta: LogMetada
     }
   };
 
+  // Re-open a submitted rating for editing; resubmitting updates the
+  // engine weights through the same path
+  const unlock = () => setHasFeedback(false);
+
   return {
     feedback,
     setFeedback,
     isSubmitting,
     hasFeedback,
-    submitFeedback
+    submitFeedback,
+    unlock
   };
 }

@@ -48,7 +48,7 @@ function ProfileContent() {
         return;
       }
       const { data, error } = await supabase
-        .from('users')
+        .from('public_profiles')
         .select('id, display_name, avatar_url, streak_count, created_at')
         .eq('id', id)
         .single();

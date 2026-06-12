@@ -25,6 +25,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { STORAGE_KEYS } from '@/lib/utils/storage';
+import { isPaidPlan } from '@/lib/utils/plan';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -53,11 +54,6 @@ export default function ProfilePage() {
   const supabase = createClient();
   const router = useRouter();
 
-  console.log("[ProfilePage] User Profile State:", { 
-    id: user?.id, 
-    plan: user?.plan,
-    isPro: user?.plan === 'pro'
-  });
 
   const handleSignOut = async () => {
     // 1. Clear session-specific optimizations
@@ -151,13 +147,24 @@ export default function ProfilePage() {
         </motion.h2>
         
         <div className="flex flex-col items-center gap-3 mt-4">
-          <motion.div 
-            whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-1.5 text-[var(--primary)] font-bold bg-[var(--bg-surface)] px-3 py-1.5 rounded-xl shadow-sm border border-[var(--primary)]/10"
-          >
-            <Flame size={14} fill="currentColor" />
-            <span className="text-[9px] uppercase tracking-widest">{user?.streak_count || 0} Day Streak</span>
-          </motion.div>
+          <div className="flex items-center gap-2">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="flex items-center gap-1.5 text-[var(--primary)] font-bold bg-[var(--bg-surface)] px-3 py-1.5 rounded-xl shadow-sm border border-[var(--primary)]/10"
+            >
+              <Flame size={14} fill="currentColor" />
+              <span className="text-[9px] uppercase tracking-widest">{user?.streak_count || 0} Day Streak</span>
+            </motion.div>
+            {isPaidPlan(user?.plan) && (
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1.5 text-[var(--primary)] font-black bg-[var(--primary)]/10 px-3 py-1.5 rounded-xl shadow-sm border border-[var(--primary)]/20"
+              >
+                <Zap size={12} fill="currentColor" />
+                <span className="text-[9px] uppercase tracking-widest">{user?.plan === 'coach' ? 'Coach' : 'Solar'}</span>
+              </motion.div>
+            )}
+          </div>
           
           <motion.p 
             initial={{ opacity: 0 }}

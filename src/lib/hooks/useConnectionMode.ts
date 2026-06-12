@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useAppStore } from '@/lib/state/appStore';
 
 type NetworkInformation = {
   saveData?: boolean;
@@ -17,6 +18,8 @@ function getConnection(): NetworkInformation | undefined {
 export function useConnectionMode(opts?: {
   onMode?: (mode: 'online' | 'offline' | 'save-data') => void;
 }) {
+  const setConnection = useAppStore((s) => s.setConnection);
+
   useEffect(() => {
     const notify = () => {
       const conn = getConnection();
@@ -26,6 +29,9 @@ export function useConnectionMode(opts?: {
       const mode: 'online' | 'offline' | 'save-data' =
         !online ? 'offline' : saveData ? 'save-data' : 'online';
 
+      // Keep the global store in sync — offline banners, advice gating and
+      // the sync layer all read isOnline from here.
+      setConnection({ isOnline: online, saveData });
       opts?.onMode?.(mode);
     };
 

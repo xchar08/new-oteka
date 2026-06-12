@@ -11,6 +11,7 @@ import { useUser } from '@/lib/hooks/useUser';
 import { visionService } from '@/lib/services/vision.service';
 import { useGeolocation, getNearbyPlacesContext } from '@/lib/hooks/useGeolocation';
 import { toast } from 'sonner';
+import { isPaidPlan } from '@/lib/utils/plan';
 
 export default function MenuScannerPage() {
   const [analyzing, setAnalyzing] = useState(false);
@@ -21,7 +22,7 @@ export default function MenuScannerPage() {
   const router = useRouter();
   const supabase = createClient();
   const { user } = useUser();
-  const isPro = user?.plan === 'pro';
+  const isPro = isPaidPlan(user?.plan);
   const geo = useGeolocation();
 
   React.useEffect(() => {

@@ -1,3 +1,6 @@
+// @ts-nocheck — the stripe import uses esm.sh's `?no-check` (Stripe's types
+// target Node and don't check under Deno), so editors infer minified garbage
+// types ("type 'o'") for it. Runtime and deploy are unaffected.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.0.0?target=deno&no-check";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -37,16 +40,39 @@ serve(async (req) => {
 
     const { priceId, successUrl, cancelUrl } = await req.json();
 
-    // SERVER-SIDE VALIDATION: Prevent price manipulation
-    // RECOMMENDED: Fetch allowed prices from a 'plans' table in Supabase for better maintainability
-    const PLAN_CONFIG: Record<string, { plan_type: string; quantity: number }> = {
-      "price_1OTeKaSolarMonth": { plan_type: "pro", quantity: 1 },
-      "price_1CoachPlanMonth":  { plan_type: "coach", quantity: 15 },
-    };
+    // SERVER-SIDE VALIDATION: the priceId must exist in the plans table
+    // (single source of truth, service-role managed) — prevents price
+    // manipulation and removes hardcoded price IDs from the codebase.
+    const { data: plan, error: planError } = await supabase
+      .from("plans")
+      .select("plan_type, seat_count")
+      .eq("price_id", priceId)
+      .eq("active", true)
+      .single();
 
-    const planInfo = PLAN_CONFIG[priceId];
-    if (!planInfo) {
-      throw new Error("Invalid Price ID selected");
+    if (planError || !plan) {
+      throw new Error("This plan isn't available. If you're the operator: insert your Stripe Price IDs into the `plans` table.");
+    }
+
+    // Redirect URLs come from the client; pin them to known origins so a
+    // forged request can't bounce a real checkout to an attacker's site.
+    // ALLOWED_CHECKOUT_ORIGINS: comma-separated origins, e.g.
+    //   "https://app.oteka.com,http://localhost:3000,https://localhost"
+    const allowedOrigins = (Deno.env.get("ALLOWED_CHECKOUT_ORIGINS") ?? "")
+      .split(",").map((s) => s.trim()).filter(Boolean);
+    const assertAllowedRedirect = (raw: string, label: string) => {
+      const url = new URL(raw); // throws on garbage
+      if (url.protocol !== "https:" && url.protocol !== "http:") {
+        throw new Error(`${label} must be http(s)`);
+      }
+      if (allowedOrigins.length > 0 && !allowedOrigins.includes(url.origin)) {
+        throw new Error(`${label} origin not allowed`);
+      }
+    };
+    assertAllowedRedirect(successUrl, "successUrl");
+    assertAllowedRedirect(cancelUrl, "cancelUrl");
+    if (allowedOrigins.length === 0) {
+      console.warn("[checkout] ALLOWED_CHECKOUT_ORIGINS not set — accepting any http(s) redirect origin");
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -54,7 +80,7 @@ serve(async (req) => {
       line_items: [
         {
           price: priceId,
-          quantity: planInfo.quantity,
+          quantity: plan.seat_count,
         },
       ],
       mode: "subscription",
@@ -62,8 +88,8 @@ serve(async (req) => {
       cancel_url: cancelUrl,
       client_reference_id: user.id,
       metadata: {
-        plan_type: planInfo.plan_type,
-        seat_count: String(planInfo.quantity),
+        plan_type: plan.plan_type,
+        seat_count: String(plan.seat_count),
       },
     });
 

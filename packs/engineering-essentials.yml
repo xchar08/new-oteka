@@ -1,0 +1,11 @@
+id: engineering-essentials
+label: Engineering Essentials
+description: Architecture decisions, coding standards, and project knowledge
+includes:
+  - nodes/architecture/architecture-overview
+  - nodes/onboarding/getting-started
+  - nodes/standards/coding-conventions
+agent_instructions: >
+  Use these documents to understand the system architecture, coding standards,
+  and development environment. Reference them when answering engineering
+  questions or making technical decisions.

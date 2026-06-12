@@ -56,17 +56,13 @@ export default function HouseholdPage() {
             .single();
 
         if (userData?.households) {
-            let house = (Array.isArray(userData.households) ? userData.households[0] : userData.households) as any;
+            const house = (Array.isArray(userData.households) ? userData.households[0] : userData.households) as any;
             if (house) {
-                if (!house.join_code) {
-                    const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-                    await supabase.from('households').update({ join_code: newCode }).eq('id', house.id);
-                    house.join_code = newCode;
-                }
+                // join_code is guaranteed by the households table default.
                 setHousehold(house);
             }
             const { data: memberData } = await supabase
-                .from('users')
+                .from('public_profiles')
                 .select('id, display_name, streak_count, avatar_url')
                 .eq('household_id', userData.household_id);
             setMembers(memberData || []);
@@ -88,26 +84,14 @@ export default function HouseholdPage() {
         
         setIsJoining(true);
         try {
-            const { data: targetHouse, error: houseError } = await supabase
-                .from('households')
-                .select('id, name')
-                .eq('join_code', joinCode.trim().toLowerCase())
-                .single();
+            // Server validates the code (case-insensitive) and moves us in.
+            const { data: targetHouse, error: joinError } = await supabase
+                .rpc('join_household_by_code', { p_code: joinCode.trim() });
 
-            if (houseError || !targetHouse) {
+            if (joinError || !targetHouse) {
                 toast.error("Invalid join code.");
                 return;
             }
-
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            const { error: updateError } = await supabase
-                .from('users')
-                .update({ household_id: targetHouse.id })
-                .eq('id', user.id);
-
-            if (updateError) throw updateError;
 
             toast.success(`Welcome to ${targetHouse.name}!`);
             setJoinCode('');
@@ -126,21 +110,14 @@ export default function HouseholdPage() {
         if (!user) return;
 
         try {
-            const { data: newHouse } = await supabase
-                .from('households')
-                .insert({ name: `${user.email?.split('@')[0]}'s House` })
-                .select()
-                .single();
-            
-            if (newHouse) {
-                await supabase
-                    .from('users')
-                    .update({ household_id: newHouse.id })
-                    .eq('id', user.id);
-                
-                toast.success("Moved to private household.");
-                fetchHouseholdData();
-            }
+            const houseName = `${user.email?.split('@')[0] || 'My'}'s House`;
+            const { data: newHouse, error } = await supabase
+                .rpc('create_private_household', { p_name: houseName });
+
+            if (error || !newHouse) throw error || new Error('No household returned');
+
+            toast.success("Moved to private household.");
+            fetchHouseholdData();
         } catch (err) {
             toast.error("Failed to leave.");
         }

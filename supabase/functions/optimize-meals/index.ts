@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import init, { optimize_meal_plan } from "./planner_wasm.js";
+import init, { optimize_meal_plan_wasm } from "./planner_wasm.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -496,11 +496,18 @@ serve(async (req) => {
     ).map((s) => s.toLowerCase());
 
     // 2. Fetch Pantry Pool
-    const { data: pantryRaw } = await supabase
+    // NOTE: pantry has no quantity/expiry columns — that data lives in metadata_json
+    // (expiry_text, quantity_estimate, ingredients). Selecting non-existent columns
+    // makes PostgREST return an error and silently empties the pool.
+    const { data: pantryRaw, error: pantryErr } = await supabase
       .from("pantry")
-      .select("name, food_id, foods(id, name, nutritional_info, category_decay_rate), quantity, expiry, created_at, metadata_json")
+      .select("name, food_id, foods(id, name, nutritional_info, category_decay_rate), created_at, metadata_json")
       .eq("user_id", user.id)
       .eq("status", "active");
+
+    if (pantryErr) {
+      console.error("[optimize-meals] Pantry fetch failed:", pantryErr.message);
+    }
 
     let pantryPool: Gene[] = (pantryRaw || [])
       .filter((p: any) => {
@@ -510,6 +517,11 @@ serve(async (req) => {
       .map((p: any) => {
         // Use foods table data if linked, otherwise use defaults
         const ni = p.foods?.nutritional_info || {};
+        // expiry_text is free text from the vision scan; only use it if it parses as a date
+        const expiryText = p.metadata_json?.expiry_text;
+        const expiry = expiryText && !isNaN(new Date(expiryText).getTime())
+          ? expiryText
+          : undefined;
         return {
           name: p.foods?.name || p.name || "Unknown",
           calories: ni.calories || 100,
@@ -522,7 +534,8 @@ serve(async (req) => {
           iron: ni.iron || 2,
           vitamin_d: ni.vitamin_d || 0,
           inPantry: true,
-          expiry: p.expiry,
+          expiry,
+          ingredients: Array.isArray(p.metadata_json?.ingredients) ? p.metadata_json.ingredients : undefined,
           category: ni.category || (p.metadata_json?.category) || "general",
           decay_coefficient: p.foods?.category_decay_rate || 0.05,
           logged_at: p.created_at,
@@ -586,21 +599,48 @@ serve(async (req) => {
     if (wasm) {
       console.log("[WASM] Executing optimization...");
       try {
+        // The Rust PlanRequest expects snake_case FoodItem fields and a
+        // required `id` — serde rejects the request otherwise.
         const wasmReq = {
           profile: {
             calorie_target: profile?.calorie_target || 2000,
             protein_target: profile?.metabolic_state_json?.protein_target || 150,
             magnesium_target: 400,
             iron_target: 18,
+            taste_sweet: userTasteProfile?.sweet ?? null,
+            taste_bitter: userTasteProfile?.bitter ?? null,
+            taste_sour: userTasteProfile?.sour ?? null,
+            taste_umami: userTasteProfile?.umami ?? null,
+            taste_confidence: tasteConfidence,
           },
-          available_foods: pantryPool,
+          available_foods: pantryPool.map((g, i) => ({
+            id: String(i),
+            name: g.name,
+            calories: g.calories,
+            protein: g.protein,
+            carbs: g.carbs,
+            fats: g.fats,
+            magnesium: g.magnesium ?? null,
+            iron: g.iron ?? null,
+            vitamin_d: g.vitamin_d ?? null,
+            zinc: null,
+            in_pantry: g.inPantry,
+            decay_k: g.decay_coefficient ?? null,
+            logged_at_ms: g.logged_at ? new Date(g.logged_at).getTime() : null,
+            expiry_ms: g.expiry ? new Date(g.expiry).getTime() : null,
+            taste_sweet: g.taste_vector?.sweet ?? null,
+            taste_bitter: g.taste_vector?.bitter ?? null,
+            taste_sour: g.taste_vector?.sour ?? null,
+            taste_umami: g.taste_vector?.umami ?? null,
+          })),
           recent_feedback: recentFeedback.map((f) => ({
             item_name: f.item,
             score: f.score,
           })),
+          recent_history: null,
           strictness: constraints.strictness || 1.0,
         };
-        const results = optimize_meal_plan(wasmReq);
+        const results = optimize_meal_plan_wasm(wasmReq, BigInt(Date.now()));
         if (Array.isArray(results) && results.length > 0) {
           solutions = results.map((result: any) => ({
             menu: result.selected_foods.map((f: any) => f.name),

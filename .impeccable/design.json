@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-10T00:00:00Z",
+  "title": "Design System: Oteka",
+  "extensions": {
+    "colorMeta": {
+      "solar-flare": { "role": "primary", "displayName": "Solar Flare", "canonical": "#F07F13", "tonalRamp": ["#3D1F03", "#5C2F05", "#8A4708", "#B85E0C", "#F07F13", "#F59C45", "#F9BC7E", "#FDE3C7"] },
+      "solar-flare-deep": { "role": "primary", "displayName": "Solar Flare Deep", "canonical": "#D96F0B", "tonalRamp": ["#371C02", "#542B04", "#7C3F07", "#A85609", "#D96F0B", "#EA8F33", "#F4B470", "#FBDDBE"] },
+      "solar-flare-text": { "role": "primary", "displayName": "Solar Flare Text", "canonical": "#8A4708", "tonalRamp": ["#2B1602", "#451F04", "#623106", "#8A4708", "#B05E0A", "#D4790F", "#EE9B3C", "#F8C584"] },
+      "solar-halo": { "role": "primary", "displayName": "Solar Halo", "canonical": "#FFB347", "tonalRamp": ["#42280A", "#684012", "#945C1C", "#C58229", "#FFB347", "#FFC36B", "#FFD699", "#FFEBCC"] },
+      "daylight-bg": { "role": "neutral", "displayName": "Daylight", "canonical": "#FBF6EE", "tonalRamp": ["#2A2418", "#4D4530", "#776B4F", "#A2967A", "#C9BFA8", "#E5DDCB", "#F3EDE0", "#FBF6EE"] },
+      "daylight-surface": { "role": "neutral", "displayName": "Daylight Surface", "canonical": "#FFFFFF", "tonalRamp": ["#262626", "#4A4A4A", "#737373", "#9E9E9E", "#C4C4C4", "#E0E0E0", "#F2F2F2", "#FFFFFF"] },
+      "daylight-surface-sunken": { "role": "neutral", "displayName": "Daylight Sunken", "canonical": "#F6EEE1", "tonalRamp": ["#28221580", "#4A3F28", "#73633F", "#9D8A5C", "#C2B188", "#DCCFAF", "#EBE0CB", "#F6EEE1"] },
+      "daylight-border": { "role": "neutral", "displayName": "Daylight Border", "canonical": "#EBDFCD", "tonalRamp": ["#252015", "#453C28", "#6B5D3F", "#92805B", "#B5A37E", "#D0C1A2", "#E0D2BB", "#EBDFCD"] },
+      "umber-ink": { "role": "neutral", "displayName": "Umber Ink", "canonical": "#221A12", "tonalRamp": ["#221A12", "#3D3225", "#5C4D3A", "#7D6B53", "#9E8C72", "#BFAF97", "#DCD1C0", "#F2ECE2"] },
+      "umber-muted": { "role": "neutral", "displayName": "Umber Muted", "canonical": "#6F6052", "tonalRamp": ["#1F1B16", "#38302A", "#54483E", "#6F6052", "#8C7C6C", "#AB9D8E", "#C9BFB3", "#E7E1D9"] },
+      "oled-bg": { "role": "neutral", "displayName": "OLED Black", "canonical": "#0E0903", "tonalRamp": ["#0E0903", "#241A0D", "#3D2D18", "#584224", "#755932", "#947343", "#B49058", "#D6B173"] },
+      "oled-surface": { "role": "neutral", "displayName": "OLED Surface", "canonical": "#1A130A", "tonalRamp": ["#1A130A", "#302414", "#483720", "#624C2D", "#7D633C", "#9A7C4E", "#B79762", "#D5B47A"] },
+      "oled-ink": { "role": "neutral", "displayName": "OLED Ink", "canonical": "#F7F2EA", "tonalRamp": ["#27241E", "#474337", "#6C6654", "#928B74", "#B5AE95", "#D2CCB6", "#E7E2D3", "#F7F2EA"] },
+      "verdant-signal": { "role": "semantic", "displayName": "Verdant Signal", "canonical": "#11A36C", "tonalRamp": ["#04291B", "#074830", "#0B6A47", "#0E875A", "#11A36C", "#3DBC88", "#76D2AB", "#B6E8D2"] },
+      "caution-amber": { "role": "semantic", "displayName": "Caution Amber", "canonical": "#E8A317", "tonalRamp": ["#3B2A05", "#5C420A", "#86600E", "#B58212", "#E8A317", "#EFB845", "#F5CE7B", "#FAE5B8"] },
+      "fault-red": { "role": "semantic", "displayName": "Fault Red", "canonical": "#D14D41", "tonalRamp": ["#38110D", "#591D17", "#822B22", "#AA3B2F", "#D14D41", "#DD7468", "#E9A096", "#F4CDC7"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles, one per screen. Syne 800 carries the instrument-panel voice." },
+      "headline": { "displayName": "Headline", "purpose": "Section and card titles; h1-h3 inherit Syne globally." },
+      "body": { "displayName": "Body", "purpose": "Default copy at 14px; the app runs mobile-dense. Prose caps at 65-75ch." },
+      "label": { "displayName": "HUD Microlabel", "purpose": "Signature caption voice (.hud-label). Once per screen as the header kicker; never section scaffolding." },
+      "section-label": { "displayName": "Section Label", "purpose": "Workhorse in-page heading: Schibsted 600, 13px, sentence case, text-secondary. Never uppercase or tracked. Data captions are the 11px/500 variant." },
+      "data": { "displayName": "Instrument Numerals", "purpose": "All counted/measured values: JetBrains Mono with tabular figures." }
+    },
+    "shadows": [
+      { "name": "hairline-highlight", "value": "inset 0 1px 0 rgba(255,255,255,0.06)", "purpose": "Top-edge light catch on glass panels." },
+      { "name": "ambient-float", "value": "0 10px 30px rgba(30,20,8,0.10)", "purpose": "Resting elevation for cards needing separation (.shadow-smooth)." },
+      { "name": "card-lift", "value": "0 4px 20px -2px rgba(30,20,8,0.28)", "purpose": "Card at rest (.shadow-card); deepens to 0 8px 30px -4px on hover." },
+      { "name": "primary-glow", "value": "0 0 32px -6px rgba(240,127,19,0.55)", "purpose": "Emission for active/live/selected elements (.glow-primary). The Emission Rule: inactive elements never glow." },
+      { "name": "dock-float", "value": "0 16px 40px -12px rgba(30,20,8,0.5)", "purpose": "The bottom nav dock — heaviest shadow in the system, reserved for the one floating chrome element." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default state transitions, 150-300ms (.transition-smooth)." },
+      { "name": "press", "value": "transform 160ms", "purpose": "Mechanical scale(0.96) press on touch targets. Doctrine: no bounce, no elastic overshoot on new work." },
+      { "name": "aurora", "value": "14s ease-in-out infinite alternate", "purpose": "Atmospheric background drift; disabled under prefers-reduced-motion." },
+      { "name": "shimmer", "value": "1.6s linear infinite", "purpose": "Skeleton loading sweep." }
+    ],
+    "breakpoints": [
+      { "name": "content-rail", "value": "448px", "purpose": "max-w-md single-column rail; the app is phone-first." },
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Solar Flare fill for the screen's primary action. Mechanical press, accent-tinted shadow.",
+      "html": "<button class=\"ds-btn-primary\">Start Setup</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 8px 24px; background: var(--primary, #F07F13); color: var(--primary-fg, #221A12); font-family: 'Schibsted Grotesk', ui-sans-serif, sans-serif; font-size: 14px; font-weight: 700; border: none; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(240,127,19,0.2); cursor: pointer; transition: opacity 200ms cubic-bezier(0.4,0,0.2,1), transform 160ms; } .ds-btn-primary:hover { background: var(--primary-hover, #D96F0B); } .ds-btn-primary:focus-visible { outline: 2px solid var(--primary, #F07F13); outline-offset: 2px; } .ds-btn-primary:active { transform: scale(0.96); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Sunken-surface fill with hairline border for supporting actions.",
+      "html": "<button class=\"ds-btn-secondary\">View History</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 8px 24px; background: var(--bg-surface-2, #F6EEE1); color: var(--text-primary, #221A12); font-family: 'Schibsted Grotesk', ui-sans-serif, sans-serif; font-size: 14px; font-weight: 600; border: 1px solid var(--border, #EBDFCD); border-radius: 8px; cursor: pointer; transition: background 200ms cubic-bezier(0.4,0,0.2,1), transform 160ms; } .ds-btn-secondary:hover { background: var(--bg-surface, #FFFFFF); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--primary, #F07F13); outline-offset: 2px; } .ds-btn-secondary:active { transform: scale(0.96); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Muted text-only action; surface tint appears on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Sign out</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 8px 24px; background: transparent; color: var(--text-secondary, #6F6052); font-family: 'Schibsted Grotesk', ui-sans-serif, sans-serif; font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: background 200ms cubic-bezier(0.4,0,0.2,1), color 200ms; } .ds-btn-ghost:hover { background: var(--bg-surface-2, #F6EEE1); color: var(--text-primary, #221A12); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--primary, #F07F13); outline-offset: 2px; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Sunken well with hairline border; primary ring on focus.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search pantry...\" />",
+      "css": ".ds-input { display: flex; width: 100%; height: 48px; padding: 8px 16px; background: var(--bg-surface-2, #F6EEE1); color: var(--text-primary, #221A12); font-family: 'Schibsted Grotesk', ui-sans-serif, sans-serif; font-size: 14px; border: 1px solid var(--border, #EBDFCD); border-radius: 8px; transition: box-shadow 200ms cubic-bezier(0.4,0,0.2,1); } .ds-input::placeholder { color: var(--text-secondary, #6F6052); } .ds-input:focus-visible { outline: 2px solid var(--primary, #F07F13); outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Opaque surface with hairline border; instrument numerals for the readout.",
+      "html": "<div class=\"ds-card\"><span class=\"ds-card-kicker\">Daily Intake</span><div class=\"ds-card-value\">1,842 <span class=\"ds-card-unit\">kcal</span></div><p class=\"ds-card-note\">418 remaining in plan</p></div>",
+      "css": ".ds-card { background: var(--bg-surface, #FFFFFF); border: 1px solid var(--border, #EBDFCD); border-radius: 12px; padding: 24px; max-width: 280px; transition: box-shadow 300ms cubic-bezier(0.4,0,0.2,1); } .ds-card:hover { box-shadow: 0 8px 30px -4px rgba(30,20,8,0.18); } .ds-card-kicker { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.25em; color: var(--text-secondary, #6F6052); } .ds-card-value { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 32px; font-weight: 700; color: var(--text-primary, #221A12); margin-top: 8px; } .ds-card-unit { font-size: 14px; font-weight: 600; color: var(--text-secondary, #6F6052); } .ds-card-note { font-family: 'Schibsted Grotesk', ui-sans-serif, sans-serif; font-size: 13px; font-weight: 500; color: var(--text-secondary, #6F6052); margin: 8px 0 0; }"
+    },
+    {
+      "name": "HUD Readout",
+      "kind": "custom",
+      "refersTo": "hud-label",
+      "description": "Signature header pattern: pulsing glow dot + HUD microlabel. Once per screen.",
+      "html": "<div class=\"ds-hud\"><span class=\"ds-hud-dot\"></span><span class=\"ds-hud-text\">Neural Interface</span></div>",
+      "css": ".ds-hud { display: inline-flex; align-items: center; gap: 8px; } .ds-hud-dot { width: 6px; height: 6px; border-radius: 9999px; background: var(--primary, #F07F13); box-shadow: 0 0 10px var(--primary, #F07F13); animation: ds-hud-pulse 3s ease-in-out infinite; } .ds-hud-text { font-family: 'Schibsted Grotesk', ui-sans-serif, sans-serif; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4em; color: var(--primary-text, #8A4708); } @keyframes ds-hud-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } } @media (prefers-reduced-motion: reduce) { .ds-hud-dot { animation: none; } }"
+    },
+    {
+      "name": "Nav Dock",
+      "kind": "nav",
+      "refersTo": "nav-dock",
+      "description": "Floating glass dock — the signature navigation. Active tab glows in accent with halo pill and underline bar.",
+      "html": "<nav class=\"ds-dock\"><a class=\"ds-dock-item ds-dock-active\" href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/></svg><span>Hub</span><i class=\"ds-dock-bar\"></i></a><a class=\"ds-dock-item\" href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M16.5 9.4 7.55 4.24\"/><path d=\"M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\"/><polyline points=\"3.29 7 12 12 20.71 7\"/><line x1=\"12\" y1=\"22\" x2=\"12\" y2=\"12\"/></svg><span>Pantry</span></a><a class=\"ds-dock-item\" href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\"/><circle cx=\"12\" cy=\"7\" r=\"4\"/></svg><span>Profile</span></a></nav>",
+      "css": ".ds-dock { display: flex; justify-content: space-around; align-items: center; height: 68px; max-width: 360px; padding: 0 8px; background: color-mix(in srgb, var(--bg-surface, #FFFFFF) 75%, transparent); backdrop-filter: blur(40px); border: 1px solid var(--border, #EBDFCD); border-radius: 28px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 16px 40px -12px rgba(30,20,8,0.5); } .ds-dock-item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 56px; height: 100%; color: var(--text-secondary, #6F6052); opacity: 0.6; text-decoration: none; transition: color 300ms, opacity 300ms; } .ds-dock-item span { font-family: 'Schibsted Grotesk', ui-sans-serif, sans-serif; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.18em; } .ds-dock-item:hover { opacity: 1; } .ds-dock-item:focus-visible { outline: 2px solid var(--primary, #F07F13); outline-offset: 2px; border-radius: 8px; } .ds-dock-active { color: var(--primary, #F07F13); opacity: 1; } .ds-dock-bar { position: absolute; bottom: 4px; width: 24px; height: 3px; border-radius: 9999px; background: var(--primary, #F07F13); box-shadow: 0 0 12px var(--primary, #F07F13); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Solar Instrument",
+    "overview": "Oteka's interface is a warm precision instrument — a cockpit for your own biology. The system pairs OLED-black warmth with a single saturated solar accent, instrument-grade numerals, and an atmospheric depth layer (a fixed aurora glow plus film grain) that keeps flat surfaces from feeling sterile. The personality is Modern, Minimalist, Precision-Focused: the warmth lives in the palette and the light, never in clutter or ornament. The system explicitly rejects the cluttered density of MyFitnessPal-style trackers, the sterile lifelessness of clinical/medical portals, the confetti-and-mascot noise of gamified fitness apps, and the interchangeable stat-card-grid look of generic SaaS dashboards. This is a phone-first, one-handed product: single-column max-w-md rails, floating bottom dock, primary actions in the thumb zone, motion in 150-300ms with crisp mechanical easing.",
+    "keyCharacteristics": [
+      "Warm OLED dark mode and warm paper-light mode, both anchored by one solar accent",
+      "Four user-selectable accent channels (Solar default, Emerald, Cobalt, Midnight) that swap hue without changing structure",
+      "Instrument numerals: every number a user reads is tabular-lining mono",
+      "Depth by light emission (glows, hairlines, blur) rather than dark shadows",
+      "One signature caption voice: the HUD microlabel",
+      "Thumb-first ergonomics: bottom dock, ≥44px targets, safe-area aware"
+    ],
+    "rules": [
+      { "name": "The One Flare Rule", "body": "The accent appears on less than 10% of any screen, and only ever means \"live or actionable.\" If solar orange shows up as decoration, it is wrong.", "section": "colors" },
+      { "name": "The Channel Rule", "body": "Theme variants (.theme-emerald #0FA47A, .theme-cobalt #2F6BFF, .theme-midnight #8B5CF6) swap the accent channel and its tinted neutrals only. Structure, spacing, and type never change between channels — always style against var(--primary) and friends, never hardcoded orange.", "section": "colors" },
+      { "name": "The Instrument Numeral Rule", "body": "Every number a user reads — calories, grams, percentages, timers — renders in JetBrains Mono with tabular figures. Proportional digits in a readout are a defect.", "section": "typography" },
+      { "name": "The One HUD Rule", "body": "The HUD microlabel is a deliberate brand system, used once per screen as the header kicker. It is not section scaffolding: repeating tracked-uppercase eyebrows above every section is forbidden.", "section": "typography" },
+      { "name": "The Emission Rule", "body": "Active and live elements glow in the accent; inactive elements never do. Shadows are warm-tinted, diffuse, and low-opacity — a hard dark shadow reads as 2014 and is prohibited.", "section": "elevation" },
+      { "name": "The Earned Glass Rule", "body": "Translucency + blur is reserved for chrome that floats above content: the dock, overlays, capture HUDs. Content cards are opaque surfaces. Glass as default card treatment is forbidden.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do style every component against the CSS custom properties (var(--primary), var(--bg-surface), var(--border)) so all four accent channels and both modes work for free.",
+      "Do use var(--primary-text) for accent-colored text/icons on light surfaces and var(--primary-fg) on primary fills — raw #F07F13 fails 4.5:1 against white and light surfaces.",
+      "Do set every number in JetBrains Mono tabular figures (the Instrument Numeral Rule).",
+      "Do keep touch targets ≥44px and primary actions in the thumb zone; pad fixed-bottom elements with pb-safe.",
+      "Do ship every interactive component with default, hover, focus-visible, active, disabled, and loading states — focus is a 2px primary ring at 2px offset, always.",
+      "Do provide prefers-reduced-motion alternatives for every animation, including the aurora and shimmer.",
+      "Do keep medical-guardrail and safety UI in plain, calm language with full-contrast text — trust beats theater."
+    ],
+    "donts": [
+      "Don't recreate MyFitnessPal-style trackers: no ad-dense lists, no ten-deep settings mazes, no cramped logging tables.",
+      "Don't drift toward clinical/medical portals: no sterile gray form stacks, no bureaucratic density; warmth is part of the trust model.",
+      "Don't gamify like fitness apps: no confetti, badges, mascots, streak-shaming, or motivational gradients.",
+      "Don't assemble generic SaaS dashboards: no identical stat-card grids, no purple gradients, no hero-metric templates.",
+      "Don't use the legacy .gradient-text utility on new work — gradient text is prohibited; emphasis comes from weight, size, or solid Solar Flare.",
+      "Don't stack opacity modifiers on Umber/OLED Muted text (opacity-60, /50): it silently breaks 4.5:1 contrast. Use the token at full opacity or step up to ink.",
+      "Don't use colored side-stripe borders (border-left > 1px) as accents — full hairline borders or background tints instead.",
+      "Don't repeat tracked-uppercase microlabels above every section (the One HUD Rule: once per screen, in the header).",
+      "Don't add bounce or elastic easing; if it overshoots, it's off-brand.",
+      "Don't hardcode #F07F13 — the Channel Rule depends on var(--primary)."
+    ]
+  }
+}

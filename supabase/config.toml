@@ -407,7 +407,9 @@ entrypoint = "./functions/advisor-context/index.ts"
 
 [functions.stripe-webhook]
 enabled = true
-verify_jwt = true
+# Stripe calls this endpoint with a Stripe-Signature header, not a Supabase JWT.
+# The function verifies the Stripe signature itself (constructEventAsync).
+verify_jwt = false
 import_map = "./functions/stripe-webhook/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx

@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { UserPlan } from '@/lib/utils/plan';
 
 export type ColorTheme = 'solar' | 'emerald' | 'cobalt' | 'midnight';
-export type UserPlan = 'free' | 'pro';
+export type { UserPlan };
 
 type AppState = {
   isOnline: boolean;

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Check, Sparkles, Zap, Flame, Crown, Loader2, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useUser } from '@/lib/hooks/useUser';
 import { subscriptionService } from '@/lib/services/subscription.service';
@@ -12,7 +13,44 @@ import { toast } from 'sonner';
 export default function PricingPage() {
   const router = useRouter();
   const { user, loading } = useUser();
+  const queryClient = useQueryClient();
   const [upgrading, setUpgrading] = useState(false);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+  // Annual leads; monthly exists to make annual look smart
+  const [billing, setBilling] = useState<'year' | 'month'>('year');
+
+  // Price IDs + display amounts live in the plans table (service-role
+  // managed), never in code — price tests are an INSERT, not a deploy
+  const { data: planPrices } = useQuery({
+    queryKey: ['plans'],
+    queryFn: () => subscriptionService.getPlans(),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Coach owners: join code + seat usage for their team
+  const { data: coachTeam } = useQuery({
+    queryKey: ['coach-team'],
+    queryFn: () => subscriptionService.getMyCoachTeam(),
+    enabled: user?.plan === 'coach',
+    staleTime: 60 * 1000,
+  });
+
+  const fmtPrice = (cents: number | null | undefined): string | null =>
+    cents == null ? null : `$${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+
+  const proPrice = planPrices?.pro?.[billing];
+  const coachPrice = planPrices?.coach?.[billing];
+
+  // "save N%" computed from real table prices when both intervals exist
+  const proYear = planPrices?.pro?.year?.amountCents;
+  const proMonth = planPrices?.pro?.month?.amountCents;
+  const annualSavingsPct = proYear && proMonth
+    ? Math.round((1 - proYear / 12 / proMonth) * 100)
+    : 49;
+
+  const perMonthEquiv = (cents: number | null | undefined): string | null =>
+    cents == null ? null : `≈ $${(cents / 1200).toFixed(2)}/mo`;
 
   const handleUpgrade = async (priceId: string) => {
     if (!user) return;
@@ -30,6 +68,38 @@ export default function PricingPage() {
         console.error("Upgrade error:", err);
         toast.error("Stripe Checkout failed. Please try again.");
         setUpgrading(false);
+    }
+  };
+
+  // One input handles both voucher codes and coach team codes: vouchers are
+  // tried first; an unrecognized voucher falls through to team join
+  const handleRedeem = async () => {
+    const code = voucherCode.trim();
+    if (!code || redeeming) return;
+    setRedeeming(true);
+    try {
+      const result = await subscriptionService.redeemVoucher(code);
+      const until = result?.expires_at ? new Date(result.expires_at).toLocaleDateString() : null;
+      toast.success(until ? `Solar unlocked until ${until}` : 'Voucher redeemed');
+      setVoucherCode('');
+      await queryClient.invalidateQueries();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (/invalid voucher/i.test(msg)) {
+        try {
+          const team = await subscriptionService.joinCoachTeam(code);
+          toast.success(`Joined ${team.team_owner}'s team — Solar unlocked`);
+          setVoucherCode('');
+          await queryClient.invalidateQueries();
+        } catch (teamErr) {
+          const tmsg = teamErr instanceof Error ? teamErr.message : '';
+          toast.error(/invalid team code/i.test(tmsg) ? 'Code not recognized' : (tmsg || 'Could not redeem this code'));
+        }
+      } else {
+        toast.error(msg || 'Could not redeem this code');
+      }
+    } finally {
+      setRedeeming(false);
     }
   };
 
@@ -52,12 +122,14 @@ export default function PricingPage() {
     },
     {
         name: "Oteka Solar",
-        price: "$12",
-        period: "per month",
-        priceId: "price_1OTeKaSolarMonth", // Replace with your actual Stripe Price ID
+        price: fmtPrice(proPrice?.amountCents) ?? (billing === 'year' ? "$79.99" : "$12.99"),
+        period: billing === 'year' ? "per year" : "per month",
+        priceNote: billing === 'year' ? (perMonthEquiv(proPrice?.amountCents) ?? "≈ $6.67/mo") : null,
+        priceId: proPrice?.priceId ?? null,
         desc: "The ultimate neural engine for peak human performance.",
         features: [
             "Unlimited AI Vision Scans",
+            "Full History Access",
             "NSGA-II Meal Optimization",
             "Advanced Metabolic Trends",
             "Priority AI Coach Access",
@@ -70,21 +142,24 @@ export default function PricingPage() {
     },
     {
         name: "Oteka Coach",
-        price: "$99",
-        period: "per month",
-        priceId: "price_1CoachPlanMonth", // Replace with your actual Stripe Price ID
-        desc: "Elite team access — 15 Pro subscriptions at a discounted rate.",
+        price: fmtPrice(coachPrice?.amountCents) ?? (billing === 'year' ? "$1,199" : "$149"),
+        period: billing === 'year' ? "per year" : "per month",
+        priceNote: billing === 'year'
+          ? "≈ $6.66 per athlete/mo"
+          : "≈ $9.93 per athlete/mo",
+        priceId: coachPrice?.priceId ?? null,
+        desc: "Your whole roster on Solar — 15 athlete seats with one join code.",
         features: [
-            "15 Pro Seats Included",
+            "15 Athlete Seats Included",
             "Everything in Solar",
-            "Team Metabolic Dashboard",
-            "Bulk Athlete Onboarding",
+            "One-Code Team Onboarding",
+            "Seats Managed Automatically",
             "Priority Support Channel"
         ],
         cta: user?.plan === 'coach' ? "Current Plan" : "Upgrade to Coach",
         active: user?.plan === 'coach',
         premium: true,
-        badge: "Best Value",
+        badge: "For Teams",
         isCoach: true,
     }
   ];
@@ -113,20 +188,43 @@ export default function PricingPage() {
       </header>
 
       <div className="space-y-6 max-w-xl mx-auto">
+        {/* Billing period toggle — annual leads */}
+        <div className="flex justify-center">
+          <div role="group" aria-label="Billing period" className="flex bg-[var(--bg-surface)] p-1 rounded-xl border border-[var(--border)] shadow-sm">
+            <button
+              onClick={() => setBilling('year')}
+              aria-pressed={billing === 'year'}
+              className={`px-4 py-2 rounded-lg text-[11px] font-bold transition-all ${billing === 'year' ? 'bg-[var(--primary)] text-[var(--primary-fg)] shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              Annual · save {annualSavingsPct}%
+            </button>
+            <button
+              onClick={() => setBilling('month')}
+              aria-pressed={billing === 'month'}
+              className={`px-4 py-2 rounded-lg text-[11px] font-bold transition-all ${billing === 'month' ? 'bg-[var(--primary)] text-[var(--primary-fg)] shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              Monthly
+            </button>
+          </div>
+        </div>
+
         {plans.map((plan, idx) => (
             <motion.div 
                 key={plan.name}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
-                className={`relative p-8 rounded-[40px] border transition-all duration-500 shadow-sm ${
+                className={`relative p-8 rounded-[40px] border transition-all duration-500 overflow-hidden ${
                     (plan as any).isCoach
-                    ? 'bg-gradient-to-br from-[var(--secondary)] to-[#3a1c00] border-[var(--primary)] text-white ring-2 ring-[var(--primary)]/60 ring-offset-4 ring-offset-[var(--bg-app)]'
-                    : plan.premium 
-                    ? 'bg-[var(--secondary)] border-[var(--primary)] text-white ring-2 ring-[var(--primary)] ring-offset-4 ring-offset-[var(--bg-app)]' 
-                    : 'bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-primary)]'
+                    ? 'bg-gradient-to-br from-[var(--secondary)] to-[#3a1c00] border-[var(--primary)] text-white ring-2 ring-[var(--primary)]/60 ring-offset-4 ring-offset-[var(--bg-app)] shadow-2xl shadow-[var(--primary)]/15'
+                    : plan.premium
+                    ? 'bg-[var(--secondary)] border-[var(--primary)] text-white ring-2 ring-[var(--primary)] ring-offset-4 ring-offset-[var(--bg-app)] shadow-2xl shadow-[var(--primary)]/20'
+                    : 'bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-primary)] shadow-sm'
                 }`}
             >
+                {plan.premium && (
+                  <div className="absolute -top-16 -right-16 w-48 h-48 bg-[var(--primary)]/15 rounded-full blur-3xl pointer-events-none" />
+                )}
                 {plan.badge && (
                     <div className={`absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg flex items-center gap-2 ${
                         (plan as any).isCoach 
@@ -142,9 +240,14 @@ export default function PricingPage() {
                     <p className={`text-xs font-medium opacity-60 leading-relaxed`}>{plan.desc}</p>
                 </div>
 
-                <div className="flex items-baseline gap-2 mb-8">
-                    <span className="text-5xl font-black tracking-tighter">{plan.price}</span>
-                    <span className="text-xs font-bold uppercase tracking-widest opacity-40">{plan.period}</span>
+                <div className="mb-8">
+                    <div className="flex items-baseline gap-2">
+                        <span className="font-display text-5xl font-extrabold tracking-tighter">{plan.price}</span>
+                        <span className="text-xs font-bold uppercase tracking-widest opacity-40">{plan.period}</span>
+                    </div>
+                    {(plan as { priceNote?: string | null }).priceNote && (
+                        <p className="text-[11px] font-semibold opacity-60 mt-1 font-mono tabular-nums">{(plan as { priceNote?: string | null }).priceNote}</p>
+                    )}
                 </div>
 
                 <div className="space-y-4 mb-10">
@@ -158,22 +261,23 @@ export default function PricingPage() {
                     ))}
                 </div>
 
-                <button 
-                    disabled={plan.active || (plan.premium && upgrading)}
+                <button
+                    disabled={plan.active || !plan.premium || upgrading}
                     onClick={() => {
-                        if (!plan.active && plan.priceId) {
+                        if (!plan.premium || plan.active) return;
+                        if (plan.priceId) {
                             handleUpgrade(plan.priceId);
-                        } else if (!plan.active) {
-                            alert("You are already on the Core plan.");
+                        } else {
+                            toast.error("This plan isn't available for purchase yet.");
                         }
                     }}
-                    className={`w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2 ${
-                        plan.active 
+                    className={`relative overflow-hidden w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2 ${
+                        plan.active
                         ? plan.premium
                             ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--secondary)] cursor-default'
                             : 'bg-[var(--bg-app)] border border-[var(--border)] text-[var(--text-secondary)] opacity-50 cursor-default'
-                        : plan.premium 
-                        ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]' 
+                        : plan.premium
+                        ? 'shine bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white hover:opacity-95'
                         : 'bg-[var(--text-primary)] text-white hover:bg-[var(--text-secondary)]'
                     }`}
                 >
@@ -183,6 +287,65 @@ export default function PricingPage() {
                 </button>
             </motion.div>
         ))}
+
+        {/* Coach team management (coach plan only) */}
+        {user?.plan === 'coach' && coachTeam && (
+          <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[28px] p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[13px] font-semibold text-[var(--text-secondary)]">Your team</h2>
+                <p className="text-xs text-[var(--text-secondary)] font-medium mt-1">Athletes enter this code below to claim a seat.</p>
+              </div>
+              <span className="font-mono text-xs font-bold tabular-nums text-[var(--text-primary)] shrink-0">
+                {coachTeam.seats_used} / {coachTeam.seat_limit} seats
+              </span>
+            </div>
+            <div className="mt-4 flex gap-2 items-center">
+              <code className="min-w-0 flex-1 h-12 flex items-center px-4 rounded-xl border border-[var(--border)] bg-[var(--bg-surface-2)] font-mono text-base font-bold tracking-[0.2em] text-[var(--text-primary)] overflow-x-auto">
+                {coachTeam.join_code}
+              </code>
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(coachTeam.join_code);
+                    toast.success('Team code copied');
+                  } catch {
+                    toast.error('Could not copy — select the code manually');
+                  }
+                }}
+                className="h-12 px-4 bg-[var(--bg-surface-2)] border border-[var(--border)] rounded-xl text-[11px] font-bold text-[var(--text-primary)] active:scale-95 transition-transform shrink-0"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Access codes: vouchers + coach team codes */}
+        <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-[28px] p-6">
+          <h2 className="text-[13px] font-semibold text-[var(--text-secondary)]">Have a code?</h2>
+          <p className="text-xs text-[var(--text-secondary)] font-medium mt-1">Voucher passes and coach team codes both work here.</p>
+          <div className="mt-4 flex gap-2">
+            <input
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleRedeem(); }}
+              placeholder="VOUCHER-CODE"
+              aria-label="Voucher code"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              className="min-w-0 flex-1 h-12 rounded-xl border border-[var(--border)] bg-[var(--bg-surface-2)] px-4 text-sm font-mono tracking-wider text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
+            />
+            <button
+              onClick={handleRedeem}
+              disabled={redeeming || !voucherCode.trim()}
+              className="h-12 px-5 bg-[var(--primary)] text-[var(--primary-fg)] rounded-xl text-[11px] font-black uppercase tracking-widest active:scale-95 transition-transform disabled:opacity-50 shrink-0"
+            >
+              {redeeming ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Redeem'}
+            </button>
+          </div>
+        </div>
 
         <p className="text-center text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest pt-4 opacity-40">
             Secure processing via Stripe • Cancel anytime

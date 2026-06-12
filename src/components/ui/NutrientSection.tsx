@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { NutrientEntry } from '@/lib/types/metabolic';
 import { NutrientInfoModal } from './NutrientInfoModal';
 
@@ -21,30 +21,31 @@ export function NutrientSection({ title, items }: NutrientSectionProps) {
 
   return (
     <div>
-      <h4 className="text-[9px] uppercase tracking-widest font-black text-[var(--text-secondary)] mb-3 ml-1">
+      <h4 className="text-[13px] font-semibold text-[var(--text-secondary)] mb-3 ml-1">
         {title}
       </h4>
       <div className="space-y-2">
         {items.map((item, i) => (
-          <div 
-            key={i} 
+          <button
+            key={i}
             onClick={() => setSelectedNutrient(item)}
-            className="flex justify-between items-center px-1 cursor-pointer hover:bg-white/5 active:scale-[0.98] transition-all rounded-lg py-1 -mx-1 group"
+            aria-label={`About ${item.name}`}
+            className="flex justify-between items-center w-full px-1 hover:bg-[var(--bg-surface-2)] active:scale-[0.98] transition-all rounded-lg py-1 -mx-1 group"
           >
-            <span className="text-sm text-[var(--text-primary)] font-medium group-hover:text-[var(--primary)] transition-colors">
+            <span className="text-sm text-[var(--text-primary)] font-medium group-hover:text-[var(--primary-text)] transition-colors">
               {item.name}
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-[var(--text-secondary)] tabular-nums">
+              <span className="text-sm text-[var(--text-secondary)] tabular-nums font-mono">
                 {item.amount}
               </span>
               {item.daily_value_pct != null && (
-                <span className="text-[10px] font-bold text-[var(--primary)] tabular-nums">
+                <span className="text-[10px] font-bold text-[var(--primary-text)] tabular-nums font-mono">
                   {item.daily_value_pct}% DV
                 </span>
               )}
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

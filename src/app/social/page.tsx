@@ -46,20 +46,29 @@ export default function SocialPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setCurrentUserId(user.id);
-    // Fetch Pending Requests
-    const { data: pendingData } = await supabase
+    // Fetch Pending Requests (resolve requester names via the safe public view)
+    const { data: pendingRows } = await supabase
       .from('friendships')
-      .select(`
-        id, 
-        user_id,
-        users!friendships_user_id_fkey ( display_name, avatar_url )
-      `)
+      .select('id, user_id')
       .eq('friend_id', user.id)
       .eq('status', 'pending');
-    setPendingRequests(pendingData || []);
+
+    if (pendingRows && pendingRows.length > 0) {
+      const requesterIds = pendingRows.map((r) => r.user_id);
+      const { data: requesters } = await supabase
+        .from('public_profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', requesterIds);
+      const profileMap = Object.fromEntries((requesters || []).map((p) => [p.id, p]));
+      setPendingRequests(
+        pendingRows.map((r) => ({ ...r, users: profileMap[r.user_id] || null }))
+      );
+    } else {
+      setPendingRequests([]);
+    }
 
     let query = supabase
-      .from('users')
+      .from('public_profiles')
       .select('id, streak_count, display_name, household_id');
 
     if (activeTab === 'global') {
@@ -113,7 +122,7 @@ export default function SocialPage() {
     if (!searchQuery.trim()) return;
     setIsSearching(true);
     const { data } = await supabase
-        .from('users')
+        .from('public_profiles')
         .select('id, display_name, streak_count')
         .ilike('display_name', `%${searchQuery}%`)
         .limit(5);

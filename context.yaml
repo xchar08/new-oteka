@@ -1,0 +1,91 @@
+# Auto-generated. Do not edit manually.
+version: 1
+generated_at: '2026-06-11T21:24:41.285Z'
+checkpoint: 9
+checkpoint_at: '2026-06-11T21:24:41.244Z'
+documents:
+  - id: nodes/architecture/architecture-overview
+    title: Architecture Overview
+    type: context
+    tags:
+      - architecture
+      - overview
+      - tech-stack
+    status: published
+    version: 1
+  - id: nodes/billing-plans-and-backend-audit
+    title: Billing plans table, Stripe go-live runbook, voucher/vision audit verdicts
+    type: document
+    tags:
+      - architecture
+      - product
+      - gotchas
+    status: published
+    version: 2
+  - id: nodes/dashboard-hardening-decisions
+    title: Dashboard hardening decisions (insights avgs, modal trap, motion)
+    type: document
+    tags:
+      - conventions
+      - a11y
+      - architecture
+    status: published
+    version: 2
+  - id: nodes/design-doctrine-init
+    title: Design doctrine set at impeccable init (June 2026)
+    type: document
+    tags:
+      - architecture
+      - design-system
+      - conventions
+    status: published
+    version: 2
+  - id: nodes/logs-week-navigation
+    title: 'Logs week navigation: free-tier cap, useWeekLogs, ?date= deep links'
+    type: document
+    tags:
+      - architecture
+      - conventions
+      - product
+    status: published
+    version: 2
+  - id: nodes/meal-editing
+    title: 'Meal editing: scope, undo-delete pattern, cache reconciliation'
+    type: document
+    tags:
+      - architecture
+      - product
+      - conventions
+    status: published
+    version: 2
+  - id: nodes/on-primary-contrast-tokens
+    title: On-primary and accent-text contrast tokens
+    type: document
+    tags:
+      - design-system
+      - conventions
+      - a11y
+    status: published
+    version: 2
+  - id: nodes/onboarding/getting-started
+    title: Developer Getting Started Guide
+    type: context
+    tags:
+      - onboarding
+      - setup
+      - getting-started
+    status: published
+    version: 1
+  - id: nodes/standards/coding-conventions
+    title: Coding Conventions
+    type: context
+    tags:
+      - standards
+      - conventions
+      - code-quality
+    status: published
+    version: 1
+relationships: []
+hubs: []
+external_dependencies:
+  mcp_servers: []

@@ -1,0 +1,10 @@
+keyframe_interval: 10
+versions:
+  - version: 1
+    keyframe: true
+    edited_by: cli@contextnest.local
+    edited_at: '2026-06-11T02:47:05.495Z'
+    published_at: '2026-06-11T02:47:05.494Z'
+    note: Created by developer starter
+    content_hash: sha256:9dc22c560b909ef153a18a6e9b9d479142fd56eef9752b1a6d56a418661ca237
+    chain_hash: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
