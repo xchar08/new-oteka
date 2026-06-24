@@ -1,8 +1,8 @@
 # Auto-generated. Do not edit manually.
 version: 1
-generated_at: '2026-06-11T21:24:41.285Z'
-checkpoint: 9
-checkpoint_at: '2026-06-11T21:24:41.244Z'
+generated_at: '2026-06-23T03:27:45.228Z'
+checkpoint: 11
+checkpoint_at: '2026-06-23T03:27:45.143Z'
 documents:
   - id: nodes/architecture/architecture-overview
     title: Architecture Overview
@@ -76,6 +76,15 @@ documents:
       - getting-started
     status: published
     version: 1
+  - id: nodes/scanner-audit-recipe-engine
+    title: Scanner audit fixes, Supply Engine debug, recipe engine + social import
+    type: document
+    tags:
+      - architecture
+      - gotchas
+      - product
+    status: published
+    version: 2
   - id: nodes/standards/coding-conventions
     title: Coding Conventions
     type: context
@@ -85,6 +94,15 @@ documents:
       - code-quality
     status: published
     version: 1
+  - id: nodes/workflows-automation-architecture
+    title: Workflows = on-device local-notification agents
+    type: document
+    tags:
+      - architecture
+      - gotchas
+      - workflows
+    status: published
+    version: 2
 relationships: []
 hubs: []
 external_dependencies:

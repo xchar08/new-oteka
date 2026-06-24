@@ -110,10 +110,11 @@ export default function MenuScannerPage() {
       
       const { error: logError } = await supabase.from('logs').insert({
         user_id: user.id,
-        food_name: item.name,
         grams: 0, // Volumetric data unknown for planned items
+        local_date: new Date().toLocaleDateString('en-CA'),
         metabolic_tags_json: {
           ...item,
+          food_name: item.name,
           status: 'planned',
           source: 'menu_scanner_v1',
           calories: item.estimated_calories
@@ -126,8 +127,8 @@ export default function MenuScannerPage() {
         icon: <Target className="text-[var(--primary)]" size={16} />
       });
       
-      // Navigate to log to see the planned item
-      setTimeout(() => router.push('/log'), 1200);
+      // Navigate to history to see the planned item
+      setTimeout(() => router.push('/history'), 1200);
       
     } catch (e: any) {
       console.error('Targeting Failed:', e);

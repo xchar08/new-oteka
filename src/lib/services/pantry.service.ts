@@ -39,6 +39,18 @@ export const pantryService = {
     return data;
   },
 
+  /** Permanently remove a pantry item (e.g. added by mistake). */
+  async deleteItem(pantryId: number) {
+    const supabase = getSupabase();
+    const { error } = await supabase
+      .from('pantry')
+      .delete()
+      .eq('id', pantryId);
+
+    if (error) throw normalizeError(error);
+    return true;
+  },
+
   /** Search the global foods table by name (for autocomplete). */
   async searchFoods(query: string, limit = 10) {
     if (!query || query.trim().length < 2) return [];

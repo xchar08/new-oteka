@@ -21,6 +21,9 @@ interface PantryItemDraft {
     expiry: string;
     checked: boolean;
     ingredients?: string[];
+    category?: string;
+    macros_per_100g?: { calories: number; protein: number; carbs: number; fat: number };
+    macros_source?: string;
 }
 
 export default function PantryScanPage() {
@@ -87,7 +90,12 @@ export default function PantryScanPage() {
           metadata_json: {
             quantity_estimate: item.quantity,
             expiry_text: item.expiry,
-            ingredients: item.ingredients || []
+            ingredients: item.ingredients || [],
+            // Manual adds omit these; the pantry_enforce_macros DB trigger
+            // guarantees a validated non-zero default either way
+            ...(item.category ? { category: item.category } : {}),
+            ...(item.macros_per_100g ? { macros_per_100g: item.macros_per_100g } : {}),
+            ...(item.macros_source ? { macros_source: item.macros_source } : {})
           }
         };
       }));
@@ -239,7 +247,12 @@ export default function PantryScanPage() {
           quantity: item.quantity || "Full",
           expiry: item.expiry || "",
           checked: true,
-          ingredients: item.ingredients || []
+          ingredients: item.ingredients || [],
+          // Server-validated, non-zero per-100g macros (vision estimate
+          // clamped into the item's category band)
+          category: item.category,
+          macros_per_100g: item.macros_per_100g,
+          macros_source: item.macros_source
       }));
 
       if (isMounted.current) {

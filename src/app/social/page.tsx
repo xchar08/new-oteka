@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { toast } from 'sonner';
 
 type LeaderboardTab = 'global' | 'friends' | 'household';
 
@@ -140,9 +141,9 @@ export default function SocialPage() {
         });
 
     if (error) {
-        alert('Could not send request: ' + error.message);
+        toast.error('Could not send request: ' + error.message);
     } else {
-        alert('Friend request sent!');
+        toast.success('Friend request sent!');
         setIsInviteOpen(false);
         setSearchQuery('');
         setSearchResults([]);

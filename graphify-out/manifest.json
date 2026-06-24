@@ -325,7 +325,7 @@
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
-    "mtime": 1781211964.470629,
+    "mtime": 1781243725.0514753,
     "ast_hash": "e53aa4c9bfb9821e5585adf4cb0dcd60",
     "semantic_hash": ""
   },
@@ -335,252 +335,252 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/capacitor.plugins.json": {
-    "mtime": 1781211964.400614,
+    "mtime": 1781243724.9877067,
     "ast_hash": "945278b4af728f0b0d410d1162019caf",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/1116-48dfef1ad8787ea6.js": {
-    "mtime": 1781211931.8213508,
+    "mtime": 1781243703.026847,
     "ast_hash": "926e7ad2072b1d77ce44582c6b469534",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/1234.c3e5bf5c9114dfde.js": {
-    "mtime": 1781211931.8065965,
+    "mtime": 1781243703.0181675,
     "ast_hash": "702e93ba0d43ce989e8b0f34954e6a02",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/1291-9aca6570be523b38.js": {
-    "mtime": 1781211931.8253024,
+    "mtime": 1781243703.026847,
     "ast_hash": "563ea140b4a240d15850720bb2df09c6",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/154-56bf01d5e3e64788.js": {
-    "mtime": 1781211931.8242474,
+    "mtime": 1781243703.0278468,
     "ast_hash": "8a97280076eb12c391326ad1b226441d",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/1966.1560d0f43ac9a41a.js": {
-    "mtime": 1781211931.800686,
+    "mtime": 1781243703.0151663,
     "ast_hash": "d29a0a3ea1bb4bffbfcc9a9f04fce7c5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/2023-36b67a3d457e5c2e.js": {
-    "mtime": 1781211931.8155167,
+    "mtime": 1781243703.0238488,
     "ast_hash": "26f21b9d828491b1d4a18f10783f8f8c",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/2230-0190961654d98437.js": {
-    "mtime": 1781211931.8095,
+    "mtime": 1781243703.021318,
     "ast_hash": "4a833faadb2edda6843082399ea7cdae",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/2711.723498546720fc69.js": {
-    "mtime": 1781211931.8065965,
+    "mtime": 1781243703.020164,
     "ast_hash": "c299f2e969d3dd2dc2c3c82b886f9242",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/276.1f398bd4962cab4e.js": {
-    "mtime": 1781211931.800686,
+    "mtime": 1781243703.0161662,
     "ast_hash": "856ed5cf2e7205d63559f7631f26cbc9",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/3751.5c61a97985a9dade.js": {
-    "mtime": 1781211931.8190436,
+    "mtime": 1781243703.0258465,
     "ast_hash": "fa439d45cb1fe801b98218561e4900f6",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/3794-20641b690d353b39.js": {
-    "mtime": 1781211931.8190436,
+    "mtime": 1781243703.0258465,
     "ast_hash": "afdb98b01e7ae0d9cd5009f936efe33a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/3899.cf10152d8085e352.js": {
-    "mtime": 1781211931.798176,
+    "mtime": 1781243703.0141654,
     "ast_hash": "885a9cf06e223b0b477086c611ee45f8",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/4109-870fd7fd86b64668.js": {
-    "mtime": 1781211931.8130238,
+    "mtime": 1781243703.021838,
     "ast_hash": "59ee8f3469652d21033425749666a9e2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/4760-86b00cbdf4fe0886.js": {
-    "mtime": 1781211931.8190436,
+    "mtime": 1781243703.0258465,
     "ast_hash": "6f3af00ac458ada23289361f73f5edd1",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/4bd1b696-c2f6e0877b6c10aa.js": {
-    "mtime": 1781211931.8095,
+    "mtime": 1781243703.020164,
     "ast_hash": "66c43d62502eada67111fa63d5145b1a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/509.7d901cb10e1b90c7.js": {
-    "mtime": 1781211931.8024359,
+    "mtime": 1781243703.0171635,
     "ast_hash": "a2935af212d0f817584ffcb0270e3303",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/6146.ef695ebb1b7cbf73.js": {
-    "mtime": 1781211931.8024359,
+    "mtime": 1781243703.0191648,
     "ast_hash": "3ea4d196d0b5ae599e2cacfc2505690e",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/6181-58bc18930a359404.js": {
-    "mtime": 1781211931.8190436,
+    "mtime": 1781243703.0258465,
     "ast_hash": "dd40f96e59fa1b5ccc2a4bd468f5ac25",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/6609-1948800b7ad9f570.js": {
-    "mtime": 1781211931.8141348,
+    "mtime": 1781243703.0238488,
     "ast_hash": "8d2df6cec767ea524b8cea8bd5d8a64d",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/6622-dabb8486982fe5e5.js": {
-    "mtime": 1781211931.8095,
+    "mtime": 1781243703.020164,
     "ast_hash": "b3ddd4b71a9266b0a0019d878d6524b1",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/6743.df3dac3cbcadbf89.js": {
-    "mtime": 1781211931.8024359,
+    "mtime": 1781243703.0181675,
     "ast_hash": "a4d4fd10382103db9a5f8c69c29781a0",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/7040-95d8ba8005a8626c.js": {
-    "mtime": 1781211931.8190436,
+    "mtime": 1781243703.0258465,
     "ast_hash": "e84921f4f2e41d86ee40e8d264fc11ab",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/7347-d4ddb1af26009672.js": {
-    "mtime": 1781211931.8170211,
+    "mtime": 1781243703.0248485,
     "ast_hash": "5e86ef47127cf18bbfc1b93551e9317c",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/7723.6db514ea92ca6601.js": {
-    "mtime": 1781211931.8024359,
+    "mtime": 1781243703.0181675,
     "ast_hash": "7ff0e8e3b5c4f5f9335dbf305550f9f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/7805-d2a8be8a51d50b3b.js": {
-    "mtime": 1781211931.8141348,
+    "mtime": 1781243703.0238488,
     "ast_hash": "6648b57ccdf26ed8b865a2510a7363ce",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/788-3c3388fd39892dce.js": {
-    "mtime": 1781211931.8190436,
+    "mtime": 1781243703.0258465,
     "ast_hash": "ed0cb5ba23c99cc7b4c873dbc7ed44ec",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/8500-3953cc33eeceb44e.js": {
-    "mtime": 1781211931.8141348,
+    "mtime": 1781243703.0228486,
     "ast_hash": "85134b7a63a7a5bf217c6e2d1e431c20",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/9176.ce89598f421127e3.js": {
-    "mtime": 1781211931.8024359,
+    "mtime": 1781243703.0181675,
     "ast_hash": "0bc35fe78973f5665b3d13a7f239c320",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/9556.b15b72543dcc2b0d.js": {
-    "mtime": 1781211931.8065965,
+    "mtime": 1781243703.0191648,
     "ast_hash": "da140fad1b7dd97c7c2d71fab5c9fbbc",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/9882-3b30ab2781131ca6.js": {
-    "mtime": 1781211931.8213508,
+    "mtime": 1781243703.026847,
     "ast_hash": "e74d71a872f8a71f3efd711a11fdf07d",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/_global-error/page-00912dda7fd059bc.js": {
-    "mtime": 1781211931.773534,
+    "mtime": 1781243703.0005772,
     "ast_hash": "303c4c8d80a752c7e141d485da5da4e2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/_not-found/page-00912dda7fd059bc.js": {
-    "mtime": 1781211931.773534,
+    "mtime": 1781243703.0005772,
     "ast_hash": "303c4c8d80a752c7e141d485da5da4e2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/error-6c8787e4a655037f.js": {
-    "mtime": 1781211931.7685897,
+    "mtime": 1781243702.9995773,
     "ast_hash": "0eb50b690a994ce1205388c5175bfc37",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/loading-00912dda7fd059bc.js": {
-    "mtime": 1781211931.7705438,
+    "mtime": 1781243703.0005772,
     "ast_hash": "303c4c8d80a752c7e141d485da5da4e2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/manifest.webmanifest/route-00912dda7fd059bc.js": {
-    "mtime": 1781211931.7780125,
+    "mtime": 1781243703.0026326,
     "ast_hash": "303c4c8d80a752c7e141d485da5da4e2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/not-found-cd70793e965b3aef.js": {
-    "mtime": 1781211931.769595,
+    "mtime": 1781243702.9985778,
     "ast_hash": "ed3e5b33ddb67b42a2978c5d129702a7",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/onboarding/calibration/page-b8c0b7a6e0207d7d.js": {
-    "mtime": 1781211931.7859852,
+    "mtime": 1781243703.007643,
     "ast_hash": "c4f85f8816157fb2c0596bfb6cc56add",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/onboarding/page-dc1a85839f05ad17.js": {
-    "mtime": 1781211931.7838967,
+    "mtime": 1781243703.0066452,
     "ast_hash": "e2f45988ca0b6b66400b8fa1dc17763b",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/onboarding/profile/page-cc94115932c5c879.js": {
-    "mtime": 1781211931.7870264,
+    "mtime": 1781243703.0086408,
     "ast_hash": "6d52fe5b0506bc2a769b94c8b71ade77",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/onboarding/taste/page-734b3bf183f16651.js": {
-    "mtime": 1781211931.7870264,
+    "mtime": 1781243703.0086408,
     "ast_hash": "e6e8365534e589e610d1835a037e7d85",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/page-298ba4a9bf7423e1.js": {
-    "mtime": 1781211931.7870264,
+    "mtime": 1781243703.007643,
     "ast_hash": "8506e0e18ead36341fbf4390a2a2cca4",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/robots.txt/route-00912dda7fd059bc.js": {
-    "mtime": 1781211931.7780125,
+    "mtime": 1781243703.0036347,
     "ast_hash": "303c4c8d80a752c7e141d485da5da4e2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/settings/page-c27afc24b65cd669.js": {
-    "mtime": 1781211931.7964418,
+    "mtime": 1781243703.0141654,
     "ast_hash": "7cac8ddf4fd4efb6b9433e6a446b9ea3",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/framework-7bfc2ebcdc5ffe13.js": {
-    "mtime": 1781211931.8095,
+    "mtime": 1781243703.020164,
     "ast_hash": "560fc277cbeb118b159e4863c1ea5644",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/main-826a886c2700e8ad.js": {
-    "mtime": 1781211931.7685897,
+    "mtime": 1781243702.997577,
     "ast_hash": "c3a51ac1b787328823bf9b86ef88434a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/main-app-1a4509643fdc4935.js": {
-    "mtime": 1781211931.7651865,
+    "mtime": 1781243702.9985778,
     "ast_hash": "77851368dc6a7f78969b35a3ed3d7ba0",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/polyfills-42372ed130431b0a.js": {
-    "mtime": 1781211931.7607658,
+    "mtime": 1781243702.9940612,
     "ast_hash": "846118c33b2c0e922d7b3a7676f81f6f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/cordova.js": {
-    "mtime": 1781211964.4623556,
+    "mtime": 1781243725.0449553,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/cordova_plugins.js": {
-    "mtime": 1781211964.4634206,
+    "mtime": 1781243725.0449553,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
@@ -610,7 +610,7 @@
     "semantic_hash": ""
   },
   "android/capacitor.settings.gradle": {
-    "mtime": 1781211964.469032,
+    "mtime": 1781243725.0504744,
     "ast_hash": "8f2ce89dceba2789f5cdf7dd612807b1",
     "semantic_hash": ""
   },
@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "src/app/hub/page.tsx": {
-    "mtime": 1781113177.4231834,
-    "ast_hash": "ed3234b4574ea0025fbfc0017c8c6f7c",
+    "mtime": 1781278457.1981034,
+    "ast_hash": "2cd52a1bfdcd7db39c8cfc57d8dc4acb",
     "semantic_hash": ""
   },
   "src/app/layout.tsx": {
@@ -770,8 +770,8 @@
     "semantic_hash": ""
   },
   "src/app/pantry/scan/page.tsx": {
-    "mtime": 1779995068.897485,
-    "ast_hash": "f0f76da0a3b22b0aff16fe4fb25916b4",
+    "mtime": 1781277534.0724945,
+    "ast_hash": "8bb19d9b8afe35126ac2e89e3e040210",
     "semantic_hash": ""
   },
   "src/app/pricing/page.tsx": {
@@ -850,8 +850,8 @@
     "semantic_hash": ""
   },
   "src/components/AuthGuard.tsx": {
-    "mtime": 1781111269.0333078,
-    "ast_hash": "231844eacf4c7637fc88d4aa71cb66b5",
+    "mtime": 1781278363.9636874,
+    "ast_hash": "e2146aaaebf33eda1438be369910a6f7",
     "semantic_hash": ""
   },
   "src/components/icons/Logo.tsx": {
@@ -990,8 +990,8 @@
     "semantic_hash": ""
   },
   "src/lib/db/schema.sql": {
-    "mtime": 1781242722.6375997,
-    "ast_hash": "48efb044fbd739344a9b69d15a69a629",
+    "mtime": 1781277375.785351,
+    "ast_hash": "5f96198a1b429e881f05dd8f4f8022ca",
     "semantic_hash": ""
   },
   "src/lib/engine/medical/conditions.json": {
@@ -1215,8 +1215,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/optimize-meals/index.ts": {
-    "mtime": 1781112503.0024168,
-    "ast_hash": "2add62fb1caca33f93d945724f9f48bf",
+    "mtime": 1781277864.3072493,
+    "ast_hash": "15126b6f18d93f99595cae8c5330b5cf",
     "semantic_hash": ""
   },
   "supabase/functions/optimize-meals/planner_wasm.js": {
@@ -1255,8 +1255,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/vision-menu/index.ts": {
-    "mtime": 1781112558.614295,
-    "ast_hash": "ccd2ffb51414aea9fcb4bf638e338ef5",
+    "mtime": 1781277693.9462042,
+    "ast_hash": "47ebcb259b8b07c7716f5d22bdfb60db",
     "semantic_hash": ""
   },
   "supabase/functions/vision-pipeline/deno.json": {
@@ -1265,8 +1265,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/vision-pipeline/index.ts": {
-    "mtime": 1781242777.324298,
-    "ast_hash": "5e32f5833349a16f569ae6867d54d15b",
+    "mtime": 1781277436.8809822,
+    "ast_hash": "c3f4c9fd6147dac0e704a3d7385d9551",
     "semantic_hash": ""
   },
   "supabase/migrations/20260501201958_fix_logs_and_add_plan.sql": {
@@ -1630,1213 +1630,1213 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/404.html": {
-    "mtime": 1781211950.0413847,
-    "ast_hash": "b2c641ada9f9305626ddf2b1fa6e699d",
+    "mtime": 1781243711.8360696,
+    "ast_hash": "2eab2576d171e535301384c5de936f14",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/__next.__PAGE__.txt": {
-    "mtime": 1781211950.3015838,
-    "ast_hash": "5e2cd3ead24c85a9c01e95a422901db7",
+    "mtime": 1781243712.0802472,
+    "ast_hash": "e8979012fa5c024cc584d05b937142c4",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/__next._full.txt": {
-    "mtime": 1781211950.3015838,
-    "ast_hash": "51a398b636ed51d693743227fae5351d",
+    "mtime": 1781243712.0802472,
+    "ast_hash": "16949cb0c22c39adb93bdcb3e3af53d5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/__next._head.txt": {
-    "mtime": 1781211950.3054204,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0802472,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/__next._index.txt": {
-    "mtime": 1781211950.304251,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0802472,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/__next._tree.txt": {
-    "mtime": 1781211950.3015838,
-    "ast_hash": "d8c71230c436c50219611a21eb799311",
+    "mtime": 1781243712.0802472,
+    "ast_hash": "067bfd73926252b837f5f4ee93592048",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_not-found.html": {
-    "mtime": 1781211950.0413847,
-    "ast_hash": "b2c641ada9f9305626ddf2b1fa6e699d",
+    "mtime": 1781243711.8360696,
+    "ast_hash": "2eab2576d171e535301384c5de936f14",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_not-found.txt": {
-    "mtime": 1781211950.0413847,
-    "ast_hash": "d126274545e17c3dc18940eee6414f99",
+    "mtime": 1781243711.8360696,
+    "ast_hash": "1c61522aaeb6e6d2beb016f2b47f674a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_not-found/__next._full.txt": {
-    "mtime": 1781211950.0299563,
-    "ast_hash": "d126274545e17c3dc18940eee6414f99",
+    "mtime": 1781243711.8248959,
+    "ast_hash": "1c61522aaeb6e6d2beb016f2b47f674a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_not-found/__next._head.txt": {
-    "mtime": 1781211950.0299563,
-    "ast_hash": "a73e690263a9dbd752880d039d10fa6e",
+    "mtime": 1781243711.8268945,
+    "ast_hash": "5a7f1cfde92f9fe70a7e0db0ce9aae9a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_not-found/__next._index.txt": {
-    "mtime": 1781211950.0299563,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8248959,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_not-found/__next._not-found.txt": {
-    "mtime": 1781211950.0273058,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8258955,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_not-found/__next._not-found/__PAGE__.txt": {
-    "mtime": 1781211950.0489476,
-    "ast_hash": "39b9a406e051ed9607e446220e0794af",
+    "mtime": 1781243711.8268945,
+    "ast_hash": "655bd5a22ce42a348caa33b7379b94fa",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_not-found/__next._tree.txt": {
-    "mtime": 1781211950.0273058,
-    "ast_hash": "f5f2d6913d11a899c75b7b2e59db8190",
+    "mtime": 1781243711.8248959,
+    "ast_hash": "083ba65d1f7ffffde400f031ec9c7c08",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/about.html": {
-    "mtime": 1781211950.0413847,
-    "ast_hash": "2f150847ec2d24bb235ebf7309ed7d71",
+    "mtime": 1781243711.837073,
+    "ast_hash": "65af4698e3653dc8ad6fefe0058057e1",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/about.txt": {
-    "mtime": 1781211950.0413847,
-    "ast_hash": "1996d77680f83bcd309ccc098786d729",
+    "mtime": 1781243711.837073,
+    "ast_hash": "f9d2a7ebd48bc33a247c61cb26b367f8",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/about/__next._full.txt": {
-    "mtime": 1781211950.026298,
-    "ast_hash": "1996d77680f83bcd309ccc098786d729",
+    "mtime": 1781243711.8268945,
+    "ast_hash": "f9d2a7ebd48bc33a247c61cb26b367f8",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/about/__next._head.txt": {
-    "mtime": 1781211950.0273058,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.8278975,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/about/__next._index.txt": {
-    "mtime": 1781211950.026298,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8268945,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/about/__next._tree.txt": {
-    "mtime": 1781211950.026298,
-    "ast_hash": "3eae8895935d86e12bfa802107d3c389",
+    "mtime": 1781243711.8278975,
+    "ast_hash": "bcec3ee99269a99b8c37a8d3c573d492",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/about/__next.about.txt": {
-    "mtime": 1781211950.0273058,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8278975,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/about/__next.about/__PAGE__.txt": {
-    "mtime": 1781211950.0273058,
-    "ast_hash": "43e46bf61d23d79e6cfde6cc844deb47",
+    "mtime": 1781243711.8420715,
+    "ast_hash": "76b835307c43ec32888b4cb5d99cbd13",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/coach.html": {
-    "mtime": 1781211950.0413847,
-    "ast_hash": "12a43b1f394f6aefe35c33dfab2f834c",
+    "mtime": 1781243711.837073,
+    "ast_hash": "ea14ccb556f90c769409ab2a98667f45",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/coach.txt": {
-    "mtime": 1781211950.0413847,
-    "ast_hash": "83d6192026eef36db1ebe6a9fde71174",
+    "mtime": 1781243711.837073,
+    "ast_hash": "cf366daaa070661d34aed58d04be46d9",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/coach/__next._full.txt": {
-    "mtime": 1781211950.0299563,
-    "ast_hash": "83d6192026eef36db1ebe6a9fde71174",
+    "mtime": 1781243711.8289006,
+    "ast_hash": "cf366daaa070661d34aed58d04be46d9",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/coach/__next._head.txt": {
-    "mtime": 1781211950.03246,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.8308947,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/coach/__next._index.txt": {
-    "mtime": 1781211950.03246,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8308947,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/coach/__next._tree.txt": {
-    "mtime": 1781211950.0299563,
-    "ast_hash": "b5a9380e680193cd9f492b9dbaa236fe",
+    "mtime": 1781243711.8289006,
+    "ast_hash": "3e83d28d1628422324e2c6ca3c33eeb6",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/coach/__next.coach.txt": {
-    "mtime": 1781211950.03246,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8308947,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/coach/__next.coach/__PAGE__.txt": {
-    "mtime": 1781211950.0489476,
-    "ast_hash": "3a8062145a17e075698c29f6e98fcdbd",
+    "mtime": 1781243711.8420715,
+    "ast_hash": "7a80b966c764989d3a8e35752e4c8ebc",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/dashboard.html": {
-    "mtime": 1781211950.0426755,
-    "ast_hash": "a700025d23ea500a879310ab6b2863b4",
+    "mtime": 1781243711.8380704,
+    "ast_hash": "8e3b87f3c30830faef7d0e89ba946cf9",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/dashboard.txt": {
-    "mtime": 1781211950.0437376,
-    "ast_hash": "956dda867e5d8d6146c63e649f8658a4",
+    "mtime": 1781243711.8380704,
+    "ast_hash": "ad2c24e5fc1f27ba269b7f83a4e1b9bf",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/dashboard/__next._full.txt": {
-    "mtime": 1781211950.03246,
-    "ast_hash": "956dda867e5d8d6146c63e649f8658a4",
+    "mtime": 1781243711.8318963,
+    "ast_hash": "ad2c24e5fc1f27ba269b7f83a4e1b9bf",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/dashboard/__next._head.txt": {
-    "mtime": 1781211950.0360444,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.8318963,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/dashboard/__next._index.txt": {
-    "mtime": 1781211950.0360444,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8318963,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/dashboard/__next._tree.txt": {
-    "mtime": 1781211950.03246,
-    "ast_hash": "6ccaf8dfae69eabd97f7327b921c0c39",
+    "mtime": 1781243711.8318963,
+    "ast_hash": "24055d84cffb15a095656ad6045c00a0",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/dashboard/__next.dashboard.txt": {
-    "mtime": 1781211950.0343046,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8318963,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/dashboard/__next.dashboard/__PAGE__.txt": {
-    "mtime": 1781211950.0489476,
-    "ast_hash": "fdb57a3a93e897628b29e3eb1eeca4f0",
+    "mtime": 1781243711.8420715,
+    "ast_hash": "37ee274ef2fdd2aa1f829cab631872a3",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/history.html": {
-    "mtime": 1781211950.0476892,
-    "ast_hash": "c34f254f863b6e2e8f37e309e619269a",
+    "mtime": 1781243711.8390713,
+    "ast_hash": "5df0e639d0d3a06dd4fc22115a948480",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/history.txt": {
-    "mtime": 1781211950.0476892,
-    "ast_hash": "c0244e62bda6769ebda77cef2fc0393a",
+    "mtime": 1781243711.8390713,
+    "ast_hash": "3dd91c248ce1f18858e2a1e92e3582f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/history/__next._full.txt": {
-    "mtime": 1781211950.0437376,
-    "ast_hash": "c0244e62bda6769ebda77cef2fc0393a",
+    "mtime": 1781243711.8330715,
+    "ast_hash": "3dd91c248ce1f18858e2a1e92e3582f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/history/__next._head.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.835078,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/history/__next._index.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8330715,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/history/__next._tree.txt": {
-    "mtime": 1781211950.0437376,
-    "ast_hash": "5cb9a2598951804060cc70b8b1aa8b05",
+    "mtime": 1781243711.8330715,
+    "ast_hash": "146c3903d0b6e26385e5e31aa021b3ee",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/history/__next.history.txt": {
-    "mtime": 1781211950.0437376,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8330715,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/history/__next.history/__PAGE__.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "153198d08e2c660582944c126dcf5115",
+    "mtime": 1781243711.8420715,
+    "ast_hash": "5577ae56c3799d6dae6a2f1274279813",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/hub.html": {
-    "mtime": 1781211950.0489476,
-    "ast_hash": "d4ce85459057200f7a5da096026530ab",
+    "mtime": 1781243711.8410723,
+    "ast_hash": "f6cb02d5cdec9301530d283298d3d265",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/hub.txt": {
-    "mtime": 1781211950.0489476,
-    "ast_hash": "c1ca84dd6891d153c8972a2e171cdb1c",
+    "mtime": 1781243711.8420715,
+    "ast_hash": "e9618a613d8b70210ef073919cc4558c",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/hub/__next._full.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "c1ca84dd6891d153c8972a2e171cdb1c",
+    "mtime": 1781243711.840077,
+    "ast_hash": "e9618a613d8b70210ef073919cc4558c",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/hub/__next._head.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.840077,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/hub/__next._index.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8390713,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/hub/__next._tree.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "8cb1106d18f782f49dc76f202e170f77",
+    "mtime": 1781243711.8390713,
+    "ast_hash": "d48848c9db9c059c88ffc03c397890a0",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/hub/__next.hub.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8390713,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/hub/__next.hub/__PAGE__.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "1d9a8b5749db7c7d35cbde9ddb45e21d",
+    "mtime": 1781243711.840077,
+    "ast_hash": "88b73a6903728b9653a6b80be32d52a9",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/index.html": {
-    "mtime": 1781211950.310647,
-    "ast_hash": "9a1a6dbc2b0e0512f240cf4e2013d2c9",
+    "mtime": 1781243712.0827658,
+    "ast_hash": "7e46d6997969d44b746f2a86b0863657",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/index.txt": {
-    "mtime": 1781211950.310647,
-    "ast_hash": "51a398b636ed51d693743227fae5351d",
+    "mtime": 1781243712.0817559,
+    "ast_hash": "16949cb0c22c39adb93bdcb3e3af53d5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/login.html": {
-    "mtime": 1781211950.3087173,
-    "ast_hash": "70a28692a55cdbdca390385d5213d2aa",
+    "mtime": 1781243712.07825,
+    "ast_hash": "53f11fea5e70daefa0e9f189070c6028",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/login.txt": {
-    "mtime": 1781211950.3087173,
-    "ast_hash": "36d7baeefe67c69207ccba4ca10a0ded",
+    "mtime": 1781243712.07825,
+    "ast_hash": "e404090d230a249ca927574d0d3465cc",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/login/__next._full.txt": {
-    "mtime": 1781211950.3003783,
-    "ast_hash": "36d7baeefe67c69207ccba4ca10a0ded",
+    "mtime": 1781243712.0710678,
+    "ast_hash": "e404090d230a249ca927574d0d3465cc",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/login/__next._head.txt": {
-    "mtime": 1781211950.3015838,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0710678,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/login/__next._index.txt": {
-    "mtime": 1781211950.3015838,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0710678,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/login/__next._tree.txt": {
-    "mtime": 1781211950.3003783,
-    "ast_hash": "62558003b7f6bbb1a862ba3a9cd0c1a4",
+    "mtime": 1781243712.070065,
+    "ast_hash": "7d2bb5fc72f2aa2ef81566c727ab6429",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/login/__next.login.txt": {
-    "mtime": 1781211950.3010676,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0710678,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/login/__next.login/__PAGE__.txt": {
-    "mtime": 1781211950.3172405,
-    "ast_hash": "3a367a50af2abb6f2752db3e7eb2ce3c",
+    "mtime": 1781243712.0827658,
+    "ast_hash": "4d0f2aa42b5363a3174cdafda6325219",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding.html": {
-    "mtime": 1781211950.3152084,
-    "ast_hash": "94c32bcc1597e082cc14a07618a1a1d6",
+    "mtime": 1781243712.0772486,
+    "ast_hash": "66babba0d194f9e6aef2ca78ae944d2c",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding.txt": {
-    "mtime": 1781211950.3152084,
-    "ast_hash": "9ac73adb1a1a9cf67035d641c56dd457",
+    "mtime": 1781243712.0762503,
+    "ast_hash": "926aab42f8f7d84dc75372dc37d3bab6",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/__next._full.txt": {
-    "mtime": 1781211950.3130095,
-    "ast_hash": "9ac73adb1a1a9cf67035d641c56dd457",
+    "mtime": 1781243712.070065,
+    "ast_hash": "926aab42f8f7d84dc75372dc37d3bab6",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/__next._head.txt": {
-    "mtime": 1781211950.3142037,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0710678,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/__next._index.txt": {
-    "mtime": 1781211950.3142037,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.070065,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/__next._tree.txt": {
-    "mtime": 1781211950.3130095,
-    "ast_hash": "818157454b59dcc916d953cc8c3a968c",
+    "mtime": 1781243712.0690665,
+    "ast_hash": "34a7913cd52a666a498eadf15c1e6282",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/__next.onboarding.txt": {
-    "mtime": 1781211950.3142037,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0690665,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/__next.onboarding/__PAGE__.txt": {
-    "mtime": 1781211950.3152084,
-    "ast_hash": "d1b700b5807ed655d9cf9dbbccf0f4a0",
+    "mtime": 1781243712.0827658,
+    "ast_hash": "08a969fed907209bab838282456e3605",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/calibration.html": {
-    "mtime": 1781211950.3087173,
-    "ast_hash": "5b5a52676ce954c1cb51d2919ac745d0",
+    "mtime": 1781243712.067067,
+    "ast_hash": "7489f50b0d3f3cc32f90136d1b2d1308",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/calibration.txt": {
-    "mtime": 1781211950.3087173,
-    "ast_hash": "6dc859986fd3c512e74cbb98ee7e2799",
+    "mtime": 1781243712.067067,
+    "ast_hash": "4eeeb33430ef17826f4112e4dbed1fb3",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/calibration/__next._full.txt": {
-    "mtime": 1781211950.3003783,
-    "ast_hash": "6dc859986fd3c512e74cbb98ee7e2799",
+    "mtime": 1781243712.0554838,
+    "ast_hash": "4eeeb33430ef17826f4112e4dbed1fb3",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/calibration/__next._head.txt": {
-    "mtime": 1781211950.3003783,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0585,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/calibration/__next._index.txt": {
-    "mtime": 1781211950.3003783,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0585,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/calibration/__next._tree.txt": {
-    "mtime": 1781211950.2978802,
-    "ast_hash": "9aba211b232feedd4ae08a94119508a2",
+    "mtime": 1781243712.0554838,
+    "ast_hash": "a3eef8963f2246d8bb2a40e34dda3705",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/calibration/__next.onboarding.txt": {
-    "mtime": 1781211950.3003783,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0554838,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/calibration/__next.onboarding/calibration.txt": {
-    "mtime": 1781211950.3172405,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0817559,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/calibration/__next.onboarding/calibration/__PAGE__.txt": {
-    "mtime": 1781211950.3152084,
-    "ast_hash": "846a9cbcdea8160c738b77a6ee48b47e",
+    "mtime": 1781243712.0762503,
+    "ast_hash": "ed24d59e51ff17e8f6164c66e5129ad5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/medical.html": {
-    "mtime": 1781211950.3087173,
-    "ast_hash": "a0d961c67de24f686f6956bb07db5724",
+    "mtime": 1781243712.0762503,
+    "ast_hash": "abe12d2121bd629ee703536b495dd4a4",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/medical.txt": {
-    "mtime": 1781211950.3087173,
-    "ast_hash": "33620d18622696b3da4e3b40b0a2d9e4",
+    "mtime": 1781243712.0742354,
+    "ast_hash": "a50e995e5d6cfeab51db4a7fd6167d7a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/medical/__next._full.txt": {
-    "mtime": 1781211950.2963622,
-    "ast_hash": "33620d18622696b3da4e3b40b0a2d9e4",
+    "mtime": 1781243712.0680697,
+    "ast_hash": "a50e995e5d6cfeab51db4a7fd6167d7a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/medical/__next._head.txt": {
-    "mtime": 1781211950.2978802,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0690665,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/medical/__next._index.txt": {
-    "mtime": 1781211950.2935507,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0690665,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/medical/__next._tree.txt": {
-    "mtime": 1781211950.2935507,
-    "ast_hash": "2342647b1023a3ab50cca811cf07301d",
+    "mtime": 1781243712.0680697,
+    "ast_hash": "d0810eee59cd57795c760cfcb8fe4f17",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/medical/__next.onboarding.txt": {
-    "mtime": 1781211950.2978802,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0680697,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/medical/__next.onboarding/medical.txt": {
-    "mtime": 1781211950.3172405,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0827658,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/medical/__next.onboarding/medical/__PAGE__.txt": {
-    "mtime": 1781211950.3152084,
-    "ast_hash": "21afe2778ce7f2ee8b9f95682622acca",
+    "mtime": 1781243712.0802472,
+    "ast_hash": "ff7532c003d0bb64a162e0eb6573acc8",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/profile.html": {
-    "mtime": 1781211950.310647,
-    "ast_hash": "9ae5bbed8a19eb3ff68163d24709dd8c",
+    "mtime": 1781243712.0792491,
+    "ast_hash": "9d42bff61735ea5b3330f54e6faec6f0",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/profile.txt": {
-    "mtime": 1781211950.310647,
-    "ast_hash": "9faa1e69b82654e3f9cb6fb6b90c162e",
+    "mtime": 1781243712.07825,
+    "ast_hash": "be184bf8bbaf3e97a5f3369fb83f8a21",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/profile/__next._full.txt": {
-    "mtime": 1781211950.3015838,
-    "ast_hash": "9faa1e69b82654e3f9cb6fb6b90c162e",
+    "mtime": 1781243712.0732355,
+    "ast_hash": "be184bf8bbaf3e97a5f3369fb83f8a21",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/profile/__next._head.txt": {
-    "mtime": 1781211950.3015838,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0742354,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/profile/__next._index.txt": {
-    "mtime": 1781211950.3015838,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0732355,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/profile/__next._tree.txt": {
-    "mtime": 1781211950.3015838,
-    "ast_hash": "17f78df8c95aab947074cba0adae921e",
+    "mtime": 1781243712.0732355,
+    "ast_hash": "bfb61a54d7686b322b5f3e7e92561390",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/profile/__next.onboarding.txt": {
-    "mtime": 1781211950.3015838,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0732355,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/profile/__next.onboarding/profile.txt": {
-    "mtime": 1781211950.3172405,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0837657,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/profile/__next.onboarding/profile/__PAGE__.txt": {
-    "mtime": 1781211950.3152084,
-    "ast_hash": "5577a437af432a4a521fc8814db1fddd",
+    "mtime": 1781243712.0827658,
+    "ast_hash": "f3caf9900f26d734cf020aee2150424a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/taste.html": {
-    "mtime": 1781211950.3130095,
-    "ast_hash": "93997351f42636c9b121a6e142e9a0ec",
+    "mtime": 1781243712.07825,
+    "ast_hash": "25728714c01fae7219d42622d661f591",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/taste.txt": {
-    "mtime": 1781211950.310647,
-    "ast_hash": "da1f206a577b01b4ad00cf3943087d60",
+    "mtime": 1781243712.07825,
+    "ast_hash": "635a59f17e59cdb1550b28043d1dcf23",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/taste/__next._full.txt": {
-    "mtime": 1781211950.3054204,
-    "ast_hash": "da1f206a577b01b4ad00cf3943087d60",
+    "mtime": 1781243712.0710678,
+    "ast_hash": "635a59f17e59cdb1550b28043d1dcf23",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/taste/__next._head.txt": {
-    "mtime": 1781211950.3087173,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0722208,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/taste/__next._index.txt": {
-    "mtime": 1781211950.3073118,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0722208,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/taste/__next._tree.txt": {
-    "mtime": 1781211950.3054204,
-    "ast_hash": "80c285d99662c2c66a9fcf71b431177f",
+    "mtime": 1781243712.0710678,
+    "ast_hash": "33b90dcfe7722575edfd8a8d787750de",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/taste/__next.onboarding.txt": {
-    "mtime": 1781211950.3054204,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0710678,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/taste/__next.onboarding/taste.txt": {
-    "mtime": 1781211950.3172405,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0732355,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/onboarding/taste/__next.onboarding/taste/__PAGE__.txt": {
-    "mtime": 1781211950.3152084,
-    "ast_hash": "00b99538e817aa17198628e5d4218cc9",
+    "mtime": 1781243712.0732355,
+    "ast_hash": "8ab8179e826884f0c61c40769ae4d061",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry.html": {
-    "mtime": 1781211950.3544655,
-    "ast_hash": "8f3ab1a4f4f3ffb143eaa094161e4e7f",
+    "mtime": 1781243712.1203067,
+    "ast_hash": "6ee2cecd7f5cd4c1e32daa36d857a94f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry.txt": {
-    "mtime": 1781211950.3544655,
-    "ast_hash": "5a819a0b70a62814c731a8204ae14a28",
+    "mtime": 1781243712.1203067,
+    "ast_hash": "c530344da5bb41e63c88fb137ca27374",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/__next._full.txt": {
-    "mtime": 1781211950.3562121,
-    "ast_hash": "5a819a0b70a62814c731a8204ae14a28",
+    "mtime": 1781243712.1203067,
+    "ast_hash": "c530344da5bb41e63c88fb137ca27374",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/__next._head.txt": {
-    "mtime": 1781211950.3562121,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.1203067,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/__next._index.txt": {
-    "mtime": 1781211950.3562121,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.1193056,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/__next._tree.txt": {
-    "mtime": 1781211950.3544655,
-    "ast_hash": "099f6cc4e52fafa45b2093d392da1bd2",
+    "mtime": 1781243712.1193056,
+    "ast_hash": "be5fd19a9599a59ec369102ae22ae7e5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/__next.pantry.txt": {
-    "mtime": 1781211950.3544655,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.1203067,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/__next.pantry/__PAGE__.txt": {
-    "mtime": 1781211950.3562121,
-    "ast_hash": "3ee0363b1474a7987c0b0618fcd030d5",
+    "mtime": 1781243712.1228292,
+    "ast_hash": "2ed906aa3c6aa2e1cdfba73bc12fa228",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/scan.html": {
-    "mtime": 1781211950.0604148,
-    "ast_hash": "03db9598254906b5ea551da927f53389",
+    "mtime": 1781243711.8238866,
+    "ast_hash": "59986bc0ffa9c3c95f5ef944ac9679a8",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/scan.txt": {
-    "mtime": 1781211950.0589087,
-    "ast_hash": "4ab91ef8af1ee45e6b044098b321077b",
+    "mtime": 1781243711.8238866,
+    "ast_hash": "04ccdbd74c5ac746aefe1f4010c9abdf",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/scan/__next._full.txt": {
-    "mtime": 1781211950.0437376,
-    "ast_hash": "4ab91ef8af1ee45e6b044098b321077b",
+    "mtime": 1781243711.81718,
+    "ast_hash": "04ccdbd74c5ac746aefe1f4010c9abdf",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/scan/__next._head.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.8181775,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/scan/__next._index.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8181775,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/scan/__next._tree.txt": {
-    "mtime": 1781211950.0437376,
-    "ast_hash": "4e5952d3fa40a61c3f60e03d65e0b780",
+    "mtime": 1781243711.81718,
+    "ast_hash": "054b3384f4d75663e24b6e888efdd60f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/scan/__next.pantry.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.81718,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/scan/__next.pantry/scan.txt": {
-    "mtime": 1781211950.0823157,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8181775,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pantry/scan/__next.pantry/scan/__PAGE__.txt": {
-    "mtime": 1781211950.074997,
-    "ast_hash": "00aa4f2651bca72e8e7d321d2be51791",
+    "mtime": 1781243711.8308947,
+    "ast_hash": "1a6047c6afdfbe145c6b37555b7c1fc2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pricing.html": {
-    "mtime": 1781211950.074997,
-    "ast_hash": "49699892ae7d54cf9c2a0e05802695b8",
+    "mtime": 1781243711.8238866,
+    "ast_hash": "71ff85513783fbef8af56aad8f8192e5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pricing.txt": {
-    "mtime": 1781211950.074997,
-    "ast_hash": "33b2d2d479e384daf9c042084ccbc4b2",
+    "mtime": 1781243711.8232052,
+    "ast_hash": "ddb7fa8015d454ab21471a1915813463",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pricing/__next._full.txt": {
-    "mtime": 1781211950.0614662,
-    "ast_hash": "33b2d2d479e384daf9c042084ccbc4b2",
+    "mtime": 1781243711.8161805,
+    "ast_hash": "ddb7fa8015d454ab21471a1915813463",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pricing/__next._head.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.81718,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pricing/__next._index.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.81718,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pricing/__next._tree.txt": {
-    "mtime": 1781211950.0614662,
-    "ast_hash": "d2b6a4552b29e4b0c6353de16a6868e4",
+    "mtime": 1781243711.8161805,
+    "ast_hash": "b07e4f6741e7e6f5fa492f0341518272",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pricing/__next.pricing.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.81718,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/pricing/__next.pricing/__PAGE__.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "b4422de1b9ee4ca71374f211fc06c6ae",
+    "mtime": 1781243711.8308947,
+    "ast_hash": "3503ff31281065a024ec316b2d9b8af7",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/privacy.html": {
-    "mtime": 1781211950.074997,
-    "ast_hash": "083fdc3a3c65d823189ac95606bc4f0d",
+    "mtime": 1781243711.8258955,
+    "ast_hash": "8b2440f69204e2106c84ac3f7ca75262",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/privacy.txt": {
-    "mtime": 1781211950.074997,
-    "ast_hash": "c35782014f29e72c7012f3b7e80dc733",
+    "mtime": 1781243711.8258955,
+    "ast_hash": "f2f6e7e71a06eb117198757a81cb40a7",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/privacy/__next._full.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "c35782014f29e72c7012f3b7e80dc733",
+    "mtime": 1781243711.8181775,
+    "ast_hash": "f2f6e7e71a06eb117198757a81cb40a7",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/privacy/__next._head.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.819183,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/privacy/__next._index.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.819183,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/privacy/__next._tree.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "0c781514329f17e7b933d53e5d675129",
+    "mtime": 1781243711.8181775,
+    "ast_hash": "6fd9665fc0eec0bc3b068a0512e29d55",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/privacy/__next.privacy.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.819183,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/privacy/__next.privacy/__PAGE__.txt": {
-    "mtime": 1781211950.0823157,
-    "ast_hash": "ff9cd621f1cbaff8c65dba2182cdef60",
+    "mtime": 1781243711.8308947,
+    "ast_hash": "4e554f5fd853cc1b53297162c4e7fe03",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile.html": {
-    "mtime": 1781211950.0817485,
-    "ast_hash": "9922cbe8fa93aa9319ed3a439054c53f",
+    "mtime": 1781243711.8268945,
+    "ast_hash": "a24fcd1ddfd1c74743d237a60b2c3b0e",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile.txt": {
-    "mtime": 1781211950.0795302,
-    "ast_hash": "16f2f31d873601b24f6b33a94f4979f0",
+    "mtime": 1781243711.8268945,
+    "ast_hash": "224f2dcbc37e977ec3bacc2f69434994",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/__next._full.txt": {
-    "mtime": 1781211950.0795302,
-    "ast_hash": "16f2f31d873601b24f6b33a94f4979f0",
+    "mtime": 1781243711.8201807,
+    "ast_hash": "224f2dcbc37e977ec3bacc2f69434994",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/__next._head.txt": {
-    "mtime": 1781211950.0795302,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.8216865,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/__next._index.txt": {
-    "mtime": 1781211950.0795302,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8216865,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/__next._tree.txt": {
-    "mtime": 1781211950.078446,
-    "ast_hash": "c72415fc5bcfd88bcd191d25dd6a6ec4",
+    "mtime": 1781243711.8201807,
+    "ast_hash": "eeca1b52802d8f3e175975a01be0f9dc",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/__next.profile.txt": {
-    "mtime": 1781211950.078446,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8211784,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/__next.profile/__PAGE__.txt": {
-    "mtime": 1781211950.0795302,
-    "ast_hash": "e8fe9ddbefc975b168f357351db4f419",
+    "mtime": 1781243711.8308947,
+    "ast_hash": "b33c229ef4537eb0ccf84cc6e3180132",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/member.html": {
-    "mtime": 1781211950.0604148,
-    "ast_hash": "e8cbdd4cb39822da5f306381e885f6a4",
+    "mtime": 1781243711.8258955,
+    "ast_hash": "3506a4b0e9b776015df3f776d0f1bb3c",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/member.txt": {
-    "mtime": 1781211950.0589087,
-    "ast_hash": "0baa8b01e777bd111586d1fb445c81c0",
+    "mtime": 1781243711.8258955,
+    "ast_hash": "f894eb5b090162a2a4af1e743fa9f530",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/member/__next._full.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "0baa8b01e777bd111586d1fb445c81c0",
+    "mtime": 1781243711.819183,
+    "ast_hash": "f894eb5b090162a2a4af1e743fa9f530",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/member/__next._head.txt": {
-    "mtime": 1781211950.046682,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.8201807,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/member/__next._index.txt": {
-    "mtime": 1781211950.0489476,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8201807,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/member/__next._tree.txt": {
-    "mtime": 1781211950.0451643,
-    "ast_hash": "a2f8dd21433f931238925a6e8d53fea0",
+    "mtime": 1781243711.819183,
+    "ast_hash": "e8bc2eeccb115597bd00e1fc7b7c16e7",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/member/__next.profile.txt": {
-    "mtime": 1781211950.046682,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8201807,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/member/__next.profile/member.txt": {
-    "mtime": 1781211950.0823157,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8318963,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/profile/member/__next.profile/member/__PAGE__.txt": {
-    "mtime": 1781211950.074997,
-    "ast_hash": "61c905366aaa9af85c08ffe049aeadc2",
+    "mtime": 1781243711.8298953,
+    "ast_hash": "bc566ca801bc2682079d970a0351be11",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/rating.html": {
-    "mtime": 1781211950.0764225,
-    "ast_hash": "5ab0b32ebf1f48516d455b4b06b62311",
+    "mtime": 1781243711.8289006,
+    "ast_hash": "c23d5cc549951737178fc274282bb3d9",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/rating.txt": {
-    "mtime": 1781211950.0764225,
-    "ast_hash": "764ea1135c06452d4561fa9a97858e18",
+    "mtime": 1781243711.8278975,
+    "ast_hash": "567a352ff331aadf327c5eafeeedd51f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/rating/__next._full.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "764ea1135c06452d4561fa9a97858e18",
+    "mtime": 1781243711.8232052,
+    "ast_hash": "567a352ff331aadf327c5eafeeedd51f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/rating/__next._head.txt": {
-    "mtime": 1781211950.0732462,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.8238866,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/rating/__next._index.txt": {
-    "mtime": 1781211950.0710058,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8232052,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/rating/__next._tree.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "c438b5e2ab91304e13aef1436fe80494",
+    "mtime": 1781243711.8232052,
+    "ast_hash": "dc133087dddc5cfab6cf65322eebc4a4",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/rating/__next.rating.txt": {
-    "mtime": 1781211950.0647242,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8232052,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/rating/__next.rating/__PAGE__.txt": {
-    "mtime": 1781211950.0823157,
-    "ast_hash": "1ee3e854ee4ad583a3e15599cd8f3bcc",
+    "mtime": 1781243711.8318963,
+    "ast_hash": "e29a400f25d2eac1e20936f6867745f3",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/robots.txt": {
-    "mtime": 1781211950.002614,
+    "mtime": 1781243711.763193,
     "ast_hash": "4d67b54268d63c20bf202db9942a22fd",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings.html": {
-    "mtime": 1781211950.3766043,
-    "ast_hash": "2a4a4920822b20c8304cf09dcfd69d4e",
+    "mtime": 1781243712.091943,
+    "ast_hash": "0a52cd0b18ed813ff39c137d6def340b",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings.txt": {
-    "mtime": 1781211950.3766043,
-    "ast_hash": "a33488dc6e53b1f7bf01f1adae1c4eee",
+    "mtime": 1781243712.091943,
+    "ast_hash": "1e666f0a96abc7fbeaa82a335f0198c5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/__next._full.txt": {
-    "mtime": 1781211950.360365,
-    "ast_hash": "a33488dc6e53b1f7bf01f1adae1c4eee",
+    "mtime": 1781243712.0772486,
+    "ast_hash": "1e666f0a96abc7fbeaa82a335f0198c5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/__next._head.txt": {
-    "mtime": 1781211950.360365,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0772486,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/__next._index.txt": {
-    "mtime": 1781211950.360365,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0772486,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/__next._tree.txt": {
-    "mtime": 1781211950.360365,
-    "ast_hash": "a940051ad2daec6f262b0b96428fc4c2",
+    "mtime": 1781243712.0762503,
+    "ast_hash": "055b826550f8b68667880bedd5e762b2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/__next.settings.txt": {
-    "mtime": 1781211950.360365,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0762503,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/__next.settings/__PAGE__.txt": {
-    "mtime": 1781211950.392443,
-    "ast_hash": "e3768af0f1f525e149aabd6dbed39a6f",
+    "mtime": 1781243712.1047792,
+    "ast_hash": "34513182a6c25b4834db34fbe6ba610e",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/medical.html": {
-    "mtime": 1781211950.0795302,
-    "ast_hash": "b8817c9643f8c7f096fbd33fe9964c6e",
+    "mtime": 1781243711.8268945,
+    "ast_hash": "2995a1d556ebe928a8179d438cd70812",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/medical.txt": {
-    "mtime": 1781211950.0795302,
-    "ast_hash": "b78f608bef356828591650b3128e8592",
+    "mtime": 1781243711.8268945,
+    "ast_hash": "f7e59136dcc388495aa1071dc5d30f74",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/medical/__next._full.txt": {
-    "mtime": 1781211950.078446,
-    "ast_hash": "b78f608bef356828591650b3128e8592",
+    "mtime": 1781243711.8216865,
+    "ast_hash": "f7e59136dcc388495aa1071dc5d30f74",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/medical/__next._head.txt": {
-    "mtime": 1781211950.078446,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243711.8221962,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/medical/__next._index.txt": {
-    "mtime": 1781211950.0774417,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243711.8221962,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/medical/__next._tree.txt": {
-    "mtime": 1781211950.0774417,
-    "ast_hash": "bf8b484f43a1ce4fec98455ba92bafba",
+    "mtime": 1781243711.8216865,
+    "ast_hash": "952db3afdac4bb93e54a9e848dbc3072",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/medical/__next.settings.txt": {
-    "mtime": 1781211950.0764225,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8221962,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/medical/__next.settings/medical.txt": {
-    "mtime": 1781211950.0795302,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243711.8318963,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/settings/medical/__next.settings/medical/__PAGE__.txt": {
-    "mtime": 1781211950.0846267,
-    "ast_hash": "46a162e8451088f638c514122b8b160c",
+    "mtime": 1781243711.8308947,
+    "ast_hash": "4930cdde01d2773eeea6c8e97845b3da",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/shopping.html": {
-    "mtime": 1781211950.3777332,
-    "ast_hash": "ab89cdf274b4fd3c68165bb2061bb938",
+    "mtime": 1781243712.101765,
+    "ast_hash": "9ddd92fb018b52adabd44b15e650d181",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/shopping.txt": {
-    "mtime": 1781211950.3799913,
-    "ast_hash": "a5d8304a2ea1c9038afa79675533e03e",
+    "mtime": 1781243712.101765,
+    "ast_hash": "027a6d26fd118b15b93ae0f3e23aad9a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/shopping/__next._full.txt": {
-    "mtime": 1781211950.3623729,
-    "ast_hash": "a5d8304a2ea1c9038afa79675533e03e",
+    "mtime": 1781243712.0929527,
+    "ast_hash": "027a6d26fd118b15b93ae0f3e23aad9a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/shopping/__next._head.txt": {
-    "mtime": 1781211950.3672018,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0939517,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/shopping/__next._index.txt": {
-    "mtime": 1781211950.3672018,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0929527,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/shopping/__next._tree.txt": {
-    "mtime": 1781211950.3623729,
-    "ast_hash": "921cd8ba3a285517bcebba4175c9f7a5",
+    "mtime": 1781243712.0929527,
+    "ast_hash": "c9d511b40a45c0880fdfac6b96abcaa5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/shopping/__next.shopping.txt": {
-    "mtime": 1781211950.366696,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0929527,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/shopping/__next.shopping/__PAGE__.txt": {
-    "mtime": 1781211950.392443,
-    "ast_hash": "775c27f0609b7bf8d362b67b342ccd29",
+    "mtime": 1781243712.107779,
+    "ast_hash": "28b8c02fd134ab05b771576365cf597e",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social.html": {
-    "mtime": 1781211950.3892539,
-    "ast_hash": "d875f859fe70853a31575cc6cb93d7fb",
+    "mtime": 1781243712.1012366,
+    "ast_hash": "e0f796c595876f6d7200cc25a5d77e1a",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social.txt": {
-    "mtime": 1781211950.3911912,
-    "ast_hash": "40d9c0cc60055dc39b6ab6f269d54919",
+    "mtime": 1781243712.0994675,
+    "ast_hash": "154b7787c99601c3fdfe8ad700b73b0e",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/__next._full.txt": {
-    "mtime": 1781211950.382017,
-    "ast_hash": "40d9c0cc60055dc39b6ab6f269d54919",
+    "mtime": 1781243712.091943,
+    "ast_hash": "154b7787c99601c3fdfe8ad700b73b0e",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/__next._head.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.091943,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/__next._index.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.091943,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/__next._tree.txt": {
-    "mtime": 1781211950.382017,
-    "ast_hash": "18fa68b37b2d0c08707efe0b44e7a481",
+    "mtime": 1781243712.091943,
+    "ast_hash": "365b2419c98f0721f6d3da89b9c18eeb",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/__next.social.txt": {
-    "mtime": 1781211950.3842194,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.091943,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/__next.social/__PAGE__.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "f0c0aca31943a9b856fdd911b55540f2",
+    "mtime": 1781243712.107779,
+    "ast_hash": "26de7c976b2876fd2018e9e623b058fc",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/household.html": {
-    "mtime": 1781211950.3777332,
-    "ast_hash": "bc286cd230437d19183cf4e33bc76ce3",
+    "mtime": 1781243712.101765,
+    "ast_hash": "523850a01773c7b54237a807a1660741",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/household.txt": {
-    "mtime": 1781211950.3766043,
-    "ast_hash": "24dc21cd24dab53bb4a5d96d8595b39b",
+    "mtime": 1781243712.101765,
+    "ast_hash": "aeab046e469525636b64936ccee78ae5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/household/__next._full.txt": {
-    "mtime": 1781211950.3623729,
-    "ast_hash": "24dc21cd24dab53bb4a5d96d8595b39b",
+    "mtime": 1781243712.0939517,
+    "ast_hash": "aeab046e469525636b64936ccee78ae5",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/household/__next._head.txt": {
-    "mtime": 1781211950.3623729,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0939517,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/household/__next._index.txt": {
-    "mtime": 1781211950.3623729,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/household/__next._tree.txt": {
-    "mtime": 1781211950.3623729,
-    "ast_hash": "54ec50b2c7234d420cde1a2838ba47f2",
+    "mtime": 1781243712.0929527,
+    "ast_hash": "dfdef59cb11281f829f5af023554246e",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/household/__next.social.txt": {
-    "mtime": 1781211950.3623729,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0939517,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/household/__next.social/household.txt": {
-    "mtime": 1781211950.3934498,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/social/household/__next.social/household/__PAGE__.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "9c3a0c1a79b99b3994ced7086d77d2f0",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "b135224dcdace5f651f9a801d488f044",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/terms.html": {
-    "mtime": 1781211950.3911912,
-    "ast_hash": "b10ccdaef81cc613e1dcc9b6d74ee503",
+    "mtime": 1781243712.1027782,
+    "ast_hash": "76a364936728a368c609261a24c42021",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/terms.txt": {
-    "mtime": 1781211950.3911912,
-    "ast_hash": "282136e207f141ed69368d1dea85718b",
+    "mtime": 1781243712.101765,
+    "ast_hash": "48ddf60388233c3096a890aef80ea879",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/terms/__next._full.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "282136e207f141ed69368d1dea85718b",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "48ddf60388233c3096a890aef80ea879",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/terms/__next._head.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/terms/__next._index.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/terms/__next._tree.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "7206b419e87195b0471876325ff3c1c9",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "b341cfb6989d1b12b2ba08d32f79a45b",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/terms/__next.terms.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/terms/__next.terms/__PAGE__.txt": {
-    "mtime": 1781211950.394941,
-    "ast_hash": "5c1a80b0ee44a74d888a5a03b7e230be",
+    "mtime": 1781243712.1087794,
+    "ast_hash": "883a9420e2da72d3045069b61a9b19db",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/travel/menu.html": {
-    "mtime": 1781211950.3892539,
-    "ast_hash": "49e55274a0770fdf1298f95176aadbba",
+    "mtime": 1781243712.1037774,
+    "ast_hash": "01aa032c4527c9a59484f6c77d4c170c",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/travel/menu.txt": {
-    "mtime": 1781211950.3892539,
-    "ast_hash": "9e4a6a92a921e9fa2f1ff066ae125d10",
+    "mtime": 1781243712.1037774,
+    "ast_hash": "cc6d833d1ae10a3a9f9ab90bc1b9773f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/travel/menu/__next._full.txt": {
-    "mtime": 1781211950.382017,
-    "ast_hash": "9e4a6a92a921e9fa2f1ff066ae125d10",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "cc6d833d1ae10a3a9f9ab90bc1b9773f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/travel/menu/__next._head.txt": {
-    "mtime": 1781211950.382017,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/travel/menu/__next._index.txt": {
-    "mtime": 1781211950.382017,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/travel/menu/__next._tree.txt": {
-    "mtime": 1781211950.382017,
-    "ast_hash": "8f17e4834e25cb4ee85b29fecdbb7f94",
+    "mtime": 1781243712.0949512,
+    "ast_hash": "4e7e75d64e4346124d6113a55d607ba3",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/travel/menu/__next.travel.txt": {
-    "mtime": 1781211950.382017,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0964575,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/travel/menu/__next.travel/menu.txt": {
-    "mtime": 1781211950.382017,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0964575,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/travel/menu/__next.travel/menu/__PAGE__.txt": {
-    "mtime": 1781211950.394941,
-    "ast_hash": "9d63c357f7f0f8da088d06ad7c4fe514",
+    "mtime": 1781243712.1087794,
+    "ast_hash": "174715fd3128fc78433e57bd5cdf53a7",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/vision.html": {
-    "mtime": 1781211950.392443,
-    "ast_hash": "e09b7c143c631162554e556a2ac409c2",
+    "mtime": 1781243712.1037774,
+    "ast_hash": "a7443a130f1c89733cb19d955fd97592",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/vision.txt": {
-    "mtime": 1781211950.3911912,
-    "ast_hash": "da8614e1766dc441ac84ef4d569cbc82",
+    "mtime": 1781243712.1037774,
+    "ast_hash": "8e9ca5c5cc7787f74985a07133640ccd",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/vision/__next._full.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "da8614e1766dc441ac84ef4d569cbc82",
+    "mtime": 1781243712.0964575,
+    "ast_hash": "8e9ca5c5cc7787f74985a07133640ccd",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/vision/__next._head.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.0994675,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/vision/__next._index.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.0994675,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/vision/__next._tree.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "67040d922d44effafc5ce4abffb9abbe",
+    "mtime": 1781243712.0964575,
+    "ast_hash": "0facb47ea7448e10e4330eda82d60f4f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/vision/__next.vision.txt": {
-    "mtime": 1781211950.3870628,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.0964575,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/vision/__next.vision/__PAGE__.txt": {
-    "mtime": 1781211950.3961275,
-    "ast_hash": "6a009f98283cf7d314d361c0be26b0ef",
+    "mtime": 1781243712.1087794,
+    "ast_hash": "8c2c867edb5cb1f90038057e4cbbc157",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/workflows.html": {
-    "mtime": 1781211950.3934498,
-    "ast_hash": "dcd8a45b8876526fa847ae1f6ec83ba0",
+    "mtime": 1781243712.107779,
+    "ast_hash": "d65e458d6ff8f3eaa0f9ab2be72f7d90",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/workflows.txt": {
-    "mtime": 1781211950.3934498,
-    "ast_hash": "4dc7a189b6e83dfb262a251e10eb0442",
+    "mtime": 1781243712.106776,
+    "ast_hash": "41cdc50a98203e3d7fd88206a81decf8",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/workflows/__next._full.txt": {
-    "mtime": 1781211950.3892539,
-    "ast_hash": "4dc7a189b6e83dfb262a251e10eb0442",
+    "mtime": 1781243712.1047792,
+    "ast_hash": "41cdc50a98203e3d7fd88206a81decf8",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/workflows/__next._head.txt": {
-    "mtime": 1781211950.3892539,
-    "ast_hash": "de5917adc4ffb8780bf28102ca7d4db4",
+    "mtime": 1781243712.1047792,
+    "ast_hash": "91a2fd46c62e281eecbbf20ddff01655",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/workflows/__next._index.txt": {
-    "mtime": 1781211950.3892539,
-    "ast_hash": "7698436d883a653a78062c448e12767a",
+    "mtime": 1781243712.1047792,
+    "ast_hash": "aa318b6ac658e3a2e39408370614a25f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/workflows/__next._tree.txt": {
-    "mtime": 1781211950.3892539,
-    "ast_hash": "2e9eac63dccaa6d77189922cdcf95fb6",
+    "mtime": 1781243712.1047792,
+    "ast_hash": "b8c36959a25ae284834fa3b332a4fd59",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/workflows/__next.workflows.txt": {
-    "mtime": 1781211950.3892539,
-    "ast_hash": "206fc413a7704203265701599c3a3971",
+    "mtime": 1781243712.1047792,
+    "ast_hash": "a5d0cd25ba30b7c7ca89fdb00c3b04f2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/workflows/__next.workflows/__PAGE__.txt": {
-    "mtime": 1781211950.394941,
-    "ast_hash": "ad524dd0111a77ce00d7938ada419cb2",
+    "mtime": 1781243712.1047792,
+    "ast_hash": "aaeb69fef5d41a01a419fad0016886aa",
     "semantic_hash": ""
   },
   "android/build_apk_workflow.md": {
@@ -3264,153 +3264,138 @@
     "ast_hash": "4ccf38e90250d9fe788392e16b272fd8",
     "semantic_hash": ""
   },
-  "android/app/src/main/assets/public/_next/static/ErsS-YoLYeQHgB94tGHjT/_buildManifest.js": {
-    "mtime": 1781211931.7651865,
-    "ast_hash": "bc0cfaab44bfd4a25472a009a2f12062",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/assets/public/_next/static/ErsS-YoLYeQHgB94tGHjT/_ssgManifest.js": {
-    "mtime": 1781211951.6763287,
-    "ast_hash": "b404e23d62d95bafd03ad7747cc0e88b",
-    "semantic_hash": ""
-  },
   "android/app/src/main/assets/public/_next/static/chunks/3305-66ce640a14859f6d.js": {
-    "mtime": 1781211931.8095,
+    "mtime": 1781243703.020164,
     "ast_hash": "2e07e1ae82d17bcce9cf60b5c61bdf2b",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/6879-1ae9ee107cc90f48.js": {
-    "mtime": 1781211931.8253024,
+    "mtime": 1781243703.0278468,
     "ast_hash": "01dd0c0e7abd7ec1ac20dd60bd13b0c2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/6979.4c57a91df6491f13.js": {
-    "mtime": 1781211931.800686,
+    "mtime": 1781243703.0151663,
     "ast_hash": "e0f2d882e968301fedc442cb1f1b4e4f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/7916-5da7f673af5c456f.js": {
-    "mtime": 1781211931.8155167,
+    "mtime": 1781243703.0248485,
     "ast_hash": "46852ff21112282adeac54b77b8c480f",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/about/page-0864d108f73087c7.js": {
-    "mtime": 1781211931.7780125,
+    "mtime": 1781243703.0026326,
     "ast_hash": "43d635d7ba4c409068857829bccd38f4",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/coach/page-b0ee5147a22abc18.js": {
-    "mtime": 1781211931.7780125,
+    "mtime": 1781243703.0026326,
     "ast_hash": "8e32cd2b011dbaffdec2232de66458a1",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/dashboard/page-d1b1fbd7e7289ff7.js": {
-    "mtime": 1781211931.7780125,
+    "mtime": 1781243703.0036347,
     "ast_hash": "8a6fd55e353011ef0cc9b55f03b314b3",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/history/page-ce5dc613639acc19.js": {
-    "mtime": 1781211931.7780125,
+    "mtime": 1781243703.0046437,
     "ast_hash": "ec699953b6ea71d5d7718484a8b7b770",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/hub/page-32c0f65c4fc3587f.js": {
-    "mtime": 1781211931.7780125,
+    "mtime": 1781243703.0046437,
     "ast_hash": "41593952c8df85aa78901136e9e0aba4",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/layout-e9adcda4548fde6a.js": {
-    "mtime": 1781211931.769595,
+    "mtime": 1781243702.9985778,
     "ast_hash": "3390146d00b00a34006e7001c67241cb",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/login/page-cc1a28680cf1d427.js": {
-    "mtime": 1781211931.7797942,
+    "mtime": 1781243703.0046437,
     "ast_hash": "b72483771f56bb7d61596952bbaa76ca",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/onboarding/medical/page-4617f87d0265e56b.js": {
-    "mtime": 1781211931.7849624,
+    "mtime": 1781243703.0086408,
     "ast_hash": "7fa6a51cfe8ea6fcbfae1b623d578099",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/pantry/page-842b37a171f5621e.js": {
-    "mtime": 1781211931.7870264,
+    "mtime": 1781243703.0086408,
     "ast_hash": "c535890baa3fd298928d35c8fd94de80",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/pantry/scan/page-2c1ffacd2ee2ea9b.js": {
-    "mtime": 1781211931.7925682,
+    "mtime": 1781243703.0096421,
     "ast_hash": "ca6df285d8d4f7b4ab567d759e6d410f",
     "semantic_hash": ""
   },
-  "android/app/src/main/assets/public/_next/static/chunks/app/pricing/page-95eb872e9ff76fc9.js": {
-    "mtime": 1781211931.7870264,
-    "ast_hash": "1c16d86563bcb3b902c6f09c17c6e289",
-    "semantic_hash": ""
-  },
   "android/app/src/main/assets/public/_next/static/chunks/app/privacy/page-189a8606f98739ed.js": {
-    "mtime": 1781211931.7900407,
+    "mtime": 1781243703.0096421,
     "ast_hash": "fa3c01e6bd733eb7dcf0cd5a042dd8ff",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/profile/member/page-adf9cd7d1c72b65e.js": {
-    "mtime": 1781211931.7964418,
+    "mtime": 1781243703.0121486,
     "ast_hash": "35722a0ab41faf1552e26bf1bdfecfb2",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/profile/page-04b4b86a94dea1b3.js": {
-    "mtime": 1781211931.794314,
+    "mtime": 1781243703.0116425,
     "ast_hash": "1e826d8cfcd826cdc828937a5a381a75",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/rating/page-5cd706d80bcc58c5.js": {
-    "mtime": 1781211931.7954345,
+    "mtime": 1781243703.0131578,
     "ast_hash": "e1b996eee6bbb768c7afac38bc14009d",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/settings/medical/page-9c9db699c5706481.js": {
-    "mtime": 1781211931.798176,
+    "mtime": 1781243703.0151663,
     "ast_hash": "cdba78b22841754b4fab5e624f527543",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/shopping/page-956f46521dff868e.js": {
-    "mtime": 1781211931.798176,
+    "mtime": 1781243703.0141654,
     "ast_hash": "13427f6dfe5b89a15b44a14206d3d082",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/social/household/page-2518682365086e8f.js": {
-    "mtime": 1781211931.800686,
+    "mtime": 1781243703.0151663,
     "ast_hash": "cb499c922a1a4e3c4b063679e184ec47",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/social/page-958cadbcaad940a9.js": {
-    "mtime": 1781211931.798176,
+    "mtime": 1781243703.0141654,
     "ast_hash": "83f560a158d2249a8a69daed05591624",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/terms/page-4e9bf596d8daa668.js": {
-    "mtime": 1781211931.798176,
+    "mtime": 1781243703.0141654,
     "ast_hash": "877093af07ea8387892a1e1674d964e8",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/travel/menu/page-c9359a5a625e6df3.js": {
-    "mtime": 1781211931.800686,
+    "mtime": 1781243703.0161662,
     "ast_hash": "0b02f8baf6b6a42eee958a2d265357d9",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/vision/page-ed0bccc6a1ef7ce6.js": {
-    "mtime": 1781211931.798176,
+    "mtime": 1781243703.0151663,
     "ast_hash": "5ee103de0445c47c3f390feccbb97209",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/app/workflows/page-0afbca27cf1b4608.js": {
-    "mtime": 1781211931.798176,
+    "mtime": 1781243703.0151663,
     "ast_hash": "8fa6b6b27814c365e0f035374e938d17",
     "semantic_hash": ""
   },
   "android/app/src/main/assets/public/_next/static/chunks/webpack-fe7f540ef66baa3c.js": {
-    "mtime": 1781211931.798176,
+    "mtime": 1781243703.0141654,
     "ast_hash": "2addeeda10e4abe4d9901d7615427831",
     "semantic_hash": ""
   },
@@ -3435,13 +3420,58 @@
     "semantic_hash": ""
   },
   "nodes/billing-plans-and-backend-audit.md": {
-    "mtime": 1781236056.373821,
-    "ast_hash": "da7edfaf3ed7cb20f7594be5c81351c0",
+    "mtime": 1781243278.1071014,
+    "ast_hash": "3040741674174dd3541cf672b2511bcf",
     "semantic_hash": ""
   },
   "supabase/migrations/20260612020000_pricing_v2_coach_teams.sql": {
     "mtime": 1781242594.5746646,
     "ast_hash": "a2631f141a8006246bb413d13e962a7a",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/assets/public/_next/static/chunks/app/pricing/page-954beebd5eb68f6e.js": {
+    "mtime": 1781243703.0096421,
+    "ast_hash": "341ba42419189ba338bb1d89d56a8c25",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/assets/public/_next/static/jdr-gyOgre9Jlhh_EpEbM/_buildManifest.js": {
+    "mtime": 1781243702.9965694,
+    "ast_hash": "bc0cfaab44bfd4a25472a009a2f12062",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/assets/public/_next/static/jdr-gyOgre9Jlhh_EpEbM/_ssgManifest.js": {
+    "mtime": 1781243713.4855306,
+    "ast_hash": "b404e23d62d95bafd03ad7747cc0e88b",
+    "semantic_hash": ""
+  },
+  "src/app/recipes/page.tsx": {
+    "mtime": 1781278277.373464,
+    "ast_hash": "dd0d63d7c16d30ebf60c594969c37ac0",
+    "semantic_hash": ""
+  },
+  "src/lib/services/recipe.service.ts": {
+    "mtime": 1781278177.5781486,
+    "ast_hash": "7b397519b313ee3215aae2ce6b10bcac",
+    "semantic_hash": ""
+  },
+  "src/lib/utils/recipes.ts": {
+    "mtime": 1781278168.8470132,
+    "ast_hash": "ba33da4ec2423fb0057d7334d78f2d44",
+    "semantic_hash": ""
+  },
+  "supabase/functions/recipe-engine/index.ts": {
+    "mtime": 1781278005.6204102,
+    "ast_hash": "d36149e3e629e0d495c64b7c4937057e",
+    "semantic_hash": ""
+  },
+  "supabase/functions/recipe-import/index.ts": {
+    "mtime": 1781278106.5719955,
+    "ast_hash": "3da5d7992090139dcef00984793d5ff5",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/20260612030000_pantry_macros_and_recipes.sql": {
+    "mtime": 1781277319.5393772,
+    "ast_hash": "b948c7fdc32da3b00a0078c5645b8388",
     "semantic_hash": ""
   }
 }

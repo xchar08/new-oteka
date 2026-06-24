@@ -17,7 +17,8 @@ import {
   XCircle,
   Sparkles,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -137,6 +138,24 @@ export default function PantryPage() {
     } catch {
       toast.error('Failed to update item.');
     }
+  };
+
+  // Permanently remove an item (e.g. added by mistake), with a confirm step.
+  const handleDeleteItem = (pantryId: number, name: string) => {
+    toast(`Remove ${name} from your pantry?`, {
+      action: {
+        label: 'Remove',
+        onClick: async () => {
+          try {
+            await pantryService.deleteItem(pantryId);
+            toast.success(`Removed ${name}.`);
+            refetchPantry();
+          } catch {
+            toast.error('Failed to remove item.');
+          }
+        },
+      },
+    });
   };
 
   // --- PLANNER ---
@@ -496,7 +515,16 @@ export default function PantryPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <motion.button 
+                <motion.button
+                  onClick={() => handleDeleteItem(item.id, item.name || item.foods?.name || 'item')}
+                  whileHover={{ scale: 1.1, backgroundColor: 'var(--error)', color: '#fff' }}
+                  whileTap={{ scale: 0.9 }}
+                  aria-label="Remove item"
+                  className="w-10 h-10 rounded-xl bg-[var(--bg-app)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)]"
+                >
+                  <Trash2 size={18} strokeWidth={2.5} />
+                </motion.button>
+                <motion.button
                   onClick={() => handleAddMeal(item)}
                   whileHover={{ scale: 1.1, backgroundColor: 'var(--primary)', color: '#fff' }}
                   whileTap={{ scale: 0.9 }}

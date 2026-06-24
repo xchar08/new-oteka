@@ -73,9 +73,9 @@ Pre-curated bundles of context for common tasks:
 
 ## Vault Overview
 
-- **9** published documents, **0** drafts
+- **11** published documents, **0** drafts
 - **0** relationship edges
-- Tags: `#a11y`, `#architecture`, `#code-quality`, `#conventions`, `#design-system`, `#getting-started`, `#gotchas`, `#onboarding`, `#overview`, `#product`, `#setup`, `#standards`, `#tech-stack`
+- Tags: `#a11y`, `#architecture`, `#code-quality`, `#conventions`, `#design-system`, `#getting-started`, `#gotchas`, `#onboarding`, `#overview`, `#product`, `#setup`, `#standards`, `#tech-stack`, `#workflows`
 
 ## Rules
 
@@ -92,6 +92,8 @@ Pre-curated bundles of context for common tasks:
 - `PRODUCT.md` (project root) — strategy: users, purpose, brand personality, anti-references, design principles.
 - `DESIGN.md` (project root) — visual system: "The Solar Instrument" tokens, typography, elevation, components, do's/don'ts. Machine-readable extensions in `.impeccable/design.json`.
 - All `/impeccable` commands read these files; consult them before any UI work so changes stay on-brand.
+
+
 
 
 

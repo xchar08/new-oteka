@@ -160,7 +160,12 @@ function runTSOptimization(
       if (totalSodium + (g.sodium || 0) > maxSodium) continue;
       if (totalSugar + (g.sugar || 0) > maxSugar) continue;
 
-      const calGap = (Math.abs(remainCal - g.calories) / targetCal) * 1000;
+      // Target an even share of the REMAINING budget per open slot — the
+      // old form chased the full remainder each pick, producing one large
+      // item then terminating instead of a balanced multi-item plan
+      const slotsLeft = MAX_ITEMS - selected.length;
+      const idealPortion = remainCal / Math.max(1, slotsLeft);
+      const calGap = (Math.abs(idealPortion - g.calories) / targetCal) * 1000;
       const protGap = (Math.max(0, remainProt - g.protein) / targetProt) * 1000 * 2.5;
       const pantryBonus = g.inPantry ? 0 : (constraints.strictness ? 5000 : 50);
 
@@ -515,8 +520,12 @@ serve(async (req) => {
         return itemName && !globalExclusions.includes(itemName.toLowerCase());
       })
       .map((p: any) => {
-        // Use foods table data if linked, otherwise use defaults
+        // Macro priority: validated per-100g macros written by the pantry
+        // scanner/trigger > linked foods-table profile > generic floor.
+        // (The pantry_enforce_macros trigger guarantees the first exists on
+        // rows written after its deployment.)
         const ni = p.foods?.nutritional_info || {};
+        const pm = p.metadata_json?.macros_per_100g;
         // expiry_text is free text from the vision scan; only use it if it parses as a date
         const expiryText = p.metadata_json?.expiry_text;
         const expiry = expiryText && !isNaN(new Date(expiryText).getTime())
@@ -524,10 +533,10 @@ serve(async (req) => {
           : undefined;
         return {
           name: p.foods?.name || p.name || "Unknown",
-          calories: ni.calories || 100,
-          protein: ni.protein || 5,
-          carbs: ni.carbs || 10,
-          fats: ni.fats || 2,
+          calories: Number(pm?.calories) || ni.calories || 100,
+          protein: Number(pm?.protein) || ni.protein || 5,
+          carbs: Number(pm?.carbs) || ni.carbs || 10,
+          fats: Number(pm?.fat) || ni.fats || 2,
           sodium: ni.sodium || 0,
           sugar: ni.sugar || 0,
           magnesium: ni.magnesium || 10,
@@ -536,7 +545,7 @@ serve(async (req) => {
           inPantry: true,
           expiry,
           ingredients: Array.isArray(p.metadata_json?.ingredients) ? p.metadata_json.ingredients : undefined,
-          category: ni.category || (p.metadata_json?.category) || "general",
+          category: p.metadata_json?.category || ni.category || "general",
           decay_coefficient: p.foods?.category_decay_rate || 0.05,
           logged_at: p.created_at,
           taste_vector: ni.taste_vector || undefined,
@@ -578,18 +587,46 @@ serve(async (req) => {
       }
     }
 
+    // Bounded: the old query fetched every feedback log the user ever made
     const { data: logsRaw } = await supabase
       .from("logs")
       .select("metabolic_tags_json")
       .eq("user_id", user.id)
-      .not("metabolic_tags_json->feedback", "is", null);
+      .not("metabolic_tags_json->feedback", "is", null)
+      .order("captured_at", { ascending: false })
+      .limit(100);
 
     const recentFeedback = (logsRaw || []).map((l) => {
       const f = l.metabolic_tags_json.feedback;
       const avgScore =
         ((f.taste || 3) + (f.digestion || 3) + (f.satiety || 3)) / 3;
-      return { item: l.metabolic_tags_json.item, score: avgScore };
-    });
+      return { item: l.metabolic_tags_json.item || l.metabolic_tags_json.food_name, score: avgScore };
+    }).filter((f) => f.item);
+
+    // Recent eating history (last 7 days) feeds the fatigue + category
+    // cooldown reasoning — this was previously never fetched, leaving that
+    // entire scoring branch dead
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const { data: historyRaw } = await supabase
+      .from("logs")
+      .select("captured_at, metabolic_tags_json")
+      .eq("user_id", user.id)
+      .gte("captured_at", sevenDaysAgo)
+      .order("captured_at", { ascending: false })
+      .limit(60);
+
+    const recentHistory = (historyRaw || [])
+      .map((l: any) => {
+        const tags = l.metabolic_tags_json || {};
+        const itemName = tags.item || tags.food_name;
+        if (!itemName) return null;
+        return {
+          item_name: String(itemName),
+          days_ago: Math.max(0, Math.floor((Date.now() - new Date(l.captured_at).getTime()) / 86400000)),
+          category: tags.items?.[0]?.category || undefined,
+        };
+      })
+      .filter(Boolean) as Array<{ item_name: string; days_ago: number; category?: string }>;
 
     let solutions: any[] = [];
     let method = "TS_FALLBACK";
@@ -637,12 +674,41 @@ serve(async (req) => {
             item_name: f.item,
             score: f.score,
           })),
-          recent_history: null,
+          recent_history: recentHistory.length > 0
+            ? recentHistory.map((h) => ({ item_name: h.item_name, days_ago: h.days_ago }))
+            : null,
           strictness: constraints.strictness || 1.0,
         };
         const results = optimize_meal_plan_wasm(wasmReq, BigInt(Date.now()));
         if (Array.isArray(results) && results.length > 0) {
-          solutions = results.map((result: any) => ({
+          // MEDICAL SAFETY GATE: the Rust FoodItem carries no sodium/sugar/
+          // ingredient data, so WASM plans must be re-validated here against
+          // the same constraints the TS path enforces. Violating plans are
+          // dropped (the TS fallback below runs if none survive).
+          const geneByName = new Map(pantryPool.map((g) => [g.name.toLowerCase(), g]));
+          const bannedSet = new Set(globalExclusions);
+          const capSodium = conditions.reduce(
+            (m: number, c: any) => Math.min(m, c.rules_json?.max_sodium ?? Infinity), Infinity);
+          const capSugar = conditions.reduce(
+            (m: number, c: any) => Math.min(m, c.rules_json?.max_sugar ?? Infinity), Infinity);
+
+          const safeResults = results.filter((result: any) => {
+            let sodium = 0, sugar = 0;
+            for (const f of result.selected_foods) {
+              const gene = geneByName.get(String(f.name || "").toLowerCase());
+              if (!gene) continue;
+              if (bannedSet.has(gene.name.toLowerCase())) return false;
+              if (gene.ingredients?.some((ing) => bannedSet.has(ing.toLowerCase()))) return false;
+              sodium += gene.sodium || 0;
+              sugar += gene.sugar || 0;
+            }
+            return sodium <= capSodium && sugar <= capSugar;
+          });
+          if (safeResults.length < results.length) {
+            console.warn(`[optimize-meals] Dropped ${results.length - safeResults.length} WASM plan(s) violating medical constraints`);
+          }
+
+          solutions = safeResults.map((result: any) => ({
             menu: result.selected_foods.map((f: any) => f.name),
             stats: {
               calories: result.total_calories,
@@ -668,7 +734,7 @@ serve(async (req) => {
             },
             score: result.fitness_score,
           }));
-          method = "WASM_ON_EDGE";
+          if (solutions.length > 0) method = "WASM_ON_EDGE";
         }
       } catch (e) {
         console.warn("[WASM] Execution failed, falling back to TS", e);
@@ -685,6 +751,7 @@ serve(async (req) => {
         conditions,
         userTasteProfile,
         tasteConfidence,
+        recentHistory,
       );
       if (solutions.length === 0) {
         if (iteration === 0) constraints.strictness *= 0.9;

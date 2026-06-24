@@ -146,3 +146,57 @@ checkpoints:
       nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
       nodes/standards/coding-conventions: sha256:1cbc57fd6a188bbeb29a955d33b98c1f28764101a7f72251d28486fc30d4d616
     checkpoint_hash: sha256:a52a807991a4db76adf1e078d1365787599b1151bb033655d9910d732c100f4a
+  - checkpoint: 10
+    at: '2026-06-12T15:37:27.846Z'
+    triggered_by: nodes/scanner-audit-recipe-engine
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/billing-plans-and-backend-audit: 2
+      nodes/dashboard-hardening-decisions: 2
+      nodes/design-doctrine-init: 2
+      nodes/logs-week-navigation: 2
+      nodes/meal-editing: 2
+      nodes/on-primary-contrast-tokens: 2
+      nodes/onboarding/getting-started: 1
+      nodes/scanner-audit-recipe-engine: 2
+      nodes/standards/coding-conventions: 1
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+      nodes/billing-plans-and-backend-audit: sha256:a7d468774738c1093d092a91aa64c7d666a900e7a3aa78486a3214e0b1c7f57d
+      nodes/dashboard-hardening-decisions: sha256:5437358dcc1ccc8f0cce8651078021430c43d57b21602b593d4fe2b107096100
+      nodes/design-doctrine-init: sha256:81cf575e309170b164ce7acb1e59d645ff285abd4690b0718ab010d30399cd41
+      nodes/logs-week-navigation: sha256:7dc51f0023459f1f3eec144a74dd6588b1175bc72f8f00fd205e852d394a1e5c
+      nodes/meal-editing: sha256:4b3e7fdb22b0ed233bba58ac2a9ce6816cc87df52cc451d87850c0be32790462
+      nodes/on-primary-contrast-tokens: sha256:149c3078a51d34cfa7b8928cc6d0756cd0815bee915fbd92d60f886600648303
+      nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
+      nodes/scanner-audit-recipe-engine: sha256:9dbb3769bbf2d1d429f06f3ee386bd6ed2f9c4a257e313cfaa9023faf21a0afa
+      nodes/standards/coding-conventions: sha256:1cbc57fd6a188bbeb29a955d33b98c1f28764101a7f72251d28486fc30d4d616
+    checkpoint_hash: sha256:7bf36f74cadcc4d7f5a38020c60dbe196be8185e438d73764208bffb0ca3d923
+  - checkpoint: 11
+    at: '2026-06-23T03:27:45.143Z'
+    triggered_by: nodes/workflows-automation-architecture
+    document_versions:
+      nodes/architecture/architecture-overview: 1
+      nodes/billing-plans-and-backend-audit: 2
+      nodes/dashboard-hardening-decisions: 2
+      nodes/design-doctrine-init: 2
+      nodes/logs-week-navigation: 2
+      nodes/meal-editing: 2
+      nodes/on-primary-contrast-tokens: 2
+      nodes/onboarding/getting-started: 1
+      nodes/scanner-audit-recipe-engine: 2
+      nodes/standards/coding-conventions: 1
+      nodes/workflows-automation-architecture: 2
+    document_chain_hashes:
+      nodes/architecture/architecture-overview: sha256:a3423558c63e53542ffd6f1e5da1e49ecb08574b9ed905c7b377890378af49ac
+      nodes/billing-plans-and-backend-audit: sha256:a7d468774738c1093d092a91aa64c7d666a900e7a3aa78486a3214e0b1c7f57d
+      nodes/dashboard-hardening-decisions: sha256:5437358dcc1ccc8f0cce8651078021430c43d57b21602b593d4fe2b107096100
+      nodes/design-doctrine-init: sha256:81cf575e309170b164ce7acb1e59d645ff285abd4690b0718ab010d30399cd41
+      nodes/logs-week-navigation: sha256:7dc51f0023459f1f3eec144a74dd6588b1175bc72f8f00fd205e852d394a1e5c
+      nodes/meal-editing: sha256:4b3e7fdb22b0ed233bba58ac2a9ce6816cc87df52cc451d87850c0be32790462
+      nodes/on-primary-contrast-tokens: sha256:149c3078a51d34cfa7b8928cc6d0756cd0815bee915fbd92d60f886600648303
+      nodes/onboarding/getting-started: sha256:8363dec01bd2764731410a655a7b223f52f25407a3d85f42731ac102f73023f0
+      nodes/scanner-audit-recipe-engine: sha256:9dbb3769bbf2d1d429f06f3ee386bd6ed2f9c4a257e313cfaa9023faf21a0afa
+      nodes/standards/coding-conventions: sha256:1cbc57fd6a188bbeb29a955d33b98c1f28764101a7f72251d28486fc30d4d616
+      nodes/workflows-automation-architecture: sha256:1b5c03217e23a078c19e1a17eb030a2ac480d571e1c76d9db8468438a225b9fc
+    checkpoint_hash: sha256:8d2fdbf246c71a2b9588d2636a7cc33a67e52245bab85bed74a5dadd6967fb95

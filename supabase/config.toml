@@ -454,3 +454,13 @@ entrypoint = "./functions/optimize-meals/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/shopping-generator/index.ts"
+
+[functions.recipe-engine]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/recipe-engine/index.ts"
+
+[functions.recipe-import]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/recipe-import/index.ts"

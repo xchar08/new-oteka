@@ -49,6 +49,7 @@ const HUB_GROUPS = [
     items: [
       { name: 'Meal Planner', href: '/pantry', icon: Calendar, color: 'var(--primary)', isPremium: true },
       { name: 'Shopping List', href: '/shopping', icon: ShoppingCart, color: 'var(--primary)', isPremium: true },
+      { name: 'Recipes', href: '/recipes', icon: ChefHat, color: 'var(--primary)' },
     ]
   },
   {

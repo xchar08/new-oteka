@@ -15,6 +15,8 @@ type Message = {
   ts: number;
 };
 
+const STORAGE_KEY = 'oteka_coach_history';
+
 export default function CoachPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -29,17 +31,40 @@ export default function CoachPage() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
+  // Restore persisted conversation, or show the greeting on a fresh start.
   useEffect(() => {
-    if (messages.length === 0) {
-      setTimeout(() => {
-        setMessages([{
-          role: 'assistant',
-          content: "Hello! I'm your Metabolic Coach. I can help you optimize your nutrition, track patterns, and achieve your health goals. How are you feeling today?",
-          ts: Date.now()
-        }]);
-      }, 600);
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Message[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          return;
+        }
+      }
+    } catch {
+      // Corrupt/unavailable storage — fall through to greeting.
     }
+
+    setTimeout(() => {
+      setMessages([{
+        role: 'assistant',
+        content: "Hello! I'm your Metabolic Coach. I can help you optimize your nutrition, track patterns, and achieve your health goals. How are you feeling today?",
+        ts: Date.now()
+      }]);
+    }, 600);
   }, []);
+
+  // Persist the conversation so it survives navigation/refresh.
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      } catch {
+        // Storage full or unavailable — non-fatal.
+      }
+    }
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!input.trim() || busy) return;
@@ -49,11 +74,16 @@ export default function CoachPage() {
     setInput('');
     setBusy(true);
 
+    // Send the recent conversation so the advisor has in-session memory.
+    const history = [...messages, userMsg]
+      .slice(-10)
+      .map(({ role, content }) => ({ role, content }));
+
     try {
       const { data, error } = await supabase.functions.invoke(
         'advisor-context',
         {
-          body: { context: 'chat', query: userMsg.content },
+          body: { context: 'chat', query: userMsg.content, history },
         }
       );
 

@@ -63,9 +63,9 @@ Pre-curated bundles of context for common tasks:
 
 ## Vault Overview
 
-- **9** published documents, **0** drafts
+- **11** published documents, **0** drafts
 - **0** relationship edges
-- Tags: `#a11y`, `#architecture`, `#code-quality`, `#conventions`, `#design-system`, `#getting-started`, `#gotchas`, `#onboarding`, `#overview`, `#product`, `#setup`, `#standards`, `#tech-stack`
+- Tags: `#a11y`, `#architecture`, `#code-quality`, `#conventions`, `#design-system`, `#getting-started`, `#gotchas`, `#onboarding`, `#overview`, `#product`, `#setup`, `#standards`, `#tech-stack`, `#workflows`
 
 ## Rules
 

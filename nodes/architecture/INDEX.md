@@ -2,7 +2,7 @@
 title: "Architecture Index"
 type: index
 auto_generated: true
-generated_at: 2026-06-11T21:24:41.289Z
+generated_at: 2026-06-23T03:27:45.233Z
 ---
 
 # Architecture

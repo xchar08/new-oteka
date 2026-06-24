@@ -49,6 +49,8 @@ serve(async (req) => {
     const userQuery = reqBody?.query || "";
     const clientDailyTotals = reqBody?.dailyTotals;
     const clientRecentLogs = reqBody?.recentLogs;
+    // Prior turns for in-session conversation memory (sanitized below).
+    const clientHistory = Array.isArray(reqBody?.history) ? reqBody.history : [];
 
     // 1. Fetch User Profile, Conditions & Metabolic Phenomena
     const { data: profile } = await supabase
@@ -175,6 +177,18 @@ Recent Items:
       ? userQuery
       : "Analyze.";
 
+    // Build the conversation turns. History (when provided) already ends with
+    // the user's latest message, so we don't re-append userMessage.
+    const conversation = clientHistory.length > 0
+      ? clientHistory
+          .filter((m: any) =>
+            (m?.role === "user" || m?.role === "assistant") &&
+            typeof m?.content === "string"
+          )
+          .slice(-10)
+          .map((m: any) => ({ role: m.role, content: m.content }))
+      : [{ role: "user", content: userMessage }];
+
     // 5. Call Hybrid Intelligence (DeepSeek -> Gemini)
     let advice = "Metabolic systems nominal.";
     let strategy = "unknown";
@@ -205,7 +219,7 @@ Recent Items:
               model: NEBIUS_MODEL,
               messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: userMessage },
+                ...conversation,
               ],
               max_tokens: 1024, // Increased to prevent <think> truncation
               temperature: 0.6,
@@ -275,13 +289,19 @@ Recent Items:
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 20000);
 
+            const convoText = conversation
+              .map((m: { role: string; content: string }) =>
+                `${m.role === "user" ? "User" : "Coach"}: ${m.content}`
+              )
+              .join("\n");
+
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_API_KEY}`;
             const geminiRes = await fetch(url, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 contents: [{
-                  parts: [{ text: `${systemPrompt}\n\nUser: ${userMessage}` }],
+                  parts: [{ text: `${systemPrompt}\n\n${convoText}` }],
                 }],
               }),
               signal: controller.signal,
