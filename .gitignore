@@ -68,7 +68,6 @@ android/gradlew.bat
 ios/.gradle/
 ios/build/
 ios/Pods/
-ios/Podfile.lock
 ios/Runner.xcworkspace/
 ios/Runner.xcodeproj/project.xcworkspace/
 ios/Runner.xcodeproj/xcuserdata/

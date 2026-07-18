@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { createClient } from '@/lib/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -242,7 +243,7 @@ export function OptimisticCapture({
 
       await uploadMutation.mutateAsync({ userId: authUser.id, blob });
 
-      const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNative;
+      const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
       if (isNative) {
         await LocalNotifications.requestPermissions();
         await LocalNotifications.schedule({
